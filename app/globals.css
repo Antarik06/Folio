@@ -1,0 +1,247 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  /* Editorial Darkroom Palette */
+  --background: #F5F0E8; /* aged paper */
+  --foreground: #1C1814; /* near-black with warmth */
+  --card: #FDFAF5; /* warm white, fine cartridge paper */
+  --card-foreground: #1C1814;
+  --popover: #FDFAF5;
+  --popover-foreground: #1C1814;
+  --primary: #B85C38; /* terracotta - worn, not bright */
+  --primary-foreground: #FDFAF5;
+  --secondary: #3A7D6E; /* bottle green - forest depth */
+  --secondary-foreground: #FDFAF5;
+  --muted: #F5F0E8;
+  --muted-foreground: #7A6F64; /* pencil on ivory */
+  --accent: #3A7D6E;
+  --accent-foreground: #FDFAF5;
+  --destructive: #B85C38;
+  --destructive-foreground: #FDFAF5;
+  --border: #DDD8CE; /* linen texture suggestion */
+  --input: #DDD8CE;
+  --ring: #B85C38;
+  --chart-1: #B85C38;
+  --chart-2: #3A7D6E;
+  --chart-3: #7A6F64;
+  --chart-4: #DDD8CE;
+  --chart-5: #1C1814;
+  --radius: 4px; /* almost square, not bubbly */
+  --sidebar: #F5F0E8;
+  --sidebar-foreground: #1C1814;
+  --sidebar-primary: #B85C38;
+  --sidebar-primary-foreground: #FDFAF5;
+  --sidebar-accent: #3A7D6E;
+  --sidebar-accent-foreground: #FDFAF5;
+  --sidebar-border: #DDD8CE;
+  --sidebar-ring: #B85C38;
+  
+  /* Custom tokens */
+  --surface: #FDFAF5;
+  --ink: #1C1814;
+  --terracotta: #B85C38;
+  --bottle-green: #3A7D6E;
+  --paper: #F5F0E8;
+  --linen: #DDD8CE;
+  --pencil: #7A6F64;
+  --darkroom: #1C1814;
+}
+
+.dark {
+  --background: #1C1814;
+  --foreground: #F5F0E8;
+  --card: #252019;
+  --card-foreground: #F5F0E8;
+  --popover: #252019;
+  --popover-foreground: #F5F0E8;
+  --primary: #B85C38;
+  --primary-foreground: #F5F0E8;
+  --secondary: #3A7D6E;
+  --secondary-foreground: #F5F0E8;
+  --muted: #252019;
+  --muted-foreground: #7A6F64;
+  --accent: #3A7D6E;
+  --accent-foreground: #F5F0E8;
+  --destructive: #B85C38;
+  --destructive-foreground: #F5F0E8;
+  --border: #3a342b;
+  --input: #3a342b;
+  --ring: #B85C38;
+  --sidebar: #1C1814;
+  --sidebar-foreground: #F5F0E8;
+  --sidebar-primary: #B85C38;
+  --sidebar-primary-foreground: #F5F0E8;
+  --sidebar-accent: #3A7D6E;
+  --sidebar-accent-foreground: #F5F0E8;
+  --sidebar-border: #3a342b;
+  --sidebar-ring: #B85C38;
+}
+
+@theme inline {
+  --font-sans: 'DM Sans', sans-serif;
+  --font-serif: 'Cormorant Garamond', serif;
+  --font-mono: 'DM Mono', monospace;
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --radius-sm: calc(var(--radius) - 2px);
+  --radius-md: var(--radius);
+  --radius-lg: calc(var(--radius) + 4px);
+  --radius-xl: calc(var(--radius) + 8px);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+  
+  /* Custom color tokens */
+  --color-surface: var(--surface);
+  --color-ink: var(--ink);
+  --color-terracotta: var(--terracotta);
+  --color-bottle-green: var(--bottle-green);
+  --color-paper: var(--paper);
+  --color-linen: var(--linen);
+  --color-pencil: var(--pencil);
+  --color-darkroom: var(--darkroom);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* Film grain overlay effect */
+.film-grain {
+  position: relative;
+}
+
+.film-grain::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+  opacity: 0.03;
+  pointer-events: none;
+  mix-blend-mode: multiply;
+}
+
+/* Diagonal strike-through for rejected photos */
+.photo-rejected {
+  position: relative;
+}
+
+.photo-rejected::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to bottom right,
+    transparent calc(50% - 1px),
+    #7A6F64 calc(50% - 1px),
+    #7A6F64 calc(50% + 1px),
+    transparent calc(50% + 1px)
+  );
+  pointer-events: none;
+}
+
+/* Polaroid styling */
+.polaroid {
+  padding: 8px 8px 24px 8px;
+  background: #FDFAF5;
+  box-shadow: 0 1px 3px rgba(28, 24, 20, 0.08);
+}
+
+/* Page turn animation */
+@keyframes pageTurn {
+  0% {
+    transform: perspective(1200px) rotateY(0deg);
+    transform-origin: left center;
+  }
+  100% {
+    transform: perspective(1200px) rotateY(-180deg);
+    transform-origin: left center;
+  }
+}
+
+/* Subtle pulse for active states */
+@keyframes subtlePulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.pulse-subtle {
+  animation: subtlePulse 2s ease-in-out infinite;
+}
+
+/* Smooth scroll behavior */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Selection styling */
+::selection {
+  background-color: #B85C38;
+  color: #FDFAF5;
+}
+
+/* Focus visible styling */
+:focus-visible {
+  outline: 2px solid #B85C38;
+  outline-offset: 2px;
+}
+
+/* Hide scrollbar utility */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* Writing mode for vertical text */
+.writing-vertical {
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+}
+
+/* Custom text balance */
+.text-balance {
+  text-wrap: balance;
+}
