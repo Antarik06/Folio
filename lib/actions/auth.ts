@@ -31,7 +31,7 @@ export async function signUp(formData: FormData) {
   return { success: true, message: 'Check your email to confirm your account' }
 }
 
-export async function signIn(formData: FormData) {
+export async function signIn(formData: FormData, redirectTo?: string) {
   const supabase = await createClient()
   
   const email = formData.get('email') as string
@@ -47,7 +47,8 @@ export async function signIn(formData: FormData) {
   }
 
   revalidatePath('/', 'layout')
-  redirect('/dashboard')
+  const safePath = redirectTo?.startsWith('/') ? redirectTo : '/dashboard'
+  redirect(safePath)
 }
 
 export async function signOut() {
@@ -78,15 +79,18 @@ export async function getProfile() {
   return profile
 }
 
-export async function signInWithGoogle() {
+export async function signInWithGoogle(next?: string) {
   const supabase = await createClient()
   const headersList = await headers()
   const origin = headersList.get('origin') || process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
 
+  const safePath = next?.startsWith('/') ? next : '/dashboard'
+  const callbackUrl = `${origin}/auth/callback?next=${encodeURIComponent(safePath)}`
+
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: 'google',
     options: {
-      redirectTo: `${origin}/auth/callback`,
+      redirectTo: callbackUrl,
     },
   })
 

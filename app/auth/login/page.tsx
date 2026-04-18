@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import { useSearchParams } from 'next/navigation'
 import { signIn, signInWithGoogle } from '@/lib/actions/auth'
 
 function GoogleIcon() {
@@ -19,13 +20,13 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [googleLoading, setGoogleLoading] = useState(false)
+  const searchParams = useSearchParams()
+  const next = searchParams.get('next') ?? '/dashboard'
 
   async function handleSubmit(formData: FormData) {
     setLoading(true)
     setError(null)
-    
-    const result = await signIn(formData)
-    
+    const result = await signIn(formData, next)
     if (result?.error) {
       setError(result.error)
       setLoading(false)
@@ -35,7 +36,7 @@ export default function LoginPage() {
   async function handleGoogleSignIn() {
     setGoogleLoading(true)
     setError(null)
-    const result = await signInWithGoogle()
+    const result = await signInWithGoogle(next)
     if (result?.error) {
       setError(result.error)
       setGoogleLoading(false)
@@ -50,14 +51,14 @@ export default function LoginPage() {
           <Link href="/" className="inline-block mb-12">
             <span className="font-serif text-2xl tracking-tight text-foreground">Folio</span>
           </Link>
-          
+
           <h1 className="font-serif text-4xl md:text-5xl text-foreground mb-3">
             Welcome back
           </h1>
           <p className="text-muted-foreground mb-10">
             Sign in to continue crafting your stories.
           </p>
-          
+
           {error && (
             <div className="mb-6 p-4 bg-terracotta/10 border border-terracotta/30 text-terracotta text-sm">
               {error}
@@ -84,12 +85,10 @@ export default function LoginPage() {
               <div className="w-full border-t border-border" />
             </div>
             <div className="relative flex justify-center">
-              <span className="bg-background px-4 text-xs uppercase tracking-widest text-muted-foreground">
-                or
-              </span>
+              <span className="bg-background px-4 text-xs uppercase tracking-widest text-muted-foreground">or</span>
             </div>
           </div>
-          
+
           <form action={handleSubmit} className="space-y-6">
             <div>
               <label htmlFor="email" className="block text-sm font-sans uppercase tracking-wider text-muted-foreground mb-2">
@@ -104,7 +103,7 @@ export default function LoginPage() {
                 placeholder="you@example.com"
               />
             </div>
-            
+
             <div>
               <label htmlFor="password" className="block text-sm font-sans uppercase tracking-wider text-muted-foreground mb-2">
                 Password
@@ -118,7 +117,7 @@ export default function LoginPage() {
                 placeholder="Your password"
               />
             </div>
-            
+
             <button
               type="submit"
               disabled={loading || googleLoading}
@@ -127,16 +126,19 @@ export default function LoginPage() {
               {loading ? 'Signing in...' : 'Sign in'}
             </button>
           </form>
-          
+
           <p className="mt-8 text-center text-muted-foreground text-sm">
             Don&apos;t have an account?{' '}
-            <Link href="/auth/sign-up" className="text-primary hover:text-primary/80 transition-colors">
+            <Link
+              href={`/auth/sign-up${next !== '/dashboard' ? `?next=${encodeURIComponent(next)}` : ''}`}
+              className="text-primary hover:text-primary/80 transition-colors"
+            >
               Create one
             </Link>
           </p>
         </div>
       </div>
-      
+
       {/* Right Panel - Visual */}
       <div className="hidden lg:flex w-1/2 bg-card items-center justify-center p-16">
         <div className="max-w-lg">

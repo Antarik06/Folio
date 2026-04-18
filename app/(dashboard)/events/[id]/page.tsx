@@ -31,7 +31,14 @@ export default async function EventDetailPage({ params }: Props) {
 
   // Check if user is host or guest
   const isHost = event.host_id === user?.id
-  
+
+  // Auto-generate invite code if missing (covers events created before the trigger was added)
+  if (isHost && (!event.invite_code || event.invite_code.trim() === '')) {
+    const generated = Math.random().toString(36).slice(2, 10).toUpperCase()
+    await supabase.from('events').update({ invite_code: generated }).eq('id', id)
+    event.invite_code = generated
+  }
+
   let isGuest = false
   if (!isHost && user) {
     const { data: guestRecord } = await supabase
@@ -43,6 +50,7 @@ export default async function EventDetailPage({ params }: Props) {
     isGuest = !!guestRecord
   }
 
+
   // Fetch photos
   const { data: photos } = await supabase
     .from('photos')
@@ -50,10 +58,10 @@ export default async function EventDetailPage({ params }: Props) {
     .eq('event_id', id)
     .order('created_at', { ascending: false })
 
-  // Fetch guests
+  // Fetch guests with enrollment status
   const { data: guests } = await supabase
     .from('event_guests')
-    .select('*')
+    .select('id, user_id, role, joined_at, face_enrolled, face_reference_url, profiles(full_name, email)')
     .eq('event_id', id)
     .order('joined_at', { ascending: true })
 
@@ -97,7 +105,16 @@ export default async function EventDetailPage({ params }: Props) {
         {/* Guests Tab Content */}
         <div data-tab="guests">
           <GuestList 
-            guests={guests || []} 
+            guests={(guests || []).map((g: any) => ({
+              id: g.id,
+              user_id: g.user_id,
+              name: g.profiles?.full_name ?? null,
+              email: g.profiles?.email ?? undefined,
+              role: g.role,
+              joined_at: g.joined_at,
+              face_enrolled: g.face_enrolled ?? false,
+              face_reference_url: g.face_reference_url ?? null,
+            }))}
             eventId={id}
             inviteCode={event.invite_code}
             isHost={isHost}

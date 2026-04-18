@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import { ThemeToggle } from '@/components/theme-toggle'
 
 export function Navigation() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
@@ -30,6 +31,7 @@ export function Navigation() {
 
           {/* Desktop CTA */}
           <div className="hidden md:flex items-center gap-6">
+            <ThemeToggle />
             <Link href="/auth/login" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
               Sign in
             </Link>
@@ -41,16 +43,19 @@ export function Navigation() {
             </Link>
           </div>
 
-          {/* Mobile Menu Button */}
-          <button 
-            onClick={() => setIsMenuOpen(!isMenuOpen)}
-            className="md:hidden w-8 h-8 flex flex-col items-center justify-center gap-1.5"
-            aria-label="Toggle menu"
-          >
-            <span className={`w-5 h-px bg-foreground transition-transform ${isMenuOpen ? 'rotate-45 translate-y-1' : ''}`} />
-            <span className={`w-5 h-px bg-foreground transition-opacity ${isMenuOpen ? 'opacity-0' : ''}`} />
-            <span className={`w-5 h-px bg-foreground transition-transform ${isMenuOpen ? '-rotate-45 -translate-y-1' : ''}`} />
-          </button>
+          {/* Mobile Actions */}
+          <div className="md:hidden flex items-center gap-2">
+            <ThemeToggle />
+            <button 
+              onClick={() => setIsMenuOpen(!isMenuOpen)}
+              className="w-8 h-8 flex flex-col items-center justify-center gap-1.5"
+              aria-label="Toggle menu"
+            >
+              <span className={`w-5 h-px bg-foreground transition-transform ${isMenuOpen ? 'rotate-45 translate-y-1' : ''}`} />
+              <span className={`w-5 h-px bg-foreground transition-opacity ${isMenuOpen ? 'opacity-0' : ''}`} />
+              <span className={`w-5 h-px bg-foreground transition-transform ${isMenuOpen ? '-rotate-45 -translate-y-1' : ''}`} />
+            </button>
+          </div>
         </div>
       </nav>
 

@@ -84,6 +84,8 @@ export interface Database {
           name: string | null
           role: 'guest' | 'contributor'
           face_embedding: number[] | null
+          face_enrolled: boolean
+          face_reference_url: string | null
           joined_at: string
         }
         Insert: {
@@ -94,6 +96,8 @@ export interface Database {
           name?: string | null
           role?: 'guest' | 'contributor'
           face_embedding?: number[] | null
+          face_enrolled?: boolean
+          face_reference_url?: string | null
           joined_at?: string
         }
         Update: {
@@ -104,6 +108,8 @@ export interface Database {
           name?: string | null
           role?: 'guest' | 'contributor'
           face_embedding?: number[] | null
+          face_enrolled?: boolean
+          face_reference_url?: string | null
           joined_at?: string
         }
       }
@@ -124,6 +130,7 @@ export interface Database {
           ai_quality_score: number | null
           ai_emotion_tags: string[] | null
           is_host_photo: boolean
+          is_shared: boolean
           processing_status: 'pending' | 'processing' | 'complete' | 'failed'
           created_at: string
         }
@@ -143,6 +150,7 @@ export interface Database {
           ai_quality_score?: number | null
           ai_emotion_tags?: string[] | null
           is_host_photo?: boolean
+          is_shared?: boolean
           processing_status?: 'pending' | 'processing' | 'complete' | 'failed'
           created_at?: string
         }
@@ -162,6 +170,7 @@ export interface Database {
           ai_quality_score?: number | null
           ai_emotion_tags?: string[] | null
           is_host_photo?: boolean
+          is_shared?: boolean
           processing_status?: 'pending' | 'processing' | 'complete' | 'failed'
           created_at?: string
         }

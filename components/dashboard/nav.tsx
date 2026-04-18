@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation'
 import { User } from '@supabase/supabase-js'
 import { Profile } from '@/lib/types/database'
 import { signOut } from '@/lib/actions/auth'
+import { ThemeToggle } from '@/components/theme-toggle'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -54,6 +55,7 @@ export function DashboardNav({ user, profile }: DashboardNavProps) {
         </div>
         
         <div className="flex items-center gap-4">
+          <ThemeToggle />
           <Link
             href="/events/new"
             className="hidden md:inline-flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 text-sm hover:bg-primary/90 transition-colors"
