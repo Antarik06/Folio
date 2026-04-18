@@ -16,9 +16,9 @@ export default function NewEventPage() {
     setError(null)
 
     const formData = new FormData(e.currentTarget)
-    const name = formData.get('name') as string
+    const title = formData.get('title') as string
     const description = formData.get('description') as string
-    const date = formData.get('date') as string
+    const event_date = formData.get('date') as string
     const location = formData.get('location') as string
 
     const supabase = createClient()
@@ -34,10 +34,10 @@ export default function NewEventPage() {
       .from('events')
       .insert({
         host_id: user.id,
-        name,
+        title,
         description: description || null,
-        date: date || null,
-        location: location || null,
+        event_date: event_date || null,
+        settings: location ? { location } : {},
       })
       .select()
       .single()
@@ -73,12 +73,12 @@ export default function NewEventPage() {
 
       <form onSubmit={handleSubmit} className="space-y-8">
         <div>
-          <label htmlFor="name" className="block text-sm font-sans uppercase tracking-wider text-muted-foreground mb-2">
+          <label htmlFor="title" className="block text-sm font-sans uppercase tracking-wider text-muted-foreground mb-2">
             Event Name *
           </label>
           <input
-            id="name"
-            name="name"
+            id="title"
+            name="title"
             type="text"
             required
             className="w-full px-4 py-3 bg-surface border border-border text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary transition-colors"

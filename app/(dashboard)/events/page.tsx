@@ -77,11 +77,11 @@ export default async function EventsPage() {
                   )}
                   <div className="absolute top-3 right-3">
                     <span className={`text-xs uppercase tracking-wider px-2 py-1 ${
-                      event.is_active 
+                      event.status === 'active' 
                         ? 'bg-secondary text-surface' 
                         : 'bg-muted-foreground/80 text-surface'
                     }`}>
-                      {event.is_active ? 'Active' : 'Closed'}
+                      {event.status === 'active' ? 'Active' : (event.status || 'Draft').charAt(0).toUpperCase() + (event.status || 'Draft').slice(1)}
                     </span>
                   </div>
                 </div>
@@ -89,11 +89,11 @@ export default async function EventsPage() {
                 {/* Content */}
                 <div className="p-5">
                   <h3 className="font-serif text-xl text-foreground mb-2 group-hover:text-primary transition-colors">
-                    {event.name}
+                    {event.title}
                   </h3>
                   <p className="text-sm text-muted-foreground mb-4">
-                    {event.date 
-                      ? new Date(event.date).toLocaleDateString('en-US', { 
+                    {event.event_date 
+                      ? new Date(event.event_date).toLocaleDateString('en-US', { 
                           weekday: 'short',
                           month: 'short', 
                           day: 'numeric', 
@@ -101,7 +101,7 @@ export default async function EventsPage() {
                         })
                       : 'No date set'
                     }
-                    {event.location && ` · ${event.location}`}
+                    {(event.settings as any)?.location && ` · ${(event.settings as any).location}`}
                   </p>
                   
                   <div className="flex items-center gap-6 text-xs text-muted-foreground">
@@ -142,7 +142,7 @@ export default async function EventsPage() {
                 className="group block p-5 bg-card border border-border hover:border-primary/50 transition-colors"
               >
                 <h3 className="font-serif text-xl text-foreground mb-2 group-hover:text-primary transition-colors">
-                  {guest.events.name}
+                  {guest.events.title}
                 </h3>
                 <p className="text-sm text-muted-foreground mb-2">
                   Hosted by {guest.events.profiles?.full_name || 'Unknown'}
