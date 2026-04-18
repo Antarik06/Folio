@@ -192,6 +192,23 @@ ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY;
 -- CREATE ALL RLS POLICIES (after all tables exist)
 -- ============================================
 
+-- Security Definer Functions to avoid RLS circular dependencies
+CREATE OR REPLACE FUNCTION public.is_event_host(event_uuid UUID)
+RETURNS BOOLEAN AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM public.events 
+    WHERE id = event_uuid AND host_id = auth.uid()
+  );
+$$ LANGUAGE sql SECURITY DEFINER;
+
+CREATE OR REPLACE FUNCTION public.is_event_guest(event_uuid UUID)
+RETURNS BOOLEAN AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM public.event_guests 
+    WHERE event_id = event_uuid AND user_id = auth.uid()
+  );
+$$ LANGUAGE sql SECURITY DEFINER;
+
 -- Profiles policies
 CREATE POLICY "profiles_select_own" ON public.profiles FOR SELECT USING (auth.uid() = id);
 CREATE POLICY "profiles_insert_own" ON public.profiles FOR INSERT WITH CHECK (auth.uid() = id);
@@ -200,31 +217,23 @@ CREATE POLICY "profiles_update_own" ON public.profiles FOR UPDATE USING (auth.ui
 -- Events policies
 CREATE POLICY "events_host_all" ON public.events FOR ALL USING (auth.uid() = host_id);
 CREATE POLICY "events_guest_select" ON public.events FOR SELECT USING (
-  EXISTS (
-    SELECT 1 FROM public.event_guests 
-    WHERE event_guests.event_id = events.id 
-    AND event_guests.user_id = auth.uid()
-  )
+  public.is_event_guest(id)
 );
 
 -- Event guests policies
 CREATE POLICY "event_guests_host_all" ON public.event_guests FOR ALL USING (
-  EXISTS (SELECT 1 FROM public.events WHERE events.id = event_guests.event_id AND events.host_id = auth.uid())
+  public.is_event_host(event_id)
 );
 CREATE POLICY "event_guests_self_select" ON public.event_guests FOR SELECT USING (auth.uid() = user_id);
 CREATE POLICY "event_guests_self_insert" ON public.event_guests FOR INSERT WITH CHECK (auth.uid() = user_id);
 
 -- Photos policies
 CREATE POLICY "photos_host_all" ON public.photos FOR ALL USING (
-  EXISTS (SELECT 1 FROM public.events WHERE events.id = photos.event_id AND events.host_id = auth.uid())
+  public.is_event_host(event_id)
 );
 CREATE POLICY "photos_uploader_all" ON public.photos FOR ALL USING (auth.uid() = uploader_id);
 CREATE POLICY "photos_guest_select" ON public.photos FOR SELECT USING (
-  is_shared = TRUE AND EXISTS (
-    SELECT 1 FROM public.event_guests 
-    WHERE event_guests.event_id = photos.event_id 
-    AND event_guests.user_id = auth.uid()
-  )
+  is_shared = TRUE AND public.is_event_guest(event_id)
 );
 
 -- Templates policies (public read for authenticated users)
@@ -233,7 +242,7 @@ CREATE POLICY "templates_public_read" ON public.templates FOR SELECT TO authenti
 -- Albums policies
 CREATE POLICY "albums_owner_all" ON public.albums FOR ALL USING (auth.uid() = owner_id);
 CREATE POLICY "albums_host_select" ON public.albums FOR SELECT USING (
-  EXISTS (SELECT 1 FROM public.events WHERE events.id = albums.event_id AND events.host_id = auth.uid())
+  public.is_event_host(event_id)
 );
 
 -- Album pages policies
@@ -299,6 +308,26 @@ DROP TRIGGER IF EXISTS update_orders_updated_at ON public.orders;
 
 CREATE TRIGGER update_profiles_updated_at BEFORE UPDATE ON public.profiles FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_events_updated_at BEFORE UPDATE ON public.events FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-CREATE TRIGGER update_albums_updated_at BEFORE UPDATE ON public.albums FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_album_pages_updated_at BEFORE UPDATE ON public.album_pages FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_orders_updated_at BEFORE UPDATE ON public.orders FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- ============================================
+-- STORAGE BUCKETS & POLICIES
+-- ============================================
+
+-- Create the photos bucket (Make sure the storage schema exists in your environment)
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types) 
+VALUES (
+  'photos', 
+  'photos', 
+  TRUE, 
+  52428800, -- 50MB
+  ARRAY['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/gif']
+)
+ON CONFLICT (id) DO UPDATE SET public = TRUE;
+
+-- Storage policies for the photos bucket
+CREATE POLICY "Public photos are viewable by everyone" ON storage.objects FOR SELECT USING ( bucket_id = 'photos' );
+CREATE POLICY "Authenticated users can upload photos" ON storage.objects FOR INSERT WITH CHECK ( bucket_id = 'photos' AND auth.role() = 'authenticated' );
+CREATE POLICY "Users can update their own photos" ON storage.objects FOR UPDATE USING ( bucket_id = 'photos' AND owner = auth.uid() );
+CREATE POLICY "Users can delete their own photos" ON storage.objects FOR DELETE USING ( bucket_id = 'photos' AND owner = auth.uid() );
