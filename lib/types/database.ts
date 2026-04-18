@@ -38,39 +38,39 @@ export interface Database {
         Row: {
           id: string
           host_id: string
-          name: string
+          title: string
           description: string | null
-          date: string | null
-          location: string | null
+          event_date: string | null
+          settings: Json | null
           cover_image_url: string | null
           invite_code: string
-          is_active: boolean
+          status: string
           created_at: string
           updated_at: string
         }
         Insert: {
           id?: string
           host_id: string
-          name: string
+          title: string
           description?: string | null
-          date?: string | null
-          location?: string | null
+          event_date?: string | null
+          settings?: Json | null
           cover_image_url?: string | null
           invite_code?: string
-          is_active?: boolean
+          status?: string
           created_at?: string
           updated_at?: string
         }
         Update: {
           id?: string
           host_id?: string
-          name?: string
+          title?: string
           description?: string | null
-          date?: string | null
-          location?: string | null
+          event_date?: string | null
+          settings?: Json | null
           cover_image_url?: string | null
           invite_code?: string
-          is_active?: boolean
+          status?: string
           created_at?: string
           updated_at?: string
         }
