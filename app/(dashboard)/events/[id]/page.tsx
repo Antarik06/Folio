@@ -39,17 +39,16 @@ export default async function EventDetailPage({ params }: Props) {
     event.invite_code = generated
   }
 
-  let isGuest = false
-  if (!isHost && user) {
-    const { data: guestRecord } = await supabase
-      .from('event_guests')
-      .select('id')
-      .eq('event_id', id)
-      .eq('user_id', user.id)
-      .single()
-    isGuest = !!guestRecord
-  }
+  // Fetch guests with enrollment status (moved up to use role)
+  const { data: guests } = await supabase
+    .from('event_guests')
+    .select('id, user_id, role, joined_at, face_enrolled, face_reference_url, profiles(full_name, email)')
+    .eq('event_id', id)
+    .order('joined_at', { ascending: true })
 
+  const currentUserGuestRecord = guests?.find((g: any) => g.user_id === user?.id)
+  const isContributor = currentUserGuestRecord?.role === 'contributor'
+  const isGuest = !!currentUserGuestRecord
 
   // Fetch photos
   const { data: photos } = await supabase
@@ -58,20 +57,18 @@ export default async function EventDetailPage({ params }: Props) {
     .eq('event_id', id)
     .order('created_at', { ascending: false })
 
-  // Fetch guests with enrollment status
-  const { data: guests } = await supabase
-    .from('event_guests')
-    .select('id, user_id, role, joined_at, face_enrolled, face_reference_url, profiles(full_name, email)')
-    .eq('event_id', id)
-    .order('joined_at', { ascending: true })
-
   // Fetch albums for this event
-  const { data: albums } = await supabase
+  let albumQuery = supabase
     .from('albums')
     .select('*')
     .eq('event_id', id)
-    .eq('owner_id', user!.id)
-    .order('created_at', { ascending: false })
+
+  // Non-hosts/non-contributors only see their own albums
+  if (!isHost && !isContributor) {
+    albumQuery = albumQuery.eq('owner_id', user!.id)
+  }
+
+  const { data: albums } = await albumQuery.order('created_at', { ascending: false })
 
   const canUpload = isHost || isGuest
 
@@ -117,6 +114,7 @@ export default async function EventDetailPage({ params }: Props) {
             }))}
             eventId={id}
             inviteCode={event.invite_code}
+            settings={event.settings}
             isHost={isHost}
           />
         </div>
@@ -125,7 +123,7 @@ export default async function EventDetailPage({ params }: Props) {
         <div data-tab="albums">
           {albums && albums.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {albums.map((album) => (
+              {albums.map((album: any) => (
                 <a
                   key={album.id}
                   href={`/albums/${album.id}`}

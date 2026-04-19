@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { removeGuest } from '@/lib/actions/events'
+import { removeGuest, generateCollaboratorCode } from '@/lib/actions/events'
 
 interface GuestWithEnrollment {
   id: string
@@ -18,12 +18,16 @@ interface GuestListProps {
   guests: GuestWithEnrollment[]
   eventId: string
   inviteCode: string | null
+  settings: any
   isHost: boolean
 }
 
-export function GuestList({ guests, eventId, inviteCode, isHost }: GuestListProps) {
+export function GuestList({ guests, eventId, inviteCode, settings, isHost }: GuestListProps) {
   const [codeCopied, setCodeCopied] = useState(false)
   const [linkCopied, setLinkCopied] = useState(false)
+  const [colCodeCopied, setColCodeCopied] = useState(false)
+  const [colLinkCopied, setColLinkCopied] = useState(false)
+  const [generatingCol, setGeneratingCol] = useState(false)
   const [confirmRemoveId, setConfirmRemoveId] = useState<string | null>(null)
   const [removedIds, setRemovedIds] = useState<Set<string>>(new Set())
   const [isPending, startTransition] = useTransition()
@@ -32,7 +36,7 @@ export function GuestList({ guests, eventId, inviteCode, isHost }: GuestListProp
   const siteUrl =
     typeof window !== 'undefined'
       ? window.location.origin
-      : process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
+      : (process as any).env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
 
   const inviteLink = inviteCode ? `${siteUrl}/join/${inviteCode}` : ''
 
@@ -50,6 +54,29 @@ export function GuestList({ guests, eventId, inviteCode, isHost }: GuestListProp
     setTimeout(() => setLinkCopied(false), 2000)
   }
 
+  const colCode = (settings as any)?.collaborator_invite_code
+  const colInviteLink = colCode ? `${siteUrl}/join/${colCode}` : ''
+
+  function copyColCode() {
+    if (!colCode) return
+    navigator.clipboard.writeText(colCode)
+    setColCodeCopied(true)
+    setTimeout(() => setColCodeCopied(false), 2000)
+  }
+
+  function copyColLink() {
+    if (!colInviteLink) return
+    navigator.clipboard.writeText(colInviteLink)
+    setColLinkCopied(true)
+    setTimeout(() => setColLinkCopied(false), 2000)
+  }
+
+  async function handleGenerateColCode() {
+    setGeneratingCol(true)
+    await generateCollaboratorCode(eventId)
+    setGeneratingCol(false)
+  }
+
   function handleRemove(guestId: string) {
     setActionError(null)
     startTransition(async () => {
@@ -57,7 +84,7 @@ export function GuestList({ guests, eventId, inviteCode, isHost }: GuestListProp
       if (result?.error) {
         setActionError(result.error)
       } else {
-        setRemovedIds((prev) => new Set([...prev, guestId]))
+        setRemovedIds((prev: Set<string>) => new Set([...prev, guestId]))
       }
       setConfirmRemoveId(null)
     })
@@ -72,74 +99,123 @@ export function GuestList({ guests, eventId, inviteCode, isHost }: GuestListProp
 
       {/* ── SHARE SECTION ────────────────────────────────────────── */}
       {isHost && (
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-          {/* Left: Link Share */}
-          <div className="lg:col-span-3 border border-border bg-card p-6 flex flex-col justify-between">
-            <div>
-              <div className="flex items-center gap-3 mb-2">
-                <div className="w-8 h-8 rounded-full bg-primary/5 flex items-center justify-center">
-                  <svg className="w-4 h-4 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-                  </svg>
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+            {/* Left: Link Share */}
+            <div className="lg:col-span-3 border border-border bg-card p-6 flex flex-col justify-between">
+              <div>
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-8 h-8 rounded-full bg-primary/5 flex items-center justify-center">
+                    <svg className="w-4 h-4 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                    </svg>
+                  </div>
+                  <h3 className="font-serif text-xl text-foreground">Invite Guests</h3>
                 </div>
-                <h3 className="font-serif text-xl text-foreground">Invite via Link</h3>
+                <p className="text-sm text-muted-foreground mb-8 max-w-md leading-relaxed">
+                  Guests can join to view and automatically receive photos they appear in.
+                </p>
               </div>
-              <p className="text-sm text-muted-foreground mb-8 max-w-md leading-relaxed">
-                Send this link to your guests. They can join the event instantly, enroll their face, and start exploring photos.
-              </p>
+
+              <div>
+                <label className="block text-xs uppercase tracking-[0.15em] text-muted-foreground mb-2">
+                  Guest Invite Link
+                </label>
+                <div className="flex group relative">
+                  <div className="flex-1 px-4 py-3 bg-surface border border-border border-r-0 font-mono text-sm text-foreground truncate min-w-0 transition-colors group-hover:border-primary/30">
+                    {inviteCode ? inviteLink : 'Generating link...'}
+                  </div>
+                  <button
+                    onClick={copyLink}
+                    disabled={!inviteCode}
+                    className="flex-shrink-0 px-6 py-3 bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-50"
+                  >
+                    {linkCopied ? 'Copied' : 'Copy'}
+                  </button>
+                </div>
+              </div>
             </div>
 
-            <div>
-              <label className="block text-xs uppercase tracking-[0.15em] text-muted-foreground mb-2">
-                Shareable Link
-              </label>
-              <div className="flex group relative">
-                <div className="flex-1 px-4 py-3.5 bg-surface border border-border border-r-0 font-mono text-sm text-foreground truncate min-w-0 transition-colors group-hover:border-primary/30">
-                  {inviteCode ? inviteLink : 'Generating link...'}
+            {/* Right: Code Share (VIP Ticket Style) */}
+            <div className="lg:col-span-2 relative bg-primary text-primary-foreground p-8 flex flex-col justify-between overflow-hidden">
+              <div className="absolute top-1/2 -translate-y-1/2 -left-4 w-8 h-8 rounded-full bg-background" />
+              <div className="absolute top-1/2 -translate-y-1/2 -right-4 w-8 h-8 rounded-full bg-background" />
+              <div className="absolute left-6 right-6 top-1/2 border-t border-dashed border-primary-foreground/20" />
+
+              <div className="relative z-10 text-center pb-4">
+                <p className="text-[10px] uppercase tracking-[0.2em] text-primary-foreground/60 mb-2">Guest Access</p>
+                <h3 className="font-serif text-2xl">Guest Pass</h3>
+              </div>
+
+              <div className="relative z-10 text-center pt-8">
+                <div className="mb-6">
+                  {inviteCode ? (
+                    <span className="font-mono text-4xl tracking-[0.3em] font-medium ml-[0.3em]">
+                      {inviteCode}
+                    </span>
+                  ) : (
+                    <span className="text-sm text-primary-foreground/50 animate-pulse">Generating...</span>
+                  )}
                 </div>
+
                 <button
-                  onClick={copyLink}
+                  onClick={copyCode}
                   disabled={!inviteCode}
-                  className="flex-shrink-0 px-6 py-3.5 bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-50"
+                  className="w-full py-3 bg-primary-foreground text-primary text-xs font-bold hover:bg-primary-foreground/90 transition-colors uppercase tracking-[0.15em]"
                 >
-                  {linkCopied ? 'Copied' : 'Copy'}
+                  {codeCopied ? 'Copied' : 'Copy Code'}
                 </button>
               </div>
             </div>
           </div>
 
-          {/* Right: Code Share (VIP Ticket Style) */}
-          <div className="lg:col-span-2 relative bg-primary text-primary-foreground p-8 flex flex-col justify-between overflow-hidden">
-            {/* Ticket Cutouts & Perforation */}
-            <div className="absolute top-1/2 -translate-y-1/2 -left-4 w-8 h-8 rounded-full bg-background" />
-            <div className="absolute top-1/2 -translate-y-1/2 -right-4 w-8 h-8 rounded-full bg-background" />
-            <div className="absolute left-6 right-6 top-1/2 border-t border-dashed border-primary-foreground/20" />
-
-            {/* Top half */}
-            <div className="relative z-10 text-center pb-4">
-              <p className="text-[10px] uppercase tracking-[0.2em] text-primary-foreground/60 mb-2">Event Access</p>
-              <h3 className="font-serif text-2xl">VIP Pass</h3>
-            </div>
-
-            {/* Bottom half */}
-            <div className="relative z-10 text-center pt-8">
-              <div className="mb-6">
-                {inviteCode ? (
-                  <span className="font-mono text-4xl tracking-[0.3em] font-medium ml-[0.3em]">
-                    {inviteCode}
-                  </span>
-                ) : (
-                  <span className="text-sm text-primary-foreground/50 animate-pulse">Generating...</span>
-                )}
+          {/* Collaborator Section */}
+          <div className="border border-secondary/30 bg-secondary/5 p-6 border-dashed">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+              <div>
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-8 h-8 rounded-full bg-secondary/10 flex items-center justify-center">
+                    <svg className="w-4 h-4 text-secondary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                    </svg>
+                  </div>
+                  <h3 className="font-serif text-xl text-foreground">Add Collaborators</h3>
+                </div>
+                <p className="text-sm text-muted-foreground max-w-xl leading-relaxed">
+                  Collaborators can help manage photos, curate galleries, and design albums together with you. 
+                  Share this restricted code only with people you trust.
+                </p>
               </div>
 
-              <button
-                onClick={copyCode}
-                disabled={!inviteCode}
-                className="w-full py-3.5 bg-primary-foreground text-primary text-xs font-bold hover:bg-primary-foreground/90 transition-colors uppercase tracking-[0.15em]"
-              >
-                {codeCopied ? 'Copied to Clipboard' : 'Copy Code'}
-              </button>
+              {colCode ? (
+                <div className="flex-shrink-0 flex flex-col gap-2 min-w-[240px]">
+                  <div className="flex group relative">
+                    <div className="flex-1 px-4 py-3 bg-surface border border-secondary/20 border-r-0 font-mono text-sm text-foreground truncate min-w-0">
+                      {colCode}
+                    </div>
+                    <button
+                      onClick={copyColCode}
+                      className="flex-shrink-0 px-4 py-3 bg-secondary text-secondary-foreground text-xs font-bold hover:bg-secondary/90 transition-colors"
+                    >
+                      {colCodeCopied ? 'Copied' : 'Copy'}
+                    </button>
+                  </div>
+                  <button
+                    onClick={copyColLink}
+                    className="text-[10px] uppercase tracking-wider text-secondary hover:text-secondary/80 text-left"
+                  >
+                    {colLinkCopied ? 'Link Copied to Clipboard' : 'Copy Invite Link instead'}
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={handleGenerateColCode}
+                  disabled={generatingCol}
+                  className="flex-shrink-0 px-8 py-4 bg-secondary text-secondary-foreground text-sm font-sans uppercase tracking-wider hover:bg-secondary/90 transition-colors disabled:opacity-50"
+                >
+                  {generatingCol ? 'Generating...' : 'Enable Collaborator Access'}
+                </button>
+              )}
             </div>
           </div>
         </div>

@@ -16,47 +16,81 @@ export async function joinEvent(inviteCode: string) {
 
   if (!user) return { error: 'You must be signed in to join an event.' }
 
-  // Look up event by invite code
-  const { data: event, error: eventError } = await supabase
+  const normalizedCode = inviteCode.toUpperCase().trim()
+
+  // 1. Try to look up event by regular invite code
+  let { data: event, error: eventError } = await supabase
     .from('events')
-    .select('id, title, host_id, status')
-    .eq('invite_code', inviteCode.toUpperCase().trim())
+    .select('id, title, host_id, status, settings')
+    .eq('invite_code', normalizedCode)
     .single()
 
+  let role: 'guest' | 'contributor' = 'guest'
+
+  // 2. If not found by regular code, try collaborator code in settings
   if (eventError || !event) {
-    console.error('joinEvent lookup failed:', { inviteCode, eventError })
-    return { error: 'Invalid invite code. Please check and try again.' }
+    const { data: colEvent, error: colError } = await supabase
+      .from('events')
+      .select('id, title, host_id, status, settings')
+      .eq('settings->>collaborator_invite_code', normalizedCode)
+      .single()
+
+    if (colError || !colEvent) {
+      console.error('joinEvent lookup failed:', { inviteCode, eventError, colError })
+      return { error: 'Invalid invite code. Please check and try again.' }
+    }
+    
+    event = colEvent
+    role = 'contributor'
   }
 
-  // Cannot join your own event as a guest
+  // Cannot join your own event
   if (event.host_id === user.id) {
     return { alreadyHost: true, eventId: event.id }
   }
 
-  // Check if already a guest
+  // Check if already joined (any role)
   const { data: existingGuest } = await supabase
     .from('event_guests')
-    .select('id, face_enrolled')
+    .select('id, role, face_enrolled')
     .eq('event_id', event.id)
     .eq('user_id', user.id)
     .single()
 
   if (existingGuest) {
+    // If they joined as guest but now use collaborator code, upgrade them
+    if (existingGuest.role === 'guest' && role === 'contributor') {
+      await supabase
+        .from('event_guests')
+        .update({ role: 'contributor' })
+        .eq('id', existingGuest.id)
+      
+      revalidatePath(`/events/${event.id}`)
+      return {
+        eventId: event.id,
+        guestId: existingGuest.id,
+        alreadyJoined: false, // Treat as "just joined as contributor"
+        faceEnrolled: existingGuest.face_enrolled ?? false,
+        role: 'contributor'
+      }
+    }
+
     return {
       eventId: event.id,
       guestId: existingGuest.id,
       alreadyJoined: true,
       faceEnrolled: existingGuest.face_enrolled ?? false,
+      role: existingGuest.role
     }
   }
 
-  // Insert as a new guest
+  // Insert as a new member
   const { data: newGuest, error: insertError } = await supabase
     .from('event_guests')
     .insert({
       event_id: event.id,
       user_id: user.id,
-      role: 'guest',
+      role: role,
     })
     .select('id')
     .single()
@@ -73,6 +107,7 @@ export async function joinEvent(inviteCode: string) {
     guestId: newGuest.id,
     alreadyJoined: false,
     faceEnrolled: false,
+    role: role
   }
 }
 
@@ -80,8 +115,10 @@ export async function joinEvent(inviteCode: string) {
 
 export async function getEventByInviteCode(code: string) {
   const supabase = await createClient()
+  const normalizedCode = code.toUpperCase().trim()
 
-  const { data: event } = await supabase
+  // Try regular code
+  let { data: event } = await supabase
     .from('events')
     .select(`
       id,
@@ -95,10 +132,69 @@ export async function getEventByInviteCode(code: string) {
       invite_code,
       profiles!events_host_id_fkey(full_name, avatar_url)
     `)
-    .eq('invite_code', code.toUpperCase().trim())
+    .eq('invite_code', normalizedCode)
     .single()
 
+  // If not found, try collaborator code
+  if (!event) {
+    const { data: colEvent } = await supabase
+      .from('events')
+      .select(`
+        id,
+        host_id,
+        title,
+        description,
+        event_date,
+        cover_image_url,
+        settings,
+        status,
+        invite_code,
+        profiles!events_host_id_fkey(full_name, avatar_url)
+      `)
+      .eq('settings->>collaborator_invite_code', normalizedCode)
+      .single()
+    
+    event = colEvent
+  }
+
   return event
+}
+
+/**
+ * Generates or regenerates a collaborator invite code for an event.
+ */
+export async function generateCollaboratorCode(eventId: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  if (!user) return { error: 'Not authenticated.' }
+
+  // Verify host
+  const { data: event } = await supabase
+    .from('events')
+    .select('host_id, settings')
+    .eq('id', eventId)
+    .single()
+
+  if (!event || event.host_id !== user.id) {
+    return { error: 'Not authorized.' }
+  }
+
+  const code = 'COL-' + Math.random().toString(36).slice(2, 8).toUpperCase()
+  const newSettings = { 
+    ...(event.settings as any || {}), 
+    collaborator_invite_code: code 
+  }
+
+  const { error } = await supabase
+    .from('events')
+    .update({ settings: newSettings })
+    .eq('id', eventId)
+
+  if (error) return { error: error.message }
+
+  revalidatePath(`/events/${eventId}`)
+  return { success: true, code }
 }
 
 // ─── ENROLL FACE ─────────────────────────────────────────────────────────────

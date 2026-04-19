@@ -25,6 +25,7 @@ export function DashboardNav({ user, profile }: DashboardNavProps) {
   const navItems = [
     { href: '/dashboard', label: 'Overview' },
     { href: '/events', label: 'Events' },
+    { href: '/join', label: 'Join' },
     { href: '/albums', label: 'Albums' },
     { href: '/orders', label: 'Orders' },
   ]
