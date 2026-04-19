@@ -61,7 +61,7 @@ export default async function EventsPage() {
                 className="group block bg-card border border-border hover:border-primary/50 transition-colors"
               >
                 {/* Cover Image */}
-                <div className="aspect-[16/9] bg-surface relative overflow-hidden">
+                <div className="aspect-[16/9] bg-card relative overflow-hidden">
                   {event.cover_image_url ? (
                     <img 
                       src={event.cover_image_url} 

@@ -81,7 +81,7 @@ export default function NewEventPage() {
             name="title"
             type="text"
             required
-            className="w-full px-4 py-3 bg-surface border border-border text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary transition-colors"
+            className="w-full px-4 py-3 bg-card border border-border text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary transition-colors"
             placeholder="Sarah & John's Wedding"
           />
         </div>
@@ -94,7 +94,7 @@ export default function NewEventPage() {
             id="description"
             name="description"
             rows={3}
-            className="w-full px-4 py-3 bg-surface border border-border text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary transition-colors resize-none"
+            className="w-full px-4 py-3 bg-card border border-border text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary transition-colors resize-none"
             placeholder="A brief description of your event..."
           />
         </div>
@@ -108,7 +108,7 @@ export default function NewEventPage() {
               id="date"
               name="date"
               type="date"
-              className="w-full px-4 py-3 bg-surface border border-border text-foreground focus:outline-none focus:border-primary transition-colors"
+              className="w-full px-4 py-3 bg-card border border-border text-foreground focus:outline-none focus:border-primary transition-colors"
             />
           </div>
 
@@ -120,7 +120,7 @@ export default function NewEventPage() {
               id="location"
               name="location"
               type="text"
-              className="w-full px-4 py-3 bg-surface border border-border text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary transition-colors"
+              className="w-full px-4 py-3 bg-card border border-border text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary transition-colors"
               placeholder="The Grand Hotel, New York"
             />
           </div>
