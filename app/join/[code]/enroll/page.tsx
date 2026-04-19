@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
@@ -12,7 +12,7 @@ interface EnrollFacePageProps {
   params: Promise<{ code: string }>
 }
 
-export default function EnrollFacePage({ params: paramsPromise }: EnrollFacePageProps) {
+function EnrollFaceContent({ params: paramsPromise }: EnrollFacePageProps) {
   const searchParams = useSearchParams()
   const eventId = searchParams.get('event') ?? ''
   const router = useRouter()
@@ -301,5 +301,17 @@ export default function EnrollFacePage({ params: paramsPromise }: EnrollFacePage
         )}
       </div>
     </main>
+  )
+}
+
+export default function EnrollFacePage({ params }: EnrollFacePageProps) {
+  return (
+    <Suspense fallback={
+      <main className="min-h-screen bg-background flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-primary/20 border-t-primary rounded-full animate-spin" />
+      </main>
+    }>
+      <EnrollFaceContent params={params} />
+    </Suspense>
   )
 }
