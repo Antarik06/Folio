@@ -1,4 +1,4 @@
-# Folio — AI-Powered Event Photography & Collaboration
+# Folio —  Event Photography & Collaboration
 
 Folio is a premium web application designed to transform how event hosts and guests capture, share, and preserve memories. Using advanced AI and a sleek, modern interface, Folio automates the tedious parts of event photography, allowing you to focus on the moment.
 
