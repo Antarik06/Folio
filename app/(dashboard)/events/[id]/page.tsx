@@ -49,6 +49,7 @@ export default async function EventDetailPage({ params }: Props) {
   const currentUserGuestRecord = guests?.find((g: any) => g.user_id === user?.id)
   const isContributor = currentUserGuestRecord?.role === 'contributor'
   const isGuest = !!currentUserGuestRecord
+  const isManager = isHost || isContributor
 
   // Fetch photos
   const { data: photos } = await supabase
@@ -70,32 +71,32 @@ export default async function EventDetailPage({ params }: Props) {
 
   const { data: albums } = await albumQuery.order('created_at', { ascending: false })
 
-  const canUpload = isHost || isGuest
+  const canUpload = isManager || isGuest
 
   return (
     <div className="max-w-7xl mx-auto px-6 py-8">
       <EventHeader 
         event={event} 
-        isHost={isHost}
+        isHost={isManager}
         photoCount={photos?.length || 0}
         guestCount={guests?.length || 0}
       />
 
       <EventTabs 
         eventId={id}
-        isHost={isHost}
+        isHost={isManager}
         defaultTab="photos"
       >
         {/* Photos Tab Content */}
         <div data-tab="photos" className="space-y-8">
           {canUpload && (
-            <PhotoUploader eventId={id} isHost={isHost} />
+            <PhotoUploader eventId={id} isHost={isManager} />
           )}
           
           <PhotoGrid 
             photos={photos || []} 
             eventId={id}
-            isHost={isHost}
+            isHost={isManager}
           />
         </div>
 
@@ -115,7 +116,7 @@ export default async function EventDetailPage({ params }: Props) {
             eventId={id}
             inviteCode={event.invite_code}
             settings={event.settings}
-            isHost={isHost}
+            isHost={isManager}
           />
         </div>
 

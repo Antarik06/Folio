@@ -4,6 +4,34 @@ import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 
+// ─── PERMISSION HELPERS ──────────────────────────────────────────────────────
+
+/**
+ * Checks if a user has management permissions (host or contributor) for an event.
+ */
+export async function isEventManager(eventId: string, userId: string) {
+  const supabase = await createClient()
+  
+  // Check if they are the host
+  const { data: event } = await supabase
+    .from('events')
+    .select('host_id')
+    .eq('id', eventId)
+    .single()
+    
+  if (event?.host_id === userId) return true
+
+  // Check if they are a contributor
+  const { data: guest } = await supabase
+    .from('event_guests')
+    .select('role')
+    .eq('event_id', eventId)
+    .eq('user_id', userId)
+    .single()
+
+  return guest?.role === 'contributor'
+}
+
 // ─── JOIN EVENT ──────────────────────────────────────────────────────────────
 
 /**
@@ -176,7 +204,7 @@ export async function generateCollaboratorCode(eventId: string) {
     .eq('id', eventId)
     .single()
 
-  if (!event || event.host_id !== user.id) {
+  if (!event || !user || !(await isEventManager(eventId, user.id))) {
     return { error: 'Not authorized.' }
   }
 
@@ -267,7 +295,7 @@ export async function togglePhotoShared(photoId: string, currentIsShared: boolea
     .eq('id', photoId)
     .single()
 
-  if (!photo || (photo.events as any)?.host_id !== user.id) {
+  if (!photo || !user || !(await isEventManager(photo.event_id, user.id))) {
     return { error: 'Not authorized.' }
   }
 
@@ -300,7 +328,7 @@ export async function shareAllPhotos(eventId: string) {
     .eq('id', eventId)
     .single()
 
-  if (!event || event.host_id !== user.id) {
+  if (!event || !user || !(await isEventManager(eventId, user.id))) {
     return { error: 'Not authorized.' }
   }
 
@@ -354,7 +382,7 @@ export async function removeGuest(guestId: string, eventId: string) {
     .eq('id', eventId)
     .single()
 
-  if (!event || event.host_id !== user.id) {
+  if (!event || !user || !(await isEventManager(eventId, user.id))) {
     return { error: 'Not authorized.' }
   }
 

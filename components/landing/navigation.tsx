@@ -27,6 +27,9 @@ export function Navigation() {
             <a href="#pricing" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
               Pricing
             </a>
+            <Link href="/join" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+              Join
+            </Link>
           </div>
 
           {/* Desktop CTA */}
