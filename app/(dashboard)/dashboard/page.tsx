@@ -5,11 +5,31 @@ export default async function DashboardPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
-  // Fetch user's events
+  // Fetch user's own hosted events
   const { data: events } = await supabase
     .from('events')
     .select('*, photos(count)')
     .eq('host_id', user!.id)
+    .order('created_at', { ascending: false })
+    .limit(5)
+
+  // Fetch events the user has joined as a guest
+  const { data: guestEntries } = await supabase
+    .from('event_guests')
+    .select(`
+      id,
+      role,
+      face_enrolled,
+      events (
+        id,
+        title,
+        event_date,
+        cover_image_url,
+        status,
+        profiles!events_host_id_fkey (full_name)
+      )
+    `)
+    .eq('user_id', user!.id)
     .order('created_at', { ascending: false })
     .limit(5)
 
@@ -29,17 +49,9 @@ export default async function DashboardPage() {
     .order('created_at', { ascending: false })
     .limit(3)
 
-  // Fetch unread notifications
-  const { data: notifications } = await supabase
-    .from('notifications')
-    .select('*')
-    .eq('user_id', user!.id)
-    .eq('read', false)
-    .order('created_at', { ascending: false })
-    .limit(5)
-
   const stats = {
     events: events?.length || 0,
+    guestEvents: guestEntries?.length || 0,
     albums: albums?.length || 0,
     pendingOrders: orders?.filter(o => o.status !== 'delivered').length || 0,
   }
@@ -53,10 +65,14 @@ export default async function DashboardPage() {
       </div>
 
       {/* Stats Row */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-12">
         <div className="p-6 bg-card border border-border">
-          <p className="text-sm uppercase tracking-wider text-muted-foreground mb-2">Active Events</p>
+          <p className="text-sm uppercase tracking-wider text-muted-foreground mb-2">Hosting</p>
           <p className="text-4xl font-serif text-foreground">{stats.events}</p>
+        </div>
+        <div className="p-6 bg-card border border-border">
+          <p className="text-sm uppercase tracking-wider text-muted-foreground mb-2">Joined</p>
+          <p className="text-4xl font-serif text-foreground">{stats.guestEvents}</p>
         </div>
         <div className="p-6 bg-card border border-border">
           <p className="text-sm uppercase tracking-wider text-muted-foreground mb-2">Albums Created</p>
@@ -68,12 +84,78 @@ export default async function DashboardPage() {
         </div>
       </div>
 
+      {/* Joined Events Section — only shown if guest in at least one event */}
+      {guestEntries && guestEntries.length > 0 && (
+        <div className="mb-12">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h2 className="font-serif text-2xl text-foreground">Events You&apos;ve Joined</h2>
+              <p className="text-sm text-muted-foreground mt-1">Events where you are a guest or collaborator.</p>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {guestEntries.map((entry) => {
+              const event = entry.events as any
+              if (!event) return null
+              return (
+                <Link
+                  key={entry.id}
+                  href={`/events/${event.id}`}
+                  className="block p-4 bg-card border border-secondary/30 hover:border-secondary/70 transition-colors relative overflow-hidden"
+                >
+                  {/* Dynamic Role Badge */}
+                  {entry.role === 'collaborator' ? (
+                    <div className="absolute top-3 right-3 flex items-center gap-1.5 px-2 py-0.5 bg-primary/10 text-primary border border-primary/20 text-xs uppercase tracking-wider">
+                      <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                      </svg>
+                      Collaborator
+                    </div>
+                  ) : (
+                    <div className="absolute top-3 right-3 flex items-center gap-1.5 px-2 py-0.5 bg-secondary/15 text-secondary text-xs uppercase tracking-wider">
+                      <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                      </svg>
+                      Guest
+                    </div>
+                  )}
+
+                  <h3 className="font-medium text-foreground mb-1 pr-24">{event.title}</h3>
+                  <p className="text-sm text-muted-foreground mb-3">
+                    Hosted by {event.profiles?.full_name || 'Unknown'}
+                  </p>
+                  <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                    {event.event_date && (
+                      <span>
+                        {new Date(event.event_date).toLocaleDateString('en-US', {
+                          month: 'short',
+                          day: 'numeric',
+                          year: 'numeric',
+                        })}
+                      </span>
+                    )}
+                    {entry.face_enrolled && (
+                      <span className="flex items-center gap-1 text-secondary">
+                        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        Enrolled
+                      </span>
+                    )}
+                  </div>
+                </Link>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
       {/* Two Column Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
         {/* Recent Events */}
         <div>
           <div className="flex items-center justify-between mb-6">
-            <h2 className="font-serif text-2xl text-foreground">Recent Events</h2>
+            <h2 className="font-serif text-2xl text-foreground">Your Events</h2>
             <Link href="/events" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
               View all
             </Link>
@@ -89,9 +171,9 @@ export default async function DashboardPage() {
                 >
                   <div className="flex items-start justify-between">
                     <div>
-                      <h3 className="font-medium text-foreground mb-1">{event.name}</h3>
+                      <h3 className="font-medium text-foreground mb-1">{event.title}</h3>
                       <p className="text-sm text-muted-foreground">
-                        {event.date ? new Date(event.date).toLocaleDateString('en-US', { 
+                        {event.event_date ? new Date(event.event_date).toLocaleDateString('en-US', { 
                           month: 'short', 
                           day: 'numeric', 
                           year: 'numeric' 
@@ -146,7 +228,7 @@ export default async function DashboardPage() {
                       album.status === 'ready' 
                         ? 'bg-secondary/20 text-secondary' 
                         : album.status === 'ordered'
-                        ? 'bg-terracotta/20 text-terracotta'
+                        ? 'bg-primary/20 text-primary'
                         : 'bg-border text-muted-foreground'
                     }`}>
                       {album.status}
@@ -165,27 +247,6 @@ export default async function DashboardPage() {
           )}
         </div>
       </div>
-
-      {/* Notifications */}
-      {notifications && notifications.length > 0 && (
-        <div className="mt-12">
-          <h2 className="font-serif text-2xl text-foreground mb-6">Notifications</h2>
-          <div className="space-y-2">
-            {notifications.map((notification) => (
-              <div 
-                key={notification.id}
-                className="p-4 bg-card border border-border flex items-start gap-4"
-              >
-                <div className="w-2 h-2 mt-2 bg-terracotta rounded-full flex-shrink-0" />
-                <div>
-                  <p className="font-medium text-foreground">{notification.title}</p>
-                  <p className="text-sm text-muted-foreground">{notification.message}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   )
 }

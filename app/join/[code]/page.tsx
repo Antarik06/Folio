@@ -13,9 +13,9 @@ export default async function JoinCodePage({ params }: Props) {
   const { data: { user } } = await supabase.auth.getUser()
 
   // Look up the event
-  const event = await getEventByInviteCode(code)
+  const eventResult = await getEventByInviteCode(code)
 
-  if (!event) {
+  if (!eventResult) {
     return (
       <main className="min-h-screen bg-background flex items-center justify-center px-6">
         <div className="max-w-md w-full text-center">
@@ -42,26 +42,30 @@ export default async function JoinCodePage({ params }: Props) {
     )
   }
 
-  // Check if user is already a guest / host
-  let guestStatus: { isGuest: boolean; faceEnrolled: boolean; isHost: boolean } = {
+  const { codeType, ...event } = eventResult
+
+  // Check if user is already a guest / host / collaborator
+  let guestStatus = {
     isGuest: false,
+    isCollaborator: false,
     faceEnrolled: false,
-    isHost: false,
+    isOwner: false,
   }
 
   if (user) {
     if (event.host_id === user.id) {
-      guestStatus.isHost = true
+      guestStatus.isOwner = true
     } else {
       const { data: guestRecord } = await supabase
         .from('event_guests')
-        .select('id, face_enrolled')
+        .select('id, face_enrolled, role')
         .eq('event_id', event.id)
         .eq('user_id', user.id)
         .single()
 
       if (guestRecord) {
-        guestStatus.isGuest = true
+        guestStatus.isGuest = guestRecord.role === 'guest'
+        guestStatus.isCollaborator = guestRecord.role === 'collaborator'
         guestStatus.faceEnrolled = guestRecord.face_enrolled ?? false
       }
     }
@@ -74,11 +78,18 @@ export default async function JoinCodePage({ params }: Props) {
       })
     : null
 
+  const isCollaboratorFlow = codeType === 'collaborator'
+
   return (
     <main className="min-h-screen bg-background flex">
       {/* Left: Event Info */}
-      <div className="hidden lg:flex w-1/2 bg-card items-center justify-center p-16 border-r border-border">
-        <div className="max-w-sm w-full">
+      <div className="hidden lg:flex w-1/2 bg-card items-center justify-center p-16 border-r border-border relative overflow-hidden">
+        {/* Subtle background element based on flow */}
+        {isCollaboratorFlow && (
+          <div className="absolute top-0 right-0 w-64 h-64 bg-secondary/5 rounded-bl-full -z-0" />
+        )}
+
+        <div className="max-w-sm w-full relative z-10">
           {event.cover_image_url ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
@@ -141,19 +152,19 @@ export default async function JoinCodePage({ params }: Props) {
           </div>
 
           {/* Invite code badge */}
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-secondary/10 border border-secondary/20 mb-8">
-            <span className="w-1.5 h-1.5 rounded-full bg-secondary" />
-            <span className="text-xs font-mono uppercase tracking-widest text-secondary">
-              Code: {code.toUpperCase()}
+          <div className={`inline-flex items-center gap-2 px-3 py-1.5 border mb-8 ${isCollaboratorFlow ? 'bg-secondary/10 border-secondary/20' : 'bg-primary/5 border-primary/20'}`}>
+            <span className={`w-1.5 h-1.5 rounded-full ${isCollaboratorFlow ? 'bg-secondary' : 'bg-primary'}`} />
+            <span className={`text-xs font-mono uppercase tracking-widest ${isCollaboratorFlow ? 'text-secondary' : 'text-primary'}`}>
+              CODE: {code.toUpperCase()}
             </span>
           </div>
 
           {/* Host view */}
-          {guestStatus.isHost && (
+          {guestStatus.isOwner && (
             <>
               <h1 className="font-serif text-4xl text-foreground mb-4">This is your event</h1>
               <p className="text-muted-foreground mb-8">
-                You&apos;re the host of this event. Manage it from your dashboard.
+                You&apos;re the owner of this event. Manage it from your dashboard.
               </p>
               <Link
                 href={`/events/${event.id}`}
@@ -164,50 +175,65 @@ export default async function JoinCodePage({ params }: Props) {
             </>
           )}
 
-          {/* Already a guest, enrolled */}
-          {guestStatus.isGuest && guestStatus.faceEnrolled && (
+          {/* Already a guest/collaborator */}
+          {(guestStatus.isGuest || guestStatus.isCollaborator) && (
             <>
-              <h1 className="font-serif text-4xl text-foreground mb-4">You&apos;re in!</h1>
-              <p className="text-muted-foreground mb-8">
-                You&apos;ve already joined this event and enrolled your face. View your personalized photo collection.
-              </p>
-              <Link
-                href={`/events/${event.id}/my-photos`}
-                className="w-full block text-center bg-primary text-primary-foreground py-4 text-sm uppercase tracking-[0.2em] hover:bg-primary/90 transition-colors"
-              >
-                View My Photos →
-              </Link>
-            </>
-          )}
+              <h1 className="font-serif text-4xl text-foreground mb-4">
+                {guestStatus.isCollaborator ? "You're a Collaborator" : "You're in!"}
+              </h1>
+              
+              <div className="text-muted-foreground mb-8 space-y-3">
+                <p>
+                  You have already joined this event.
+                </p>
+                {guestStatus.isCollaborator && (
+                  <p className="p-3 bg-secondary/10 text-secondary border border-secondary/20 text-sm">
+                    You have management access to this event and can approve photos and curate albums.
+                  </p>
+                )}
+                {!guestStatus.isCollaborator && !guestStatus.faceEnrolled && (
+                  <p className="p-3 bg-primary/10 text-primary border border-primary/20 text-sm">
+                    Don't forget to enroll your face so AI can find your photos automatically.
+                  </p>
+                )}
+              </div>
 
-          {/* Already a guest, not yet enrolled */}
-          {guestStatus.isGuest && !guestStatus.faceEnrolled && (
-            <>
-              <h1 className="font-serif text-4xl text-foreground mb-4">One more step</h1>
-              <p className="text-muted-foreground mb-8">
-                You&apos;ve joined the event. Enroll your face so AI can find all your photos automatically.
-              </p>
-              <Link
-                href={`/join/${code}/enroll?event=${event.id}`}
-                className="w-full block text-center bg-primary text-primary-foreground py-4 text-sm uppercase tracking-[0.2em] hover:bg-primary/90 transition-colors mb-4"
-              >
-                Enroll My Face →
-              </Link>
-              <Link
-                href={`/events/${event.id}/my-photos`}
-                className="w-full block text-center border border-border text-foreground py-4 text-sm uppercase tracking-[0.2em] hover:bg-card transition-colors"
-              >
-                Skip for now
-              </Link>
+              {!guestStatus.isCollaborator && !guestStatus.faceEnrolled ? (
+                <>
+                  <Link
+                    href={`/join/${code}/enroll?event=${event.id}`}
+                    className="w-full block text-center bg-primary text-primary-foreground py-4 text-sm uppercase tracking-[0.2em] hover:bg-primary/90 transition-colors mb-4"
+                  >
+                    Enroll My Face →
+                  </Link>
+                  <Link
+                    href={`/events/${event.id}`}
+                    className="w-full block text-center border border-border text-foreground py-4 text-sm uppercase tracking-[0.2em] hover:bg-card transition-colors"
+                  >
+                    Go to Dashboard
+                  </Link>
+                </>
+              ) : (
+                <Link
+                  href={`/events/${event.id}`}
+                  className="w-full block text-center bg-primary text-primary-foreground py-4 text-sm uppercase tracking-[0.2em] hover:bg-primary/90 transition-colors"
+                >
+                  Go to Event Dashboard
+                </Link>
+              )}
             </>
           )}
 
           {/* Not logged in */}
           {!user && (
             <>
-              <h1 className="font-serif text-4xl text-foreground mb-4">You&apos;re invited</h1>
+              <h1 className="font-serif text-4xl text-foreground mb-4">
+                {isCollaboratorFlow ? 'Join as Collaborator' : 'You\'re invited'}
+              </h1>
               <p className="text-muted-foreground mb-8">
-                Sign in or create a free account to join this event and access your personalized photo album.
+                {isCollaboratorFlow 
+                  ? 'Sign in or create an account to help manage this event.' 
+                  : 'Sign in or create a free account to join this event and access your personalized photo album.'}
               </p>
               <Link
                 href={`/auth/login?next=/join/${code}`}
@@ -224,12 +250,16 @@ export default async function JoinCodePage({ params }: Props) {
             </>
           )}
 
-          {/* Logged in but not yet a guest */}
-          {user && !guestStatus.isGuest && !guestStatus.isHost && (
+          {/* Logged in but not yet joined */}
+          {user && !guestStatus.isGuest && !guestStatus.isCollaborator && !guestStatus.isOwner && (
             <>
-              <h1 className="font-serif text-4xl text-foreground mb-4">Ready to join?</h1>
+              <h1 className="font-serif text-4xl text-foreground mb-4">
+                {isCollaboratorFlow ? 'Join as Collaborator' : 'Ready to join?'}
+              </h1>
               <p className="text-muted-foreground mb-8">
-                Join this event to upload photos and receive a personalized photo book.
+                {isCollaboratorFlow 
+                  ? 'You are joining with management permissions. You will be able to approve guest uploads and manage the event album.' 
+                  : 'Join this event to upload photos, find yourself in the gallery, and order a personalized photo book.'}
               </p>
               <JoinEventButton code={code} eventId={event.id} />
             </>

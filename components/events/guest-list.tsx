@@ -18,11 +18,21 @@ interface GuestListProps {
   guests: GuestWithEnrollment[]
   eventId: string
   inviteCode: string | null
+  collaboratorCode: string | null
   settings: any
-  isHost: boolean
+  isOwner?: boolean
+  isManager?: boolean
 }
 
-export function GuestList({ guests, eventId, inviteCode, settings, isHost }: GuestListProps) {
+export function GuestList({ 
+  guests, 
+  eventId, 
+  inviteCode, 
+  collaboratorCode,
+  settings, 
+  isOwner,
+  isManager 
+}: GuestListProps) {
   const [codeCopied, setCodeCopied] = useState(false)
   const [linkCopied, setLinkCopied] = useState(false)
   const [colCodeCopied, setColCodeCopied] = useState(false)
@@ -39,6 +49,7 @@ export function GuestList({ guests, eventId, inviteCode, settings, isHost }: Gue
       : (process as any).env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
 
   const inviteLink = inviteCode ? `${siteUrl}/join/${inviteCode}` : ''
+  const colInviteLink = collaboratorCode ? `${siteUrl}/join/${collaboratorCode}` : ''
 
   function copyCode() {
     if (!inviteCode) return
@@ -54,12 +65,9 @@ export function GuestList({ guests, eventId, inviteCode, settings, isHost }: Gue
     setTimeout(() => setLinkCopied(false), 2000)
   }
 
-  const colCode = (settings as any)?.collaborator_invite_code
-  const colInviteLink = colCode ? `${siteUrl}/join/${colCode}` : ''
-
   function copyColCode() {
-    if (!colCode) return
-    navigator.clipboard.writeText(colCode)
+    if (!collaboratorCode) return
+    navigator.clipboard.writeText(collaboratorCode)
     setColCodeCopied(true)
     setTimeout(() => setColCodeCopied(false), 2000)
   }
@@ -84,25 +92,137 @@ export function GuestList({ guests, eventId, inviteCode, settings, isHost }: Gue
       if (result?.error) {
         setActionError(result.error)
       } else {
-        setRemovedIds((prev: Set<string>) => new Set([...prev, guestId]))
+        setRemovedIds((prev) => new Set([...prev, guestId]))
       }
       setConfirmRemoveId(null)
     })
   }
 
   const visibleGuests = guests.filter((g) => !removedIds.has(g.id))
-  const enrolledCount = visibleGuests.filter((g) => g.face_enrolled).length
-  const pendingCount = visibleGuests.length - enrolledCount
+  
+  // Split into collaborators and guests
+  const collaborators = visibleGuests.filter(g => g.role === 'collaborator')
+  const regularGuests = visibleGuests.filter(g => g.role !== 'collaborator')
+  
+  const enrolledCount = regularGuests.filter((g) => g.face_enrolled).length
+  const pendingCount = regularGuests.length - enrolledCount
+
+  function renderTable(list: GuestWithEnrollment[], title: string) {
+    if (list.length === 0) return null
+
+    return (
+      <div className="mb-8 last:mb-0">
+        <h4 className="text-sm font-serif text-foreground mb-3 pl-1 border-l-2 border-primary">{title}</h4>
+        <div className="border border-border divide-y divide-border">
+          {list.map((guest) => {
+            const initials = (guest.name || guest.email || 'G')[0].toUpperCase()
+            const enrolled = guest.face_enrolled ?? false
+            const isConfirming = confirmRemoveId === guest.id
+            const isCollab = guest.role === 'collaborator'
+            
+            // Managers can remove guests. Only owner can remove collaborators.
+            const canRemove = isOwner || (isManager && !isCollab)
+
+            return (
+              <div
+                key={guest.id}
+                className={`grid items-center px-5 py-4 bg-background transition-colors ${
+                  canRemove ? 'grid-cols-[1fr_auto_auto]' : 'grid-cols-[1fr_auto]'
+                } ${isConfirming ? 'bg-red-500/5' : 'hover:bg-secondary/5'}`}
+              >
+                {/* Guest info */}
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className={`w-9 h-9 flex-shrink-0 flex items-center justify-center border ${
+                    isCollab ? 'bg-secondary/10 border-secondary/20' : 'bg-primary/10 border-primary/20'
+                  }`}>
+                    <span className={`font-serif text-sm ${isCollab ? 'text-secondary' : 'text-primary'}`}>
+                      {initials}
+                    </span>
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-foreground truncate leading-none mb-1 flex items-center gap-2">
+                      {guest.name || 'Guest'}
+                      {isCollab && <span className="text-[9px] uppercase tracking-wider bg-secondary/10 text-secondary px-1.5 py-0.5">Collaborator</span>}
+                    </p>
+                    {guest.email && (
+                      <p className="text-xs text-muted-foreground truncate mb-1">
+                        {guest.email}
+                      </p>
+                    )}
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground/60 flex items-center gap-1.5">
+                      joined {guest.joined_at ? new Date(guest.joined_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'Unknown'}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Access status (for guests mainly, optional for collaborators but good to know) */}
+                <div className="flex justify-center pr-4">
+                  {enrolled ? (
+                    <div className="flex items-center gap-1.5 px-3 py-1 bg-secondary/10 border border-secondary/20 text-secondary text-xs whitespace-nowrap">
+                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                      </svg>
+                      Has Access
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-1.5 px-3 py-1 bg-background border border-border text-muted-foreground text-xs whitespace-nowrap">
+                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      Pending Enroll
+                    </div>
+                  )}
+                </div>
+
+                {/* Remove action */}
+                {canRemove && (
+                  <div className="flex items-center justify-end gap-2">
+                    {isConfirming ? (
+                      <>
+                        <button
+                          onClick={() => setConfirmRemoveId(null)}
+                          className="text-xs text-muted-foreground hover:text-foreground transition-colors px-2 py-1"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          onClick={() => handleRemove(guest.id)}
+                          disabled={isPending}
+                          className="text-xs bg-red-500 text-white px-3 py-1.5 hover:bg-red-600 transition-colors disabled:opacity-50"
+                        >
+                          {isPending ? 'Removing…' : 'Confirm'}
+                        </button>
+                      </>
+                    ) : (
+                      <button
+                        onClick={() => setConfirmRemoveId(guest.id)}
+                        className="p-1.5 text-muted-foreground hover:text-red-400 transition-colors"
+                        title={isCollab ? "Remove collaborator" : "Remove guest"}
+                      >
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 7a4 4 0 11-8 0 4 4 0 018 0zM9 14a6 6 0 00-6 6h7m3-10l5 5m0-5l-5 5" />
+                        </svg>
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+            )
+          })}
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-8">
 
       {/* ── SHARE SECTION ────────────────────────────────────────── */}
-      {isHost && (
+      {isManager && (
         <div className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-            {/* Left: Link Share */}
-            <div className="lg:col-span-3 border border-border bg-card p-6 flex flex-col justify-between">
+            {/* Left: Guest Link Share */}
+            <div className="lg:col-span-3 border border-border bg-background p-6 flex flex-col justify-between">
               <div>
                 <div className="flex items-center gap-3 mb-2">
                   <div className="w-8 h-8 rounded-full bg-primary/5 flex items-center justify-center">
@@ -113,7 +233,7 @@ export function GuestList({ guests, eventId, inviteCode, settings, isHost }: Gue
                   <h3 className="font-serif text-xl text-foreground">Invite Guests</h3>
                 </div>
                 <p className="text-sm text-muted-foreground mb-8 max-w-md leading-relaxed">
-                  Guests can join to view and automatically receive photos they appear in.
+                  Guests can upload photos (pending your approval) and view photos you've shared. They cannot manage the event.
                 </p>
               </div>
 
@@ -122,7 +242,7 @@ export function GuestList({ guests, eventId, inviteCode, settings, isHost }: Gue
                   Guest Invite Link
                 </label>
                 <div className="flex group relative">
-                  <div className="flex-1 px-4 py-3 bg-surface border border-border border-r-0 font-mono text-sm text-foreground truncate min-w-0 transition-colors group-hover:border-primary/30">
+                  <div className="flex-1 px-4 py-3 bg-background border border-border border-r-0 font-mono text-sm text-foreground truncate min-w-0 transition-colors group-hover:border-primary/30">
                     {inviteCode ? inviteLink : 'Generating link...'}
                   </div>
                   <button
@@ -136,14 +256,14 @@ export function GuestList({ guests, eventId, inviteCode, settings, isHost }: Gue
               </div>
             </div>
 
-            {/* Right: Code Share (VIP Ticket Style) */}
+            {/* Right: Guest Code Share (VIP Ticket Style) */}
             <div className="lg:col-span-2 relative bg-primary text-primary-foreground p-8 flex flex-col justify-between overflow-hidden">
               <div className="absolute top-1/2 -translate-y-1/2 -left-4 w-8 h-8 rounded-full bg-background" />
               <div className="absolute top-1/2 -translate-y-1/2 -right-4 w-8 h-8 rounded-full bg-background" />
               <div className="absolute left-6 right-6 top-1/2 border-t border-dashed border-primary-foreground/20" />
 
               <div className="relative z-10 text-center pb-4">
-                <p className="text-[10px] uppercase tracking-[0.2em] text-primary-foreground/60 mb-2">Guest Access</p>
+                <p className="text-[10px] uppercase tracking-[0.2em] text-primary-foreground/60 mb-2">General Admission</p>
                 <h3 className="font-serif text-2xl">Guest Pass</h3>
               </div>
 
@@ -169,7 +289,7 @@ export function GuestList({ guests, eventId, inviteCode, settings, isHost }: Gue
             </div>
           </div>
 
-          {/* Collaborator Section */}
+          {/* Collaborator Section (Owner sees generator/code, Collaborators just see the code) */}
           <div className="border border-secondary/30 bg-secondary/5 p-6 border-dashed">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
               <div>
@@ -179,19 +299,18 @@ export function GuestList({ guests, eventId, inviteCode, settings, isHost }: Gue
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
                     </svg>
                   </div>
-                  <h3 className="font-serif text-xl text-foreground">Add Collaborators</h3>
+                  <h3 className="font-serif text-xl text-foreground">Collaborator Access</h3>
                 </div>
                 <p className="text-sm text-muted-foreground max-w-xl leading-relaxed">
-                  Collaborators can help manage photos, curate galleries, and design albums together with you. 
-                  Share this restricted code only with people you trust.
+                  Collaborators have full management rights to approve, share, and curate photos. Share this restricted code only with trusted partners.
                 </p>
               </div>
 
-              {colCode ? (
+              {collaboratorCode ? (
                 <div className="flex-shrink-0 flex flex-col gap-2 min-w-[240px]">
                   <div className="flex group relative">
-                    <div className="flex-1 px-4 py-3 bg-surface border border-secondary/20 border-r-0 font-mono text-sm text-foreground truncate min-w-0">
-                      {colCode}
+                    <div className="flex-1 px-4 py-3 bg-background border border-secondary/20 border-r-0 font-mono text-sm text-foreground truncate min-w-0">
+                      {collaboratorCode}
                     </div>
                     <button
                       onClick={copyColCode}
@@ -208,13 +327,15 @@ export function GuestList({ guests, eventId, inviteCode, settings, isHost }: Gue
                   </button>
                 </div>
               ) : (
-                <button
-                  onClick={handleGenerateColCode}
-                  disabled={generatingCol}
-                  className="flex-shrink-0 px-8 py-4 bg-secondary text-secondary-foreground text-sm font-sans uppercase tracking-wider hover:bg-secondary/90 transition-colors disabled:opacity-50"
-                >
-                  {generatingCol ? 'Generating...' : 'Enable Collaborator Access'}
-                </button>
+                isOwner && (
+                  <button
+                    onClick={handleGenerateColCode}
+                    disabled={generatingCol}
+                    className="flex-shrink-0 px-8 py-4 bg-secondary text-secondary-foreground text-sm font-sans uppercase tracking-wider hover:bg-secondary/90 transition-colors disabled:opacity-50"
+                  >
+                    {generatingCol ? 'Generating...' : 'Enable Collaborator Access'}
+                  </button>
+                )
               )}
             </div>
           </div>
@@ -226,13 +347,13 @@ export function GuestList({ guests, eventId, inviteCode, settings, isHost }: Gue
         {/* Section header + stats */}
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-sm uppercase tracking-wider text-muted-foreground">
-            Photo Access
+            Members & Access
           </h3>
-          {visibleGuests.length > 0 && (
+          {regularGuests.length > 0 && (
             <div className="flex items-center gap-4 text-xs text-muted-foreground">
               <span className="flex items-center gap-1.5">
                 <span className="w-2 h-2 rounded-full bg-secondary" />
-                {enrolledCount} can see their photos
+                {enrolledCount} enrolled
               </span>
               <span className="flex items-center gap-1.5">
                 <span className="w-2 h-2 rounded-full bg-border" />
@@ -249,131 +370,19 @@ export function GuestList({ guests, eventId, inviteCode, settings, isHost }: Gue
         )}
 
         {visibleGuests.length > 0 ? (
-          <div className="border border-border divide-y divide-border">
-            {/* Table header */}
-            <div className="grid grid-cols-[1fr_auto_auto] gap-4 px-5 py-2.5 bg-surface">
-              <span className="text-xs uppercase tracking-wider text-muted-foreground">Guest</span>
-              <span className="text-xs uppercase tracking-wider text-muted-foreground text-center">Photo Access</span>
-              {isHost && <span className="text-xs uppercase tracking-wider text-muted-foreground text-right">Actions</span>}
-            </div>
-
-            {visibleGuests.map((guest) => {
-              const initials = (guest.name || guest.email || 'G')[0].toUpperCase()
-              const enrolled = guest.face_enrolled ?? false
-              const isConfirming = confirmRemoveId === guest.id
-
-              return (
-                <div
-                  key={guest.id}
-                  className={`grid gap-4 items-center px-5 py-4 bg-card transition-colors ${
-                    isHost ? 'grid-cols-[1fr_auto_auto]' : 'grid-cols-[1fr_auto]'
-                  } ${isConfirming ? 'bg-red-500/5' : 'hover:bg-surface'}`}
-                >
-                  {/* Guest info */}
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-9 h-9 flex-shrink-0 bg-primary/10 border border-primary/20 flex items-center justify-center">
-                      <span className="font-serif text-sm text-primary">{initials}</span>
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium text-foreground truncate leading-none mb-1">
-                        {guest.name || 'Guest'}
-                      </p>
-                      {guest.email && (
-                        <p className="text-xs text-muted-foreground truncate mb-1">
-                          {guest.email}
-                        </p>
-                      )}
-                      <p className="text-[10px] uppercase tracking-wider text-muted-foreground/60 flex items-center gap-1.5">
-                        {guest.role || 'guest'}
-                        {guest.joined_at && (
-                          <>
-                            <span>·</span>
-                            joined {new Date(guest.joined_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                          </>
-                        )}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Access status */}
-                  <div className="flex justify-center">
-                    {enrolled ? (
-                      <div className="flex items-center gap-1.5 px-3 py-1 bg-secondary/10 border border-secondary/20 text-secondary text-xs whitespace-nowrap">
-                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-                        </svg>
-                        Has Access
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-1.5 px-3 py-1 bg-background border border-border text-muted-foreground text-xs whitespace-nowrap">
-                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        Pending Enroll
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Remove action (host only) */}
-                  {isHost && (
-                    <div className="flex items-center justify-end gap-2">
-                      {isConfirming ? (
-                        <>
-                          <button
-                            onClick={() => setConfirmRemoveId(null)}
-                            className="text-xs text-muted-foreground hover:text-foreground transition-colors px-2 py-1"
-                          >
-                            Cancel
-                          </button>
-                          <button
-                            onClick={() => handleRemove(guest.id)}
-                            disabled={isPending}
-                            className="text-xs bg-red-500 text-white px-3 py-1.5 hover:bg-red-600 transition-colors disabled:opacity-50"
-                          >
-                            {isPending ? 'Removing…' : 'Confirm'}
-                          </button>
-                        </>
-                      ) : (
-                        <button
-                          onClick={() => setConfirmRemoveId(guest.id)}
-                          className="p-1.5 text-muted-foreground hover:text-red-400 transition-colors"
-                          title="Remove guest"
-                        >
-                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 7a4 4 0 11-8 0 4 4 0 018 0zM9 14a6 6 0 00-6 6h7m3-10l5 5m0-5l-5 5" />
-                          </svg>
-                        </button>
-                      )}
-                    </div>
-                  )}
-                </div>
-              )
-            })}
+          <div>
+            {renderTable(collaborators, "Collaborators")}
+            {renderTable(regularGuests, "Guests")}
           </div>
         ) : (
           <div className="text-center py-16 bg-card border border-border">
             <svg className="w-12 h-12 mx-auto text-border mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
             </svg>
-            <p className="font-serif text-xl text-foreground mb-2">No guests yet</p>
+            <p className="font-serif text-xl text-foreground mb-2">No joined members yet</p>
             <p className="text-sm text-muted-foreground max-w-xs mx-auto">
-              Share the invite link or code above. As guests join, they&apos;ll appear here.
+              Share the invite link or code above. As people join, they&apos;ll appear here.
             </p>
-          </div>
-        )}
-
-        {/* Access legend */}
-        {visibleGuests.length > 0 && (
-          <div className="mt-4 p-4 bg-surface border border-border flex flex-col sm:flex-row gap-3 text-xs text-muted-foreground">
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 flex-shrink-0 bg-secondary/10 border border-secondary/20" />
-              <span><strong className="text-foreground">Has Access</strong> — Face enrolled. AI matches their photos &amp; they see host-shared moments.</span>
-            </div>
-            <div className="hidden sm:block">|</div>
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 flex-shrink-0 bg-background border border-border" />
-              <span><strong className="text-foreground">Pending Enroll</strong> — Joined but hasn&apos;t taken a selfie yet.</span>
-            </div>
           </div>
         )}
       </div>

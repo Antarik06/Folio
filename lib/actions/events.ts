@@ -2,26 +2,57 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
-import { redirect } from 'next/navigation'
 
 // ─── PERMISSION HELPERS ──────────────────────────────────────────────────────
 
 /**
- * Checks if a user has management permissions (host or contributor) for an event.
+ * Returns full role info for the current user in a given event.
  */
-export async function isEventManager(eventId: string, userId: string) {
+export async function getUserEventRole(eventId: string) {
   const supabase = await createClient()
-  
-  // Check if they are the host
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { role: null, isOwner: false, isCollaborator: false, isGuest: false }
+
   const { data: event } = await supabase
     .from('events')
     .select('host_id')
     .eq('id', eventId)
     .single()
-    
-  if (event?.host_id === userId) return true
 
-  // Check if they are a contributor
+  if (event?.host_id === user.id) {
+    return { role: 'owner' as const, isOwner: true, isCollaborator: false, isGuest: false }
+  }
+
+  const { data: guestRecord } = await supabase
+    .from('event_guests')
+    .select('role')
+    .eq('event_id', eventId)
+    .eq('user_id', user.id)
+    .single()
+
+  const role = guestRecord?.role
+  return {
+    role: role ?? null,
+    isOwner: false,
+    isCollaborator: role === 'collaborator',
+    isGuest: role === 'guest',
+  }
+}
+
+/**
+ * Checks if the current user is a manager (owner OR collaborator) for an event.
+ */
+async function assertManager(eventId: string, userId: string) {
+  const supabase = await createClient()
+
+  const { data: event } = await supabase
+    .from('events')
+    .select('host_id')
+    .eq('id', eventId)
+    .single()
+
+  if (event?.host_id === userId) return { event, ok: true }
+
   const { data: guest } = await supabase
     .from('event_guests')
     .select('role')
@@ -29,14 +60,27 @@ export async function isEventManager(eventId: string, userId: string) {
     .eq('user_id', userId)
     .single()
 
-  return guest?.role === 'contributor'
+  return { event, ok: guest?.role === 'collaborator' }
+}
+
+/**
+ * Checks if the current user is strictly the owner (host) of an event.
+ */
+async function assertOwner(eventId: string, userId: string) {
+  const supabase = await createClient()
+  const { data: event } = await supabase
+    .from('events')
+    .select('host_id')
+    .eq('id', eventId)
+    .single()
+  return { event, ok: event?.host_id === userId }
 }
 
 // ─── JOIN EVENT ──────────────────────────────────────────────────────────────
 
 /**
- * Looks up an event by invite code and registers the current user as a guest.
- * Returns the event id and whether the user was already a guest.
+ * Looks up an event by guest invite code OR collaborator invite code,
+ * and registers the current user with the appropriate role.
  */
 export async function joinEvent(inviteCode: string) {
   const supabase = await createClient()
@@ -46,30 +90,39 @@ export async function joinEvent(inviteCode: string) {
 
   const normalizedCode = inviteCode.toUpperCase().trim()
 
-  // 1. Try to look up event by regular invite code
-  let { data: event, error: eventError } = await supabase
+  // 1. Try guest invite code
+  let { data: event } = await supabase
     .from('events')
-    .select('id, title, host_id, status, settings')
+    .select('id, title, host_id, status')
     .eq('invite_code', normalizedCode)
     .single()
 
-  let role: 'guest' | 'contributor' = 'guest'
+  let role: 'guest' | 'collaborator' = 'guest'
 
-  // 2. If not found by regular code, try collaborator code in settings
-  if (eventError || !event) {
-    const { data: colEvent, error: colError } = await supabase
+  // 2. If not found, try collaborator_invite_code column
+  if (!event) {
+    const { data: colEvent } = await supabase
       .from('events')
-      .select('id, title, host_id, status, settings')
-      .eq('settings->>collaborator_invite_code', normalizedCode)
+      .select('id, title, host_id, status')
+      .eq('collaborator_invite_code', normalizedCode)
       .single()
 
-    if (colError || !colEvent) {
-      console.error('joinEvent lookup failed:', { inviteCode, eventError, colError })
-      return { error: 'Invalid invite code. Please check and try again.' }
+    if (!colEvent) {
+      // 3. Fallback: try collaborator code stored in settings JSONB (legacy)
+      const { data: legacyEvent } = await supabase
+        .from('events')
+        .select('id, title, host_id, status')
+        .eq('settings->>collaborator_invite_code', normalizedCode)
+        .single()
+
+      if (!legacyEvent) {
+        return { error: 'Invalid invite code. Please check and try again.' }
+      }
+      event = legacyEvent
+    } else {
+      event = colEvent
     }
-    
-    event = colEvent
-    role = 'contributor'
+    role = 'collaborator'
   }
 
   // Cannot join your own event
@@ -77,7 +130,7 @@ export async function joinEvent(inviteCode: string) {
     return { alreadyHost: true, eventId: event.id }
   }
 
-  // Check if already joined (any role)
+  // Check if already a member
   const { data: existingGuest } = await supabase
     .from('event_guests')
     .select('id, role, face_enrolled')
@@ -86,40 +139,34 @@ export async function joinEvent(inviteCode: string) {
     .single()
 
   if (existingGuest) {
-    // If they joined as guest but now use collaborator code, upgrade them
-    if (existingGuest.role === 'guest' && role === 'contributor') {
+    // Upgrade: guest → collaborator if using collaborator code
+    if (existingGuest.role === 'guest' && role === 'collaborator') {
       await supabase
         .from('event_guests')
-        .update({ role: 'contributor' })
+        .update({ role: 'collaborator' })
         .eq('id', existingGuest.id)
-      
       revalidatePath(`/events/${event.id}`)
       return {
         eventId: event.id,
         guestId: existingGuest.id,
-        alreadyJoined: false, // Treat as "just joined as contributor"
+        alreadyJoined: false,
         faceEnrolled: existingGuest.face_enrolled ?? false,
-        role: 'contributor'
+        role: 'collaborator' as const,
       }
     }
-
     return {
       eventId: event.id,
       guestId: existingGuest.id,
       alreadyJoined: true,
       faceEnrolled: existingGuest.face_enrolled ?? false,
-      role: existingGuest.role
+      role: existingGuest.role as 'guest' | 'collaborator',
     }
   }
 
-  // Insert as a new member
+  // Insert new member
   const { data: newGuest, error: insertError } = await supabase
     .from('event_guests')
-    .insert({
-      event_id: event.id,
-      user_id: user.id,
-      role: role,
-    })
+    .insert({ event_id: event.id, user_id: user.id, role })
     .select('id')
     .single()
 
@@ -129,97 +176,99 @@ export async function joinEvent(inviteCode: string) {
   }
 
   revalidatePath(`/events/${event.id}`)
-
-  return {
-    eventId: event.id,
-    guestId: newGuest.id,
-    alreadyJoined: false,
-    faceEnrolled: false,
-    role: role
-  }
+  return { eventId: event.id, guestId: newGuest.id, alreadyJoined: false, faceEnrolled: false, role }
 }
 
-// ─── GET EVENT BY INVITE CODE (public lookup) ─────────────────────────────
+// ─── GET EVENT BY INVITE CODE (public lookup) ────────────────────────────────
 
+/**
+ * Resolves an event from either a guest or collaborator invite code.
+ * Returns the event AND which type of code was matched.
+ */
 export async function getEventByInviteCode(code: string) {
   const supabase = await createClient()
   const normalizedCode = code.toUpperCase().trim()
 
-  // Try regular code
+  // Try guest invite code
   let { data: event } = await supabase
     .from('events')
     .select(`
-      id,
-      host_id,
-      title,
-      description,
-      event_date,
-      cover_image_url,
-      settings,
-      status,
-      invite_code,
+      id, host_id, title, description, event_date,
+      cover_image_url, settings, status, invite_code,
+      collaborator_invite_code,
       profiles!events_host_id_fkey(full_name, avatar_url)
     `)
     .eq('invite_code', normalizedCode)
     .single()
 
-  // If not found, try collaborator code
+  let codeType: 'guest' | 'collaborator' = 'guest'
+
   if (!event) {
+    // Try collaborator_invite_code column
     const { data: colEvent } = await supabase
       .from('events')
       .select(`
-        id,
-        host_id,
-        title,
-        description,
-        event_date,
-        cover_image_url,
-        settings,
-        status,
-        invite_code,
+        id, host_id, title, description, event_date,
+        cover_image_url, settings, status, invite_code,
+        collaborator_invite_code,
         profiles!events_host_id_fkey(full_name, avatar_url)
       `)
-      .eq('settings->>collaborator_invite_code', normalizedCode)
+      .eq('collaborator_invite_code', normalizedCode)
       .single()
-    
-    event = colEvent
+
+    if (!colEvent) {
+      // Fallback: JSONB settings
+      const { data: legacyColEvent } = await supabase
+        .from('events')
+        .select(`
+          id, host_id, title, description, event_date,
+          cover_image_url, settings, status, invite_code,
+          collaborator_invite_code,
+          profiles!events_host_id_fkey(full_name, avatar_url)
+        `)
+        .eq('settings->>collaborator_invite_code', normalizedCode)
+        .single()
+
+      event = legacyColEvent
+    } else {
+      event = colEvent
+    }
+    codeType = 'collaborator'
   }
 
-  return event
+  if (!event) return null
+  return { ...event, codeType }
 }
 
+// ─── GENERATE COLLABORATOR CODE ──────────────────────────────────────────────
+
 /**
- * Generates or regenerates a collaborator invite code for an event.
+ * Generates or regenerates a collaborator invite code. Owner only.
  */
 export async function generateCollaboratorCode(eventId: string) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-
   if (!user) return { error: 'Not authenticated.' }
 
-  // Verify host
-  const { data: event } = await supabase
+  const { ok } = await assertOwner(eventId, user.id)
+  if (!ok) return { error: 'Only the event owner can generate a collaborator code.' }
+
+  const code = 'COL-' + Math.random().toString(36).slice(2, 8).toUpperCase()
+
+  // Store in both the new column AND settings for backward compat
+  const { data: currentEvent } = await supabase
     .from('events')
-    .select('host_id, settings')
+    .select('settings')
     .eq('id', eventId)
     .single()
 
-  if (!event || !user || !(await isEventManager(eventId, user.id))) {
-    return { error: 'Not authorized.' }
-  }
-
-  const code = 'COL-' + Math.random().toString(36).slice(2, 8).toUpperCase()
-  const newSettings = { 
-    ...(event.settings as any || {}), 
-    collaborator_invite_code: code 
-  }
-
-  const { error } = await supabase
+  await supabase
     .from('events')
-    .update({ settings: newSettings })
+    .update({
+      collaborator_invite_code: code,
+      settings: { ...(currentEvent?.settings as any || {}), collaborator_invite_code: code },
+    })
     .eq('id', eventId)
-
-  if (error) return { error: error.message }
 
   revalidatePath(`/events/${eventId}`)
   return { success: true, code }
@@ -227,21 +276,14 @@ export async function generateCollaboratorCode(eventId: string) {
 
 // ─── ENROLL FACE ─────────────────────────────────────────────────────────────
 
-/**
- * Stores the selfie URL and marks the guest as face-enrolled.
- */
 export async function enrollFace(eventId: string, selfieUrl: string) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-
   if (!user) return { error: 'Not authenticated.' }
 
   const { error } = await supabase
     .from('event_guests')
-    .update({
-      face_reference_url: selfieUrl,
-      face_enrolled: true,
-    })
+    .update({ face_reference_url: selfieUrl, face_enrolled: true })
     .eq('event_id', eventId)
     .eq('user_id', user.id)
 
@@ -254,50 +296,40 @@ export async function enrollFace(eventId: string, selfieUrl: string) {
 // ─── GUEST: GET MY PHOTOS ────────────────────────────────────────────────────
 
 /**
- * Returns photos visible to the current guest:
- * - Photos they uploaded themselves
- * - Photos marked as is_shared = true by the host
+ * For a guest: returns approved photos + their own uploads (any status).
  */
 export async function getMyEventPhotos(eventId: string) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-
   if (!user) return { photos: [], error: 'Not authenticated.' }
 
-  // Fetch photos: own uploads OR shared by host
   const { data: photos, error } = await supabase
     .from('photos')
     .select('*')
     .eq('event_id', eventId)
-    .or(`uploader_id.eq.${user.id},is_shared.eq.true`)
+    .or(`uploader_id.eq.${user.id},and(is_shared.eq.true,status.eq.approved)`)
     .order('created_at', { ascending: false })
 
   if (error) return { photos: [], error: error.message }
-
   return { photos: photos ?? [] }
 }
 
-// ─── HOST: TOGGLE PHOTO SHARED ───────────────────────────────────────────────
+// ─── MANAGER: TOGGLE PHOTO SHARED ────────────────────────────────────────────
 
-/**
- * Toggles the is_shared flag on a photo. Host only.
- */
 export async function togglePhotoShared(photoId: string, currentIsShared: boolean) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-
   if (!user) return { error: 'Not authenticated.' }
 
-  // Verify user is host of the event this photo belongs to
   const { data: photo } = await supabase
     .from('photos')
-    .select('event_id, events!inner(host_id)')
+    .select('event_id')
     .eq('id', photoId)
     .single()
 
-  if (!photo || !user || !(await isEventManager(photo.event_id, user.id))) {
-    return { error: 'Not authorized.' }
-  }
+  if (!photo) return { error: 'Photo not found.' }
+  const { ok } = await assertManager(photo.event_id, user.id)
+  if (!ok) return { error: 'Not authorized.' }
 
   const { error } = await supabase
     .from('photos')
@@ -305,52 +337,122 @@ export async function togglePhotoShared(photoId: string, currentIsShared: boolea
     .eq('id', photoId)
 
   if (error) return { error: error.message }
-
   revalidatePath(`/events/${photo.event_id}`)
   return { success: true, isShared: !currentIsShared }
 }
 
-// ─── HOST: SHARE ALL PHOTOS ──────────────────────────────────────────────────
+// ─── MANAGER: SHARE ALL PHOTOS ───────────────────────────────────────────────
 
-/**
- * Marks all photos in an event as shared. Host only.
- */
 export async function shareAllPhotos(eventId: string) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-
   if (!user) return { error: 'Not authenticated.' }
 
-  // Verify caller is the event host
-  const { data: event } = await supabase
-    .from('events')
-    .select('host_id')
-    .eq('id', eventId)
-    .single()
+  const { ok } = await assertManager(eventId, user.id)
+  if (!ok) return { error: 'Not authorized.' }
 
-  if (!event || !user || !(await isEventManager(eventId, user.id))) {
-    return { error: 'Not authorized.' }
-  }
-
-  // Update all photos for this event
   const { error } = await supabase
     .from('photos')
     .update({ is_shared: true })
     .eq('event_id', eventId)
-    .eq('is_shared', false) // Only update the ones that aren't shared yet to optimize
+    .eq('is_shared', false)
+    .eq('status', 'approved')
 
   if (error) return { error: error.message }
-
   revalidatePath(`/events/${eventId}`)
   return { success: true }
 }
 
-// ─── GUEST: CHECK ENROLLMENT STATUS ─────────────────────────────────────────
+// ─── MANAGER: APPROVE/REJECT GUEST PHOTO ─────────────────────────────────────
+
+/**
+ * Approves a pending guest photo. Manager only.
+ */
+export async function approvePhoto(photoId: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated.' }
+
+  const { data: photo } = await supabase
+    .from('photos')
+    .select('event_id, status')
+    .eq('id', photoId)
+    .single()
+
+  if (!photo) return { error: 'Photo not found.' }
+  const { ok } = await assertManager(photo.event_id, user.id)
+  if (!ok) return { error: 'Not authorized.' }
+
+  const { error } = await supabase
+    .from('photos')
+    .update({ status: 'approved' })
+    .eq('id', photoId)
+
+  if (error) return { error: error.message }
+  revalidatePath(`/events/${photo.event_id}`)
+  return { success: true }
+}
+
+/**
+ * Rejects (deletes) a pending guest photo. Manager only.
+ */
+export async function rejectPhoto(photoId: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated.' }
+
+  const { data: photo } = await supabase
+    .from('photos')
+    .select('event_id, blob_url, thumbnail_url')
+    .eq('id', photoId)
+    .single()
+
+  if (!photo) return { error: 'Photo not found.' }
+  const { ok } = await assertManager(photo.event_id, user.id)
+  if (!ok) return { error: 'Not authorized.' }
+
+  const { error } = await supabase
+    .from('photos')
+    .delete()
+    .eq('id', photoId)
+
+  if (error) return { error: error.message }
+  revalidatePath(`/events/${photo.event_id}`)
+  return { success: true }
+}
+
+/**
+ * Deletes a photo. RLS handles permissions 
+ * (managers can delete all, guests can delete only their own uploads).
+ */
+export async function deletePhoto(photoId: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated.' }
+
+  const { data: photo } = await supabase
+    .from('photos')
+    .select('event_id')
+    .eq('id', photoId)
+    .single()
+
+  if (!photo) return { error: 'Photo not found.' }
+
+  const { error } = await supabase
+    .from('photos')
+    .delete()
+    .eq('id', photoId)
+
+  if (error) return { error: error.message }
+  revalidatePath(`/events/${photo.event_id}`)
+  return { success: true }
+}
+
+// ─── GUEST: CHECK ENROLLMENT STATUS ──────────────────────────────────────────
 
 export async function getGuestEnrollmentStatus(eventId: string) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-
   if (!user) return null
 
   const { data } = await supabase
@@ -363,39 +465,50 @@ export async function getGuestEnrollmentStatus(eventId: string) {
   return data
 }
 
-// ─── HOST: REMOVE GUEST ──────────────────────────────────────────────────────
+// ─── OWNER: REMOVE GUEST OR COLLABORATOR ─────────────────────────────────────
 
 /**
- * Removes a guest from an event. Host only.
- * Also removes their face photo from storage if enrolled.
+ * Removes a guest or collaborator from an event.
+ * - Owners can remove anyone.
+ * - Collaborators can only remove guests (not other collaborators).
  */
 export async function removeGuest(guestId: string, eventId: string) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-
   if (!user) return { error: 'Not authenticated.' }
 
-  // Verify caller is the event host
   const { data: event } = await supabase
     .from('events')
     .select('host_id')
     .eq('id', eventId)
     .single()
 
-  if (!event || !user || !(await isEventManager(eventId, user.id))) {
-    return { error: 'Not authorized.' }
-  }
+  const isOwner = event?.host_id === user.id
 
-  // Fetch guest info before deleting (to clean up face photo)
-  const { data: guest } = await supabase
+  // Fetch the target guest record
+  const { data: targetGuest } = await supabase
     .from('event_guests')
-    .select('user_id, face_reference_url, face_enrolled')
+    .select('user_id, role, face_reference_url, face_enrolled')
     .eq('id', guestId)
     .single()
 
-  if (!guest) return { error: 'Guest not found.' }
+  if (!targetGuest) return { error: 'Guest not found.' }
 
-  // Delete from event_guests
+  // Collaborators can only remove regular guests, not other collaborators
+  if (!isOwner) {
+    const { data: callerGuest } = await supabase
+      .from('event_guests')
+      .select('role')
+      .eq('event_id', eventId)
+      .eq('user_id', user.id)
+      .single()
+
+    if (callerGuest?.role !== 'collaborator') return { error: 'Not authorized.' }
+    if (targetGuest.role === 'collaborator') {
+      return { error: 'Only the event owner can remove collaborators.' }
+    }
+  }
+
   const { error } = await supabase
     .from('event_guests')
     .delete()
@@ -404,10 +517,10 @@ export async function removeGuest(guestId: string, eventId: string) {
   if (error) return { error: error.message }
 
   // Clean up face photo if enrolled
-  if (guest.face_enrolled && guest.user_id) {
+  if (targetGuest.face_enrolled && targetGuest.user_id) {
     await supabase.storage
       .from('face-photos')
-      .remove([`${guest.user_id}/${eventId}.jpg`])
+      .remove([`${targetGuest.user_id}/${eventId}.jpg`])
   }
 
   revalidatePath(`/events/${eventId}`)

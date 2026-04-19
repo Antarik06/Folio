@@ -25,21 +25,19 @@ export default async function EventDetailPage({ params }: Props) {
     .eq('id', id)
     .single()
 
-  if (error || !event) {
-    notFound()
-  }
+  if (error || !event) notFound()
 
-  // Check if user is host or guest
-  const isHost = event.host_id === user?.id
+  // ── Determine role ──────────────────────────────────────────────────────────
+  const isOwner = event.host_id === user?.id
 
-  // Auto-generate invite code if missing (covers events created before the trigger was added)
-  if (isHost && (!event.invite_code || event.invite_code.trim() === '')) {
+  // Auto-generate invite code if missing
+  if (isOwner && (!event.invite_code || event.invite_code.trim() === '')) {
     const generated = Math.random().toString(36).slice(2, 10).toUpperCase()
     await supabase.from('events').update({ invite_code: generated }).eq('id', id)
     event.invite_code = generated
   }
 
-  // Fetch guests with enrollment status (moved up to use role)
+  // Fetch ALL guests (managers can see everyone)
   const { data: guests } = await supabase
     .from('event_guests')
     .select('id, user_id, role, joined_at, face_enrolled, face_reference_url, profiles(full_name, email)')
@@ -47,62 +45,71 @@ export default async function EventDetailPage({ params }: Props) {
     .order('joined_at', { ascending: true })
 
   const currentUserGuestRecord = guests?.find((g: any) => g.user_id === user?.id)
-  const isContributor = currentUserGuestRecord?.role === 'contributor'
-  const isGuest = !!currentUserGuestRecord
-  const isManager = isHost || isContributor
+  const isCollaborator = currentUserGuestRecord?.role === 'collaborator'
+  const isGuest = currentUserGuestRecord?.role === 'guest'
+  const isManager = isOwner || isCollaborator
 
-  // Fetch photos
-  const { data: photos } = await supabase
+  // ── Fetch photos ─────────────────────────────────────────────────────────────
+  let photosQuery = supabase
     .from('photos')
     .select('*')
     .eq('event_id', id)
     .order('created_at', { ascending: false })
 
-  // Fetch albums for this event
-  let albumQuery = supabase
-    .from('albums')
-    .select('*')
-    .eq('event_id', id)
-
-  // Non-hosts/non-contributors only see their own albums
-  if (!isHost && !isContributor) {
-    albumQuery = albumQuery.eq('owner_id', user!.id)
+  // Guests only see their own uploads + approved shared photos
+  if (isGuest) {
+    photosQuery = photosQuery.or(`uploader_id.eq.${user!.id},and(status.eq.approved,is_shared.eq.true)`)
   }
 
+  const { data: photos } = await photosQuery
+
+  // ── Fetch albums ──────────────────────────────────────────────────────────────
+  let albumQuery = supabase.from('albums').select('*').eq('event_id', id)
+  if (!isManager) {
+    albumQuery = albumQuery.eq('owner_id', user!.id)
+  }
   const { data: albums } = await albumQuery.order('created_at', { ascending: false })
 
-  const canUpload = isManager || isGuest
+  // Collaborator code from event (support both column and settings for compat)
+  const collaboratorCode = event.collaborator_invite_code
+    || (event.settings as any)?.collaborator_invite_code
+    || null
 
   return (
     <div className="max-w-7xl mx-auto px-6 py-8">
-      <EventHeader 
-        event={event} 
+      <EventHeader
+        event={event}
         isHost={isManager}
         photoCount={photos?.length || 0}
         guestCount={guests?.length || 0}
       />
 
-      <EventTabs 
+      <EventTabs
         eventId={id}
         isHost={isManager}
         defaultTab="photos"
       >
-        {/* Photos Tab Content */}
+        {/* Photos Tab */}
         <div data-tab="photos" className="space-y-8">
-          {canUpload && (
-            <PhotoUploader eventId={id} isHost={isManager} />
-          )}
-          
-          <PhotoGrid 
-            photos={photos || []} 
+          <PhotoUploader
             eventId={id}
-            isHost={isManager}
+            isManager={isManager}
+            isGuest={isGuest}
+          />
+
+          <PhotoGrid
+            photos={photos || []}
+            eventId={id}
+            currentUserId={user?.id}
+            isOwner={isOwner}
+            isManager={isManager}
+            isGuest={isGuest}
           />
         </div>
 
-        {/* Guests Tab Content */}
+        {/* Guests Tab */}
         <div data-tab="guests">
-          <GuestList 
+          <GuestList
             guests={(guests || []).map((g: any) => ({
               id: g.id,
               user_id: g.user_id,
@@ -115,12 +122,14 @@ export default async function EventDetailPage({ params }: Props) {
             }))}
             eventId={id}
             inviteCode={event.invite_code}
+            collaboratorCode={collaboratorCode}
             settings={event.settings}
-            isHost={isManager}
+            isOwner={isOwner}
+            isManager={isManager}
           />
         </div>
 
-        {/* Albums Tab Content */}
+        {/* Albums Tab */}
         <div data-tab="albums">
           {albums && albums.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -133,10 +142,10 @@ export default async function EventDetailPage({ params }: Props) {
                   <h3 className="font-serif text-xl text-foreground mb-2">{album.title}</h3>
                   <p className="text-sm text-muted-foreground mb-4">{album.subtitle || 'No subtitle'}</p>
                   <span className={`text-xs uppercase tracking-wider px-2 py-1 ${
-                    album.status === 'ready' 
-                      ? 'bg-secondary/20 text-secondary' 
+                    album.status === 'ready'
+                      ? 'bg-secondary/20 text-secondary'
                       : album.status === 'ordered'
-                      ? 'bg-terracotta/20 text-terracotta'
+                      ? 'bg-primary/20 text-primary'
                       : 'bg-border text-muted-foreground'
                   }`}>
                     {album.status}
@@ -147,7 +156,7 @@ export default async function EventDetailPage({ params }: Props) {
           ) : (
             <div className="p-12 bg-card border border-border text-center">
               <p className="text-muted-foreground mb-6">
-                {photos && photos.length > 0 
+                {photos && photos.length > 0
                   ? 'Ready to create your album? Let AI curate your best moments.'
                   : 'Upload some photos first, then create your album.'}
               </p>
