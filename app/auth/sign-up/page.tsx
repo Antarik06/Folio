@@ -132,7 +132,7 @@ export default function SignUpPage() {
           <button
             onClick={handleGoogleSignIn}
             disabled={googleLoading || loading}
-            className="w-full flex items-center justify-center gap-3 bg-surface border border-border text-foreground py-3.5 text-sm font-sans hover:bg-card hover:border-primary/40 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed mb-6"
+            className="w-full flex items-center justify-center gap-3 bg-card border border-border text-foreground py-3.5 text-sm font-sans hover:bg-card hover:border-primary/40 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed mb-6"
           >
             {googleLoading ? (
               <span className="w-[18px] h-[18px] border-2 border-muted-foreground/30 border-t-foreground rounded-full animate-spin" />
@@ -164,7 +164,7 @@ export default function SignUpPage() {
                 name="fullName"
                 type="text"
                 required
-                className="w-full px-4 py-3 bg-surface border border-border text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary transition-colors"
+                className="w-full px-4 py-3 bg-card border border-border text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary transition-colors"
                 placeholder="Your name"
               />
             </div>
@@ -178,7 +178,7 @@ export default function SignUpPage() {
                 name="email"
                 type="email"
                 required
-                className="w-full px-4 py-3 bg-surface border border-border text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary transition-colors"
+                className="w-full px-4 py-3 bg-card border border-border text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary transition-colors"
                 placeholder="you@example.com"
               />
             </div>
@@ -193,7 +193,7 @@ export default function SignUpPage() {
                 type="password"
                 required
                 minLength={8}
-                className="w-full px-4 py-3 bg-surface border border-border text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary transition-colors"
+                className="w-full px-4 py-3 bg-card border border-border text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary transition-colors"
                 placeholder="Min. 8 characters"
               />
             </div>

@@ -56,7 +56,7 @@ export default function JoinPage() {
               }}
               maxLength={12}
               placeholder="e.g. A1B2C3D4"
-              className="w-full px-4 py-4 bg-surface border border-border text-foreground text-center text-2xl font-mono tracking-[0.3em] placeholder:text-muted-foreground/30 placeholder:text-base placeholder:tracking-normal focus:outline-none focus:border-primary transition-colors uppercase"
+              className="w-full px-4 py-4 bg-card border border-border text-foreground text-center text-2xl font-mono tracking-[0.3em] placeholder:text-muted-foreground/30 placeholder:text-base placeholder:tracking-normal focus:outline-none focus:border-primary transition-colors uppercase"
             />
           </div>
 

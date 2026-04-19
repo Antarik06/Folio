@@ -78,6 +78,12 @@
   --sidebar-accent-foreground: #F5F0E8;
   --sidebar-border: #3a342b;
   --sidebar-ring: #B85C38;
+  
+  /* Custom tokens inversion for dark mode */
+  --surface: #252019;
+  --ink: #F5F0E8;
+  --paper: #1C1814;
+  --linen: #3a342b;
 }
 
 @theme inline {
