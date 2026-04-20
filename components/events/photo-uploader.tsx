@@ -9,9 +9,19 @@ interface PhotoUploaderProps {
   eventId: string
   isManager?: boolean
   isGuest?: boolean
+  allowGuestUploads?: boolean
+  autoApproveGuestUploads?: boolean
+  requireGuestFaceEnrollment?: boolean
 }
 
-export function PhotoUploader({ eventId, isManager, isGuest }: PhotoUploaderProps) {
+export function PhotoUploader({
+  eventId,
+  isManager,
+  isGuest,
+  allowGuestUploads = true,
+  autoApproveGuestUploads = false,
+  requireGuestFaceEnrollment = false,
+}: PhotoUploaderProps) {
   const [uploading, setUploading] = useState(false)
   const router = useRouter()
   const supabase = createClient()
@@ -20,6 +30,8 @@ export function PhotoUploader({ eventId, isManager, isGuest }: PhotoUploaderProp
     const files = e.target.files
     if (!files || files.length === 0) return
     
+    if (isGuest && !allowGuestUploads) return
+
     setUploading(true)
     try {
       const { data: { user } } = await supabase.auth.getUser()
@@ -51,8 +63,8 @@ export function PhotoUploader({ eventId, isManager, isGuest }: PhotoUploaderProp
           original_filename: file.name,
           file_size: file.size,
           is_host_photo: isManager ?? false,
-          // Managers auto-approve, guests are pending
-          status: isManager ? 'approved' : 'pending',
+          // Managers are approved; guests can be auto-approved by event setting.
+          status: isManager || (isGuest && autoApproveGuestUploads) ? 'approved' : 'pending',
           processing_status: 'pending' as any // Image processing status (faces etc)
         } as any)
       }
@@ -75,12 +87,22 @@ export function PhotoUploader({ eventId, isManager, isGuest }: PhotoUploaderProp
           accept="image/*" 
           className="hidden" 
           onChange={handleFileUpload} 
-          disabled={uploading}
+          disabled={uploading || (isGuest && !allowGuestUploads)}
         />
         <label htmlFor="file-upload" className="cursor-pointer flex flex-col items-center">
           <Upload className="w-8 h-8 text-muted-foreground mb-4" />
-          <h3 className="font-serif text-xl mb-2">{uploading ? 'Uploading...' : 'Upload Photos'}</h3>
-          <p className="text-sm text-muted-foreground">Click or drag and drop to upload photos to this event.</p>
+          <h3 className="font-serif text-xl mb-2">
+            {isGuest && !allowGuestUploads
+              ? 'Guest uploads disabled'
+              : uploading
+              ? 'Uploading...'
+              : 'Upload Photos'}
+          </h3>
+          <p className="text-sm text-muted-foreground">
+            {isGuest && !allowGuestUploads
+              ? 'The host has disabled guest uploads for this event.'
+              : 'Click or drag and drop to upload photos to this event.'}
+          </p>
         </label>
       </div>
 
@@ -90,10 +112,23 @@ export function PhotoUploader({ eventId, isManager, isGuest }: PhotoUploaderProp
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
           <div className="text-sm">
-            <strong className="text-primary font-medium block mb-1">Upload pending approval</strong>
+            <strong className="text-primary font-medium block mb-1">
+              {isGuest && !allowGuestUploads
+                ? 'Uploads currently blocked'
+                : autoApproveGuestUploads
+                ? 'Uploads auto-approved'
+                : 'Upload pending approval'}
+            </strong>
             <p className="text-primary/80">
-              Photos you upload will be reviewed by the host before they become visible to other guests. You can see your own pending uploads below.
+              {isGuest && !allowGuestUploads
+                ? 'You can still view shared photos, but only event managers can upload right now.'
+                : autoApproveGuestUploads
+                ? 'Your photos are published automatically for the event after upload.'
+                : 'Photos you upload will be reviewed by the host before they become visible to other guests. You can see your own pending uploads below.'}
             </p>
+            {requireGuestFaceEnrollment && (
+              <p className="text-primary/80 mt-2">This event may require face enrollment for personalized album access.</p>
+            )}
           </div>
         </div>
       )}

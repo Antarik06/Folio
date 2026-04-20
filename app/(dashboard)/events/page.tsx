@@ -17,17 +17,60 @@ export default async function EventsPage() {
     .eq('host_id', user!.id)
     .order('created_at', { ascending: false })
 
+  const hostedEventIds = (hostedEvents || []).map((event) => event.id)
+
+  const { data: hostedEventPhotos } = hostedEventIds.length
+    ? await supabase
+        .from('photos')
+        .select('event_id, thumbnail_url, blob_url, created_at')
+        .in('event_id', hostedEventIds)
+        .order('created_at', { ascending: false })
+    : { data: [] as any[] }
+
+  const latestPhotoByEventId = new Map<string, string>()
+  ;(hostedEventPhotos || []).forEach((photo: any) => {
+    if (latestPhotoByEventId.has(photo.event_id)) return
+    const src = photo.thumbnail_url || photo.blob_url
+    if (src) {
+      latestPhotoByEventId.set(photo.event_id, src)
+    }
+  })
+
   // Fetch events user is a guest of
   const { data: guestEvents } = await supabase
     .from('event_guests')
     .select(`
+      role,
       events(
         *,
         photos(count),
+        event_guests(count),
+        albums(count),
         profiles!events_host_id_fkey(full_name)
       )
     `)
     .eq('user_id', user!.id)
+
+  const guestEventIds = (guestEvents || [])
+    .map((guest: any) => guest.events?.id)
+    .filter(Boolean)
+
+  const { data: guestEventPhotos } = guestEventIds.length
+    ? await supabase
+        .from('photos')
+        .select('event_id, thumbnail_url, blob_url, created_at')
+        .in('event_id', guestEventIds)
+        .order('created_at', { ascending: false })
+    : { data: [] as any[] }
+
+  const latestGuestPhotoByEventId = new Map<string, string>()
+  ;(guestEventPhotos || []).forEach((photo: any) => {
+    if (latestGuestPhotoByEventId.has(photo.event_id)) return
+    const src = photo.thumbnail_url || photo.blob_url
+    if (src) {
+      latestGuestPhotoByEventId.set(photo.event_id, src)
+    }
+  })
 
   return (
     <div className="max-w-7xl mx-auto px-6 py-12">
@@ -54,7 +97,10 @@ export default async function EventsPage() {
         
         {hostedEvents && hostedEvents.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {hostedEvents.map((event) => (
+            {hostedEvents.map((event) => {
+              const displayCoverImage = event.cover_image_url || latestPhotoByEventId.get(event.id) || null
+
+              return (
               <Link
                 key={event.id}
                 href={`/events/${event.id}`}
@@ -62,10 +108,10 @@ export default async function EventsPage() {
               >
                 {/* Cover Image */}
                 <div className="aspect-[16/9] bg-card relative overflow-hidden">
-                  {event.cover_image_url ? (
+                  {displayCoverImage ? (
                     <img 
-                      src={event.cover_image_url} 
-                      alt={event.name}
+                      src={displayCoverImage} 
+                      alt={event.title}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                     />
                   ) : (
@@ -111,7 +157,8 @@ export default async function EventsPage() {
                   </div>
                 </div>
               </Link>
-            ))}
+              )
+            })}
           </div>
         ) : (
           <div className="p-12 bg-card border border-border text-center">
@@ -135,23 +182,70 @@ export default async function EventsPage() {
         <section>
           <h2 className="text-sm uppercase tracking-wider text-muted-foreground mb-6">Events You&apos;re Invited To</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {guestEvents.map((guest: any) => (
-              <Link
-                key={guest.events.id}
-                href={`/events/${guest.events.id}`}
-                className="group block p-5 bg-card border border-border hover:border-primary/50 transition-colors"
-              >
-                <h3 className="font-serif text-xl text-foreground mb-2 group-hover:text-primary transition-colors">
-                  {guest.events.title}
-                </h3>
-                <p className="text-sm text-muted-foreground mb-2">
-                  Hosted by {guest.events.profiles?.full_name || 'Unknown'}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  {(guest.events as any).photos?.[0]?.count || 0} photos shared
-                </p>
-              </Link>
-            ))}
+            {guestEvents.map((guest: any) => {
+              const invitedEvent = guest.events
+              if (!invitedEvent) return null
+
+              const displayCoverImage = invitedEvent.cover_image_url || latestGuestPhotoByEventId.get(invitedEvent.id) || null
+              const isCollaborator = guest.role === 'collaborator'
+
+              return (
+                <Link
+                  key={invitedEvent.id}
+                  href={`/events/${invitedEvent.id}`}
+                  className="group block bg-card border border-border hover:border-primary/50 transition-colors"
+                >
+                  <div className="aspect-[16/9] bg-card relative overflow-hidden">
+                    {displayCoverImage ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={displayCoverImage}
+                        alt={invitedEvent.title}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <svg className="w-12 h-12 text-border" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                      </div>
+                    )}
+                    <div className="absolute top-3 right-3">
+                      <span className={`text-xs uppercase tracking-wider px-2 py-1 ${
+                        isCollaborator ? 'bg-primary text-primary-foreground' : 'bg-secondary text-secondary-foreground'
+                      }`}>
+                        {isCollaborator ? 'Collaborator' : 'Guest'}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="p-5">
+                    <h3 className="font-serif text-xl text-foreground mb-2 group-hover:text-primary transition-colors">
+                      {invitedEvent.title}
+                    </h3>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Hosted by {invitedEvent.profiles?.full_name || 'Unknown'}
+                      {invitedEvent.event_date && (
+                        <>
+                          {' · '}
+                          {new Date(invitedEvent.event_date).toLocaleDateString('en-US', {
+                            weekday: 'short',
+                            month: 'short',
+                            day: 'numeric',
+                            year: 'numeric',
+                          })}
+                        </>
+                      )}
+                    </p>
+                    <div className="flex items-center gap-6 text-xs text-muted-foreground">
+                      <span>{(invitedEvent as any).photos?.[0]?.count || 0} photos</span>
+                      <span>{(invitedEvent as any).event_guests?.[0]?.count || 0} guests</span>
+                      <span>{(invitedEvent as any).albums?.[0]?.count || 0} albums</span>
+                    </div>
+                  </div>
+                </Link>
+              )
+            })}
           </div>
         </section>
       )}

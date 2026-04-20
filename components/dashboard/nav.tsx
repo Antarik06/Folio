@@ -26,7 +26,6 @@ export function DashboardNav({ user, profile }: DashboardNavProps) {
     { href: '/dashboard', label: 'Overview' },
     { href: '/events', label: 'Events' },
     { href: '/join', label: 'Join' },
-    { href: '/albums', label: 'Albums' },
     { href: '/orders', label: 'Orders' },
   ]
 
@@ -86,10 +85,10 @@ export function DashboardNav({ user, profile }: DashboardNavProps) {
               </div>
               <DropdownMenuSeparator />
               <DropdownMenuItem asChild>
-                <Link href="/settings">Settings</Link>
+                <Link href="/events">Manage Events</Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <Link href="/settings/billing">Billing</Link>
+                <Link href="/join">Join Event</Link>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem asChild>

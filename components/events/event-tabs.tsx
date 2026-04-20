@@ -21,7 +21,7 @@ export function EventTabs({ eventId, isHost, defaultTab = 'photos', children }: 
   // Find the active tab content from children
   const tabContent = Children.toArray(children).find((child) => {
     if (isValidElement(child)) {
-      return child.props['data-tab'] === activeTab
+      return (child.props as any)['data-tab'] === activeTab
     }
     return false
   })

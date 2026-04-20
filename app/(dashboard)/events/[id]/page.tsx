@@ -1,10 +1,11 @@
 import { createClient } from '@/lib/supabase/server'
-import { notFound } from 'next/navigation'
+import { notFound, redirect } from 'next/navigation'
 import { EventHeader } from '@/components/events/event-header'
 import { PhotoGrid } from '@/components/events/photo-grid'
 import { PhotoUploader } from '@/components/events/photo-uploader'
 import { GuestList } from '@/components/events/guest-list'
 import { EventTabs } from '@/components/events/event-tabs'
+import { AlbumsGrid } from '@/components/events/albums-grid'
 
 interface Props {
   params: Promise<{ id: string }>
@@ -68,12 +69,17 @@ export default async function EventDetailPage({ params }: Props) {
   if (!isManager) {
     albumQuery = albumQuery.eq('owner_id', user!.id)
   }
-  const { data: albums } = await albumQuery.order('created_at', { ascending: false })
+  const { data: albums } = await albumQuery.order('updated_at', { ascending: false })
 
   // Collaborator code from event (support both column and settings for compat)
   const collaboratorCode = event.collaborator_invite_code
     || (event.settings as any)?.collaborator_invite_code
     || null
+
+  const eventSettings =
+    event.settings && typeof event.settings === 'object' && !Array.isArray(event.settings)
+      ? (event.settings as Record<string, any>)
+      : {}
 
   return (
     <div className="max-w-7xl mx-auto px-6 py-8">
@@ -95,6 +101,9 @@ export default async function EventDetailPage({ params }: Props) {
             eventId={id}
             isManager={isManager}
             isGuest={isGuest}
+            allowGuestUploads={eventSettings.allow_guest_uploads ?? true}
+            autoApproveGuestUploads={eventSettings.auto_approve_guest_uploads ?? false}
+            requireGuestFaceEnrollment={eventSettings.require_guest_face_enrollment ?? false}
           />
 
           <PhotoGrid
@@ -130,47 +139,89 @@ export default async function EventDetailPage({ params }: Props) {
         </div>
 
         {/* Albums Tab */}
-        <div data-tab="albums">
+        <div data-tab="albums" className="space-y-6">
+          <div className="flex justify-between items-center">
+            <h2 className="font-serif text-2xl text-foreground">Albums</h2>
+            {albums && albums.length > 0 && (
+              <div className="flex items-center gap-3">
+                {photos && photos.length > 0 && (
+                  <a
+                    href={`/events/${id}/generate-album`}
+                    className="bg-secondary/10 text-secondary px-4 py-2 text-sm font-medium hover:bg-secondary/20 transition-colors rounded"
+                  >
+                    Generate with AI
+                  </a>
+                )}
+                <form action={async () => {
+                  'use server'
+                  const supabase = await createClient()
+                  const { data: { user } } = await supabase.auth.getUser()
+                  if (!user) return
+                  const { data: album } = await supabase.from('albums').insert({
+                    event_id: id,
+                    owner_id: user.id,
+                    title: 'Untitled Album',
+                    layout_data: {}
+                  }).select().single()
+                  if (album) {
+                    redirect(`/editor/${album.id}`)
+                  }
+                }}>
+                  <button type="submit" className="bg-primary text-primary-foreground px-4 py-2 text-sm font-medium hover:bg-primary/90 transition-colors rounded">
+                    Create Custom Album
+                  </button>
+                </form>
+              </div>
+            )}
+          </div>
+
           {albums && albums.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {albums.map((album: any) => (
-                <a
-                  key={album.id}
-                  href={`/albums/${album.id}`}
-                  className="block p-6 bg-card border border-border hover:border-primary/50 transition-colors"
-                >
-                  <h3 className="font-serif text-xl text-foreground mb-2">{album.title}</h3>
-                  <p className="text-sm text-muted-foreground mb-4">{album.subtitle || 'No subtitle'}</p>
-                  <span className={`text-xs uppercase tracking-wider px-2 py-1 ${
-                    album.status === 'ready'
-                      ? 'bg-secondary/20 text-secondary'
-                      : album.status === 'ordered'
-                      ? 'bg-primary/20 text-primary'
-                      : 'bg-border text-muted-foreground'
-                  }`}>
-                    {album.status}
-                  </span>
-                </a>
-              ))}
-            </div>
+            <AlbumsGrid
+              albums={albums as any[]}
+              photos={(photos || []).map((photo: any) => ({
+                id: photo.id,
+                blob_url: photo.blob_url ?? null,
+                thumbnail_url: photo.thumbnail_url ?? null,
+              }))}
+            />
           ) : (
-            <div className="p-12 bg-card border border-border text-center">
+            <div className="p-12 bg-card border border-border text-center rounded flex flex-col items-center">
               <p className="text-muted-foreground mb-6">
-                {photos && photos.length > 0
-                  ? 'Ready to create your album? Let AI curate your best moments.'
-                  : 'Upload some photos first, then create your album.'}
+                Ready to create your album? You can start with AI curation or a blank canvas.
               </p>
-              {photos && photos.length > 0 && (
-                <a
-                  href={`/events/${id}/generate-album`}
-                  className="inline-block bg-primary text-primary-foreground px-6 py-3 text-sm hover:bg-primary/90 transition-colors"
-                >
-                  Generate Album with AI
-                </a>
-              )}
+              <div className="flex items-center gap-3 justify-center">
+                {photos && photos.length > 0 && (
+                  <a
+                    href={`/events/${id}/generate-album`}
+                    className="bg-secondary/10 text-secondary px-6 py-3 text-sm font-medium hover:bg-secondary/20 transition-colors rounded"
+                  >
+                    Generate with AI
+                  </a>
+                )}
+                <form action={async () => {
+                  'use server'
+                  const supabase = await createClient()
+                  const { data: { user } } = await supabase.auth.getUser()
+                  if (!user) return
+                  const { data: album } = await supabase.from('albums').insert({
+                    event_id: id,
+                    owner_id: user.id,
+                    title: 'Untitled Album',
+                    layout_data: {}
+                  }).select().single()
+                  if (album) {
+                    redirect(`/editor/${album.id}`)
+                  }
+                }}>
+                  <button type="submit" className="bg-primary text-primary-foreground px-6 py-3 text-sm font-medium hover:bg-primary/90 transition-colors rounded">
+                    Create Custom Album
+                  </button>
+                </form>
+              </div>
             </div>
           )}
         </div>
+
       </EventTabs>
     </div>
   )

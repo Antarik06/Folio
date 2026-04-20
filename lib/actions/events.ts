@@ -76,6 +76,89 @@ async function assertOwner(eventId: string, userId: string) {
   return { event, ok: event?.host_id === userId }
 }
 
+interface UpdateEventSettingsInput {
+  title: string
+  description: string | null
+  eventDate: string | null
+  location: string | null
+  status: string
+  coverPhotoId: string | null
+  allowGuestUploads: boolean
+  autoApproveGuestUploads: boolean
+  requireGuestFaceEnrollment: boolean
+}
+
+export async function updateEventSettings(eventId: string, input: UpdateEventSettingsInput) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated.' }
+
+  const { ok } = await assertManager(eventId, user.id)
+  if (!ok) return { error: 'Not authorized.' }
+
+  const allowedStatuses = new Set(['draft', 'active', 'processing', 'completed', 'archived'])
+  if (!allowedStatuses.has(input.status)) {
+    return { error: 'Invalid event status.' }
+  }
+
+  const { data: currentEvent } = await supabase
+    .from('events')
+    .select('settings')
+    .eq('id', eventId)
+    .single()
+
+  const currentSettings =
+    currentEvent?.settings && typeof currentEvent.settings === 'object' && !Array.isArray(currentEvent.settings)
+      ? (currentEvent.settings as Record<string, unknown>)
+      : {}
+
+  const nextSettings = {
+    ...currentSettings,
+    location: input.location,
+    allow_guest_uploads: input.allowGuestUploads,
+    auto_approve_guest_uploads: input.autoApproveGuestUploads,
+    require_guest_face_enrollment: input.requireGuestFaceEnrollment,
+  }
+
+  let nextCoverImageUrl: string | null = null
+  if (input.coverPhotoId) {
+    const { data: coverPhoto } = await supabase
+      .from('photos')
+      .select('id, event_id, thumbnail_url, blob_url')
+      .eq('id', input.coverPhotoId)
+      .eq('event_id', eventId)
+      .single()
+
+    if (!coverPhoto) {
+      return { error: 'Selected event art photo was not found.' }
+    }
+
+    nextCoverImageUrl = coverPhoto.thumbnail_url || coverPhoto.blob_url || null
+  }
+
+  const { data: updatedEvent, error } = await supabase
+    .from('events')
+    .update({
+      title: input.title,
+      description: input.description,
+      event_date: input.eventDate,
+      status: input.status,
+      cover_image_url: nextCoverImageUrl,
+      settings: nextSettings,
+    })
+    .eq('id', eventId)
+    .select('id, title, description, event_date, status, settings, updated_at')
+    .single()
+
+  if (error) return { error: error.message }
+
+  revalidatePath(`/events/${eventId}`)
+  revalidatePath('/events')
+  revalidatePath('/dashboard')
+
+  return { success: true, event: updatedEvent }
+}
+
 // ─── JOIN EVENT ──────────────────────────────────────────────────────────────
 
 /**
@@ -524,5 +607,113 @@ export async function removeGuest(guestId: string, eventId: string) {
   }
 
   revalidatePath(`/events/${eventId}`)
+  return { success: true }
+}
+
+// ─── ALBUM MANAGEMENT: RENAME / COVER ART / DELETE ──────────────────────────
+
+async function getManageableAlbum(albumId: string, userId: string) {
+  const supabase = await createClient()
+
+  const { data: album } = await supabase
+    .from('albums')
+    .select('id, event_id, owner_id')
+    .eq('id', albumId)
+    .single()
+
+  if (!album) {
+    return { album: null, error: 'Album not found.' }
+  }
+
+  if (album.owner_id === userId) {
+    return { album, error: null }
+  }
+
+  const { ok } = await assertManager(album.event_id, userId)
+  if (!ok) {
+    return { album: null, error: 'Not authorized.' }
+  }
+
+  return { album, error: null }
+}
+
+export async function renameAlbum(albumId: string, title: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated.' }
+
+  const nextTitle = title.trim()
+  if (!nextTitle) return { error: 'Album name cannot be empty.' }
+
+  const { album, error: permissionError } = await getManageableAlbum(albumId, user.id)
+  if (permissionError || !album) return { error: permissionError || 'Album not found.' }
+
+  const nowIso = new Date().toISOString()
+  const { data: updatedAlbum, error } = await supabase
+    .from('albums')
+    .update({ title: nextTitle, updated_at: nowIso })
+    .eq('id', albumId)
+    .select('id, title, cover_photo_id, updated_at')
+    .single()
+
+  if (error) return { error: error.message }
+
+  revalidatePath(`/events/${album.event_id}`)
+  revalidatePath('/dashboard')
+  return { success: true, album: updatedAlbum }
+}
+
+export async function updateAlbumCoverPhoto(albumId: string, coverPhotoId: string | null) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated.' }
+
+  const { album, error: permissionError } = await getManageableAlbum(albumId, user.id)
+  if (permissionError || !album) return { error: permissionError || 'Album not found.' }
+
+  if (coverPhotoId) {
+    const { data: photo } = await supabase
+      .from('photos')
+      .select('id, event_id')
+      .eq('id', coverPhotoId)
+      .single()
+
+    if (!photo || photo.event_id !== album.event_id) {
+      return { error: 'Selected photo is not part of this event.' }
+    }
+  }
+
+  const nowIso = new Date().toISOString()
+  const { data: updatedAlbum, error } = await supabase
+    .from('albums')
+    .update({ cover_photo_id: coverPhotoId, updated_at: nowIso })
+    .eq('id', albumId)
+    .select('id, title, cover_photo_id, updated_at')
+    .single()
+
+  if (error) return { error: error.message }
+
+  revalidatePath(`/events/${album.event_id}`)
+  revalidatePath('/dashboard')
+  return { success: true, album: updatedAlbum }
+}
+
+export async function deleteAlbum(albumId: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated.' }
+
+  const { album, error: permissionError } = await getManageableAlbum(albumId, user.id)
+  if (permissionError || !album) return { error: permissionError || 'Album not found.' }
+
+  const { error } = await supabase
+    .from('albums')
+    .delete()
+    .eq('id', albumId)
+
+  if (error) return { error: error.message }
+
+  revalidatePath(`/events/${album.event_id}`)
+  revalidatePath('/dashboard')
   return { success: true }
 }

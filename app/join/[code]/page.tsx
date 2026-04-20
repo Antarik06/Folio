@@ -72,6 +72,18 @@ export default async function JoinCodePage({ params }: Props) {
   }
 
   const host = event.profiles as any
+  const { data: latestEventPhoto } = !event.cover_image_url
+    ? await supabase
+        .from('photos')
+        .select('thumbnail_url, blob_url')
+        .eq('event_id', event.id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+    : { data: null as any }
+
+  const eventArtUrl = event.cover_image_url || latestEventPhoto?.thumbnail_url || latestEventPhoto?.blob_url || null
+
   const eventDate = event.event_date
     ? new Date(event.event_date).toLocaleDateString('en-US', {
         weekday: 'long', month: 'long', day: 'numeric', year: 'numeric',
@@ -90,10 +102,10 @@ export default async function JoinCodePage({ params }: Props) {
         )}
 
         <div className="max-w-sm w-full relative z-10">
-          {event.cover_image_url ? (
+          {eventArtUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
-              src={event.cover_image_url}
+              src={eventArtUrl}
               alt={event.title}
               className="w-full aspect-[4/3] object-cover mb-8"
             />

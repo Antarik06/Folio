@@ -200,6 +200,221 @@
   }
 }
 
+@keyframes flipbookForward {
+  0% {
+    transform: rotateY(0deg) translateZ(0);
+    opacity: 1;
+  }
+  45% {
+    transform: rotateY(-76deg) translateZ(8px);
+    opacity: 0.96;
+  }
+  100% {
+    transform: rotateY(-172deg) translateZ(2px);
+    opacity: 0.44;
+  }
+}
+
+@keyframes flipbookBackward {
+  0% {
+    transform: rotateY(0deg) translateZ(0);
+    opacity: 1;
+  }
+  45% {
+    transform: rotateY(76deg) translateZ(8px);
+    opacity: 0.96;
+  }
+  100% {
+    transform: rotateY(172deg) translateZ(2px);
+    opacity: 0.44;
+  }
+}
+
+@keyframes curlShadowForward {
+  0% {
+    opacity: 0;
+    transform: translateX(22%) scaleX(0.4);
+  }
+  42% {
+    opacity: 0.42;
+    transform: translateX(4%) scaleX(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(-12%) scaleX(0.55);
+  }
+}
+
+@keyframes curlShadowBackward {
+  0% {
+    opacity: 0;
+    transform: translateX(-22%) scaleX(0.4);
+  }
+  42% {
+    opacity: 0.42;
+    transform: translateX(-4%) scaleX(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(12%) scaleX(0.55);
+  }
+}
+
+@keyframes curlSheenForward {
+  0% {
+    opacity: 0;
+    transform: translateX(18%) skewX(-8deg);
+  }
+  50% {
+    opacity: 0.34;
+    transform: translateX(0%) skewX(-11deg);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(-14%) skewX(-8deg);
+  }
+}
+
+@keyframes curlSheenBackward {
+  0% {
+    opacity: 0;
+    transform: translateX(-18%) skewX(8deg);
+  }
+  50% {
+    opacity: 0.34;
+    transform: translateX(0%) skewX(11deg);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(14%) skewX(8deg);
+  }
+}
+
+@keyframes curlCornerForward {
+  0% {
+    opacity: 0;
+    transform: translate(8%, -8%) rotate(0deg) scale(0.4);
+  }
+  40% {
+    opacity: 0.95;
+    transform: translate(-10%, 2%) rotate(-11deg) scale(1.04);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-28%, 14%) rotate(-24deg) scale(0.6);
+  }
+}
+
+@keyframes curlCornerBackward {
+  0% {
+    opacity: 0;
+    transform: translate(-8%, -8%) rotate(0deg) scale(0.4);
+  }
+  40% {
+    opacity: 0.95;
+    transform: translate(10%, 2%) rotate(11deg) scale(1.04);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(28%, 14%) rotate(24deg) scale(0.6);
+  }
+}
+
+.flipbook-scene {
+  perspective: 2300px;
+  perspective-origin: center;
+}
+
+.flipbook-page-turn {
+  pointer-events: none;
+  backface-visibility: hidden;
+  transform-style: preserve-3d;
+  will-change: transform, opacity, filter;
+  filter: drop-shadow(0 12px 28px rgba(0, 0, 0, 0.28));
+}
+
+.flipbook-page-content {
+  position: absolute;
+  inset: 0;
+  backface-visibility: hidden;
+}
+
+.flipbook-page-forward {
+  transform-origin: left center;
+  animation: flipbookForward 520ms cubic-bezier(0.2, 0.85, 0.25, 1) forwards;
+}
+
+.flipbook-page-backward {
+  transform-origin: right center;
+  animation: flipbookBackward 520ms cubic-bezier(0.2, 0.85, 0.25, 1) forwards;
+}
+
+.flipbook-curl-shadow,
+.flipbook-curl-sheen,
+.flipbook-curl-corner {
+  position: absolute;
+  pointer-events: none;
+}
+
+.flipbook-curl-shadow {
+  top: 0;
+  bottom: 0;
+  width: 46%;
+}
+
+.flipbook-curl-shadow-forward {
+  right: -1px;
+  background: linear-gradient(90deg, rgba(0, 0, 0, 0.34) 0%, rgba(0, 0, 0, 0.08) 58%, rgba(0, 0, 0, 0) 100%);
+  animation: curlShadowForward 520ms cubic-bezier(0.2, 0.85, 0.25, 1) forwards;
+}
+
+.flipbook-curl-shadow-backward {
+  left: -1px;
+  background: linear-gradient(270deg, rgba(0, 0, 0, 0.34) 0%, rgba(0, 0, 0, 0.08) 58%, rgba(0, 0, 0, 0) 100%);
+  animation: curlShadowBackward 520ms cubic-bezier(0.2, 0.85, 0.25, 1) forwards;
+}
+
+.flipbook-curl-sheen {
+  top: 0;
+  bottom: 0;
+  width: 34%;
+  mix-blend-mode: screen;
+}
+
+.flipbook-curl-sheen-forward {
+  right: 3%;
+  background: linear-gradient(100deg, rgba(255, 255, 255, 0.68) 0%, rgba(255, 255, 255, 0.22) 52%, rgba(255, 255, 255, 0) 100%);
+  animation: curlSheenForward 520ms cubic-bezier(0.2, 0.85, 0.25, 1) forwards;
+}
+
+.flipbook-curl-sheen-backward {
+  left: 3%;
+  background: linear-gradient(260deg, rgba(255, 255, 255, 0.68) 0%, rgba(255, 255, 255, 0.22) 52%, rgba(255, 255, 255, 0) 100%);
+  animation: curlSheenBackward 520ms cubic-bezier(0.2, 0.85, 0.25, 1) forwards;
+}
+
+.flipbook-curl-corner {
+  top: 0;
+  width: 28%;
+  height: 44%;
+}
+
+.flipbook-curl-corner-forward {
+  right: 0;
+  clip-path: polygon(100% 0%, 0% 0%, 100% 100%);
+  background: linear-gradient(225deg, rgba(255, 255, 255, 0.96) 0%, rgba(244, 244, 244, 0.9) 52%, rgba(212, 212, 212, 0.22) 100%);
+  box-shadow: -8px 8px 24px rgba(0, 0, 0, 0.24);
+  animation: curlCornerForward 520ms cubic-bezier(0.2, 0.85, 0.25, 1) forwards;
+}
+
+.flipbook-curl-corner-backward {
+  left: 0;
+  clip-path: polygon(0% 0%, 100% 0%, 0% 100%);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.96) 0%, rgba(244, 244, 244, 0.9) 52%, rgba(212, 212, 212, 0.22) 100%);
+  box-shadow: 8px 8px 24px rgba(0, 0, 0, 0.24);
+  animation: curlCornerBackward 520ms cubic-bezier(0.2, 0.85, 0.25, 1) forwards;
+}
+
 /* Subtle pulse for active states */
 @keyframes subtlePulse {
   0%, 100% {
@@ -239,6 +454,62 @@ html {
 
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
+}
+
+/* Themed scrollbars for the editorial UI */
+html,
+body,
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--pencil) var(--muted);
+}
+
+html::-webkit-scrollbar,
+body::-webkit-scrollbar,
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+html::-webkit-scrollbar-track,
+body::-webkit-scrollbar-track,
+*::-webkit-scrollbar-track {
+  background: var(--muted);
+  border-radius: 999px;
+}
+
+html::-webkit-scrollbar-thumb,
+body::-webkit-scrollbar-thumb,
+*::-webkit-scrollbar-thumb {
+  background: var(--pencil);
+  border: 2px solid var(--muted);
+  border-radius: 999px;
+}
+
+html::-webkit-scrollbar-thumb:hover,
+body::-webkit-scrollbar-thumb:hover,
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--primary);
+}
+
+html::-webkit-scrollbar-thumb:horizontal,
+body::-webkit-scrollbar-thumb:horizontal,
+*::-webkit-scrollbar-thumb:horizontal {
+  min-width: 24px;
+}
+
+html::-webkit-scrollbar-button,
+body::-webkit-scrollbar-button,
+*::-webkit-scrollbar-button {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+html::-webkit-scrollbar-corner,
+body::-webkit-scrollbar-corner,
+*::-webkit-scrollbar-corner {
+  background: var(--muted);
 }
 
 /* Writing mode for vertical text */
