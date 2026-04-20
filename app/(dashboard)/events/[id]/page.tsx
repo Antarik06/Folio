@@ -6,6 +6,7 @@ import { PhotoUploader } from '@/components/events/photo-uploader'
 import { GuestList } from '@/components/events/guest-list'
 import { EventTabs } from '@/components/events/event-tabs'
 import { AlbumsGrid } from '@/components/events/albums-grid'
+import { TemplateSelector } from '@/components/events/template-selector'
 
 interface Props {
   params: Promise<{ id: string }>
@@ -146,7 +147,7 @@ export default async function EventDetailPage({ params }: Props) {
               <div className="flex items-center gap-3">
                 {photos && photos.length > 0 && (
                   <a
-                    href={`/events/${id}/generate-album`}
+                    href={`/dashboard/events/${id}/generate-album`}
                     className="bg-secondary/10 text-secondary px-4 py-2 text-sm font-medium hover:bg-secondary/20 transition-colors rounded"
                   >
                     Generate with AI
@@ -176,47 +177,63 @@ export default async function EventDetailPage({ params }: Props) {
           </div>
 
           {albums && albums.length > 0 ? (
-            <AlbumsGrid
-              albums={albums as any[]}
-              photos={(photos || []).map((photo: any) => ({
-                id: photo.id,
-                blob_url: photo.blob_url ?? null,
-                thumbnail_url: photo.thumbnail_url ?? null,
-              }))}
-            />
+            <>
+              <AlbumsGrid
+                albums={albums as any[]}
+                photos={(photos || []).map((photo: any) => ({
+                  id: photo.id,
+                  blob_url: photo.blob_url ?? null,
+                  thumbnail_url: photo.thumbnail_url ?? null,
+                }))}
+              />
+              
+              <div className="mt-16 pt-12 border-t border-border">
+                <h3 className="font-serif text-2xl text-foreground mb-2">Create New with Template</h3>
+                <p className="text-muted-foreground mb-8">Start a new magazine volume for this event.</p>
+                <TemplateSelector eventId={id} />
+              </div>
+            </>
           ) : (
-            <div className="p-12 bg-card border border-border text-center rounded flex flex-col items-center">
-              <p className="text-muted-foreground mb-6">
-                Ready to create your album? You can start with AI curation or a blank canvas.
-              </p>
-              <div className="flex items-center gap-3 justify-center">
-                {photos && photos.length > 0 && (
-                  <a
-                    href={`/events/${id}/generate-album`}
-                    className="bg-secondary/10 text-secondary px-6 py-3 text-sm font-medium hover:bg-secondary/20 transition-colors rounded"
-                  >
-                    Generate with AI
-                  </a>
-                )}
-                <form action={async () => {
-                  'use server'
-                  const supabase = await createClient()
-                  const { data: { user } } = await supabase.auth.getUser()
-                  if (!user) return
-                  const { data: album } = await supabase.from('albums').insert({
-                    event_id: id,
-                    owner_id: user.id,
-                    title: 'Untitled Album',
-                    layout_data: {}
-                  }).select().single()
-                  if (album) {
-                    redirect(`/editor/${album.id}`)
-                  }
-                }}>
-                  <button type="submit" className="bg-primary text-primary-foreground px-6 py-3 text-sm font-medium hover:bg-primary/90 transition-colors rounded">
-                    Create Custom Album
-                  </button>
-                </form>
+            <div className="space-y-12">
+              <div className="p-12 bg-card border border-border text-center rounded flex flex-col items-center">
+                <p className="text-muted-foreground mb-6">
+                  Ready to create your album? You can start with AI curation or a blank canvas.
+                </p>
+                <div className="flex items-center gap-3 justify-center">
+                  {photos && photos.length > 0 && (
+                    <a
+                      href={`/dashboard/events/${id}/generate-album`}
+                      className="bg-secondary/10 text-secondary px-6 py-3 text-sm font-medium hover:bg-secondary/20 transition-colors rounded"
+                    >
+                      Generate with AI
+                    </a>
+                  )}
+                  <form action={async () => {
+                    'use server'
+                    const supabase = await createClient()
+                    const { data: { user } } = await supabase.auth.getUser()
+                    if (!user) return
+                    const { data: album } = await supabase.from('albums').insert({
+                      event_id: id,
+                      owner_id: user.id,
+                      title: 'Untitled Album',
+                      layout_data: {}
+                    }).select().single()
+                    if (album) {
+                      redirect(`/editor/${album.id}`)
+                    }
+                  }}>
+                    <button type="submit" className="bg-primary text-primary-foreground px-6 py-3 text-sm font-medium hover:bg-primary/90 transition-colors rounded">
+                      Create Custom Album
+                    </button>
+                  </form>
+                </div>
+              </div>
+
+              <div>
+                <h3 className="font-serif text-2xl text-foreground mb-2">Start from a Travel Template</h3>
+                <p className="text-muted-foreground mb-8">Choose a magazine style to automatically layout your photos.</p>
+                <TemplateSelector eventId={id} />
               </div>
             </div>
           )}

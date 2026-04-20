@@ -136,7 +136,7 @@ export default async function DashboardPage() {
       {/* Polaroid Studio Banner */}
       <div className="mb-12">
         <Link 
-          href="/polaroid"
+          href="/dashboard/polaroid"
           className="group relative flex flex-col md:flex-row items-center justify-between p-8 bg-ink text-white overflow-hidden"
         >
           <div className="absolute top-0 right-0 w-1/2 h-full bg-primary/10 -skew-x-12 transform translate-x-1/2 transition-transform group-hover:translate-x-1/3 duration-700" />
