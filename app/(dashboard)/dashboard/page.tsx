@@ -133,6 +133,41 @@ export default async function DashboardPage() {
         </div>
       </div>
 
+      {/* Polaroid Studio Banner */}
+      <div className="mb-12">
+        <Link 
+          href="/polaroid"
+          className="group relative flex flex-col md:flex-row items-center justify-between p-8 bg-ink text-white overflow-hidden"
+        >
+          <div className="absolute top-0 right-0 w-1/2 h-full bg-primary/10 -skew-x-12 transform translate-x-1/2 transition-transform group-hover:translate-x-1/3 duration-700" />
+          
+          <div className="relative z-10 space-y-4 text-center md:text-left">
+            <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/10 border border-white/20 rounded-full text-[10px] font-mono uppercase tracking-[0.2em]">
+              <span>Featured Studio</span>
+            </div>
+            <h2 className="font-serif text-3xl md:text-4xl">Polaroid Studio</h2>
+            <p className="text-white/60 max-w-md text-sm leading-relaxed">
+              Transform your digital shots into physical memories. Premium Polaroid prints, crafted with care.
+            </p>
+          </div>
+          
+          <div className="mt-8 md:mt-0 relative z-10 flex items-center gap-4">
+             <div className="hidden sm:flex -space-x-3 mr-4">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="w-12 h-14 bg-paper shadow-lg flex items-center justify-center p-1 pb-4 transform rotate-3 even:-rotate-6 first:rotate-12 transition-transform group-hover:rotate-0 duration-500">
+                    <div className="w-full h-full bg-muted/20" />
+                  </div>
+                ))}
+             </div>
+             <div className="bg-primary text-white h-12 w-12 flex items-center justify-center group-hover:scale-110 transition-transform">
+               <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+               </svg>
+             </div>
+          </div>
+        </Link>
+      </div>
+
       {/* Joined Events Section — only shown if guest in at least one event */}
       {guestEntries && guestEntries.length > 0 && (
         <div className="mb-12">
