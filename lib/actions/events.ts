@@ -717,3 +717,59 @@ export async function deleteAlbum(albumId: string) {
   revalidatePath('/dashboard')
   return { success: true }
 }
+
+// ─── OWNER: DELETE EVENT ─────────────────────────────────────────────────────
+
+/**
+ * Deletes an entire event and all associated data (photos, guests, albums).
+ * Owner only.
+ */
+export async function deleteEvent(eventId: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated.' }
+
+  const { ok } = await assertOwner(eventId, user.id)
+  if (!ok) return { error: 'Only the event owner can delete this event.' }
+
+  // Get event details before deletion (including host_id for storage cleanup)
+  const { data: event } = await supabase
+    .from('events')
+    .select('id, host_id')
+    .eq('id', eventId)
+    .single()
+
+  if (!event) return { error: 'Event not found.' }
+
+  // Get all face reference URLs for cleanup
+  const { data: guestFaceRefs } = await supabase
+    .from('event_guests')
+    .select('user_id, face_reference_url, face_enrolled')
+    .eq('event_id', eventId)
+    .eq('face_enrolled', true)
+
+  // Delete the event (cascade will handle photos, guests, albums)
+  const { error: deleteError } = await supabase
+    .from('events')
+    .delete()
+    .eq('id', eventId)
+
+  if (deleteError) return { error: deleteError.message }
+
+  // Clean up face photos from storage
+  if (guestFaceRefs && guestFaceRefs.length > 0) {
+    const facePaths = guestFaceRefs
+      .filter(g => g.face_enrolled)
+      .map(g => `${g.user_id}/${eventId}.jpg`)
+
+    if (facePaths.length > 0) {
+      await supabase.storage
+        .from('face-photos')
+        .remove(facePaths)
+    }
+  }
+
+  revalidatePath('/events')
+  revalidatePath('/dashboard')
+  return { success: true }
+}

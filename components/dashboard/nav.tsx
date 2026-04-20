@@ -24,10 +24,9 @@ export function DashboardNav({ user, profile }: DashboardNavProps) {
   
   const navItems = [
     { href: '/dashboard', label: 'Overview' },
-    { href: '/dashboard/events', label: 'Events' },
-    { href: '/dashboard/polaroid', label: 'Polaroid' },
-    { href: '/dashboard/join', label: 'Join' },
-    { href: '/dashboard/orders', label: 'Orders' },
+    { href: '/events', label: 'Events' },
+    { href: '/polaroid', label: 'Polaroid' },
+    { href: '/join', label: 'Join' },
   ]
 
   return (

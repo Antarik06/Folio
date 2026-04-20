@@ -71,9 +71,6 @@ export function EventSettingsPanel({ event, photos }: EventSettingsPanelProps) {
   const [isPending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
   const [savedNotice, setSavedNotice] = useState(false)
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
-  const [isDeleting, setIsDeleting] = useState(false)
-  const router = useRouter()
 
   const saveSettings = () => {
     const normalizedTitle = title.trim()
@@ -106,24 +103,6 @@ export function EventSettingsPanel({ event, photos }: EventSettingsPanelProps) {
     })
   }
 
-  const handleDeleteEvent = async () => {
-    setIsDeleting(true)
-    try {
-      const result = await deleteEvent(event.id)
-      if (result?.error) {
-        setError(result.error)
-        setIsDeleting(false)
-        setShowDeleteDialog(false)
-        return
-      }
-      router.push('/events')
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to delete event')
-      setIsDeleting(false)
-      setShowDeleteDialog(false)
-    }
-  }
-
   return (
     <div className="space-y-8">
       <div className="flex items-center justify-between gap-4">
@@ -131,20 +110,9 @@ export function EventSettingsPanel({ event, photos }: EventSettingsPanelProps) {
           <h2 className="font-serif text-2xl text-foreground">Event Settings</h2>
           <p className="text-sm text-muted-foreground mt-1">Manage event details and guest upload behavior.</p>
         </div>
-        <div className="flex items-center gap-2">
-          <Button
-            onClick={() => setShowDeleteDialog(true)}
-            variant="outline"
-            size="icon"
-            disabled={isPending || isDeleting}
-            className="text-destructive hover:text-destructive"
-          >
-            <Trash2 className="h-4 w-4" />
-          </Button>
-          <Button onClick={saveSettings} disabled={isPending || isDeleting}>
-            {isPending ? 'Saving...' : 'Save changes'}
-          </Button>
-        </div>
+        <Button onClick={saveSettings} disabled={isPending}>
+          {isPending ? 'Saving...' : 'Save changes'}
+        </Button>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -292,28 +260,6 @@ export function EventSettingsPanel({ event, photos }: EventSettingsPanelProps) {
       {savedNotice && (
         <div className="rounded border border-secondary/40 bg-secondary/10 p-3 text-sm text-secondary">Settings saved.</div>
       )}
-
-      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete Event</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to delete "{event.title}"? This action cannot be undone. All photos, albums, and guest data associated with this event will be permanently deleted.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <div className="flex justify-end gap-2">
-            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDeleteEvent}
-              disabled={isDeleting}
-              className="bg-red-600 text-white hover:bg-red-700"
-            >
-              {isDeleting ? 'Deleting...' : 'Delete'}
-            </AlertDialogAction>
-          </div>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   )
 }
-
