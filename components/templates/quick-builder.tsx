@@ -4,7 +4,7 @@ import { useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { AlbumSpread } from '@/components/album-editor/types'
-import { ChevronLeft, ChevronRight, Edit3, Settings2, Check, ArrowRight, MousePointer2 } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Edit3, Settings2, Check, ArrowRight, Type } from 'lucide-react'
 
 interface Props {
   album: any
@@ -15,7 +15,6 @@ interface Props {
 export function QuickBuilder({ album, initialSpreads, photos }: Props) {
   const router = useRouter()
   const [spreads, setSpreads] = useState<AlbumSpread[]>(initialSpreads)
-  const [currentIndex, setCurrentIndex] = useState(0)
   const [saving, setSaving] = useState(false)
 
   const handleSave = async () => {
@@ -39,7 +38,6 @@ export function QuickBuilder({ album, initialSpreads, photos }: Props) {
   }
 
   const handlePhotoSwap = (spreadId: string, pageType: 'front' | 'back', elementId: string) => {
-    // Simple cycling for now, or could open a picker
     const nextSpreads = [...spreads]
     const spread = nextSpreads.find(s => s.id === spreadId)
     if (!spread) return
@@ -49,11 +47,25 @@ export function QuickBuilder({ album, initialSpreads, photos }: Props) {
 
     const element = page.elements.find(el => el.id === elementId)
     if (element && element.type === 'image') {
-       // Find current photo index and go to next
        const currentIdx = photos.indexOf(element.src || '')
        const nextIdx = (currentIdx + 1) % photos.length
        element.src = photos[nextIdx]
        setSpreads(nextSpreads)
+    }
+  }
+
+  const handleTextChange = (spreadId: string, pageType: 'front' | 'back', elementId: string, newText: string) => {
+    const nextSpreads = [...spreads]
+    const spread = nextSpreads.find(s => s.id === spreadId)
+    if (!spread) return
+
+    const page = pageType === 'front' ? spread.front : spread.back
+    if (!page) return
+
+    const element = page.elements.find(el => el.id === elementId)
+    if (element && element.type === 'text') {
+      element.text = newText
+      setSpreads(nextSpreads)
     }
   }
 
@@ -94,7 +106,7 @@ export function QuickBuilder({ album, initialSpreads, photos }: Props) {
       <main className="flex-1 overflow-y-auto bg-[#F5F5F3] p-12 lg:p-20 flex flex-col items-center gap-32">
         <div className="max-w-6xl w-full">
            <div className="mb-20 text-center">
-              <span className="text-[11px] uppercase tracking-[0.4em] text-muted-foreground font-bold mb-4 block">Click any image to swap it</span>
+              <span className="text-[11px] uppercase tracking-[0.4em] text-muted-foreground font-bold mb-4 block underline underline-offset-8">Click photos to swap · Click text to edit</span>
               <div className="h-px w-20 bg-primary/20 mx-auto" />
            </div>
 
@@ -136,7 +148,10 @@ export function QuickBuilder({ album, initialSpreads, photos }: Props) {
                         ) : (
                           <div 
                             key={el.id}
-                            className="absolute p-2 border border-transparent hover:border-primary/20 hover:bg-primary/5 transition-all text-left flex items-center"
+                            contentEditable
+                            suppressContentEditableWarning
+                            onBlur={(e) => handleTextChange(spread.id!, 'front', el.id!, e.currentTarget.innerText)}
+                            className="absolute p-2 border border-transparent hover:border-primary/20 hover:bg-primary/5 transition-all text-left flex items-center outline-none focus:ring-2 focus:ring-primary/30"
                             style={{
                               left: `${(el.x / 700) * 100}%`,
                               top: `${(el.y / 1000) * 100}%`,
@@ -186,7 +201,10 @@ export function QuickBuilder({ album, initialSpreads, photos }: Props) {
                           ) : (
                             <div 
                               key={el.id}
-                              className="absolute p-2 border border-transparent hover:border-primary/20 hover:bg-primary/5 transition-all text-left flex items-center"
+                              contentEditable
+                              suppressContentEditableWarning
+                              onBlur={(e) => handleTextChange(spread.id!, 'back', el.id!, e.currentTarget.innerText)}
+                              className="absolute p-2 border border-transparent hover:border-primary/20 hover:bg-primary/5 transition-all text-left flex items-center outline-none focus:ring-2 focus:ring-primary/30"
                               style={{
                                 left: `${(el.x / 700) * 100}%`,
                                 top: `${(el.y / 1000) * 100}%`,
@@ -226,11 +244,11 @@ export function QuickBuilder({ album, initialSpreads, photos }: Props) {
           <div className="h-px w-12 bg-white/10" />
           <div className="flex items-center gap-4">
              <div className="w-10 h-10 rounded-full border border-white flex items-center justify-center text-[10px] font-bold text-white">2</div>
-             <p className="text-[10px] uppercase tracking-widest font-bold">Refine Spreads</p>
+             <p className="text-[10px] uppercase tracking-widest font-bold">Refine Design</p>
           </div>
           <div className="h-px w-12 bg-white/10" />
           <div className="flex items-center gap-4">
-             <div className="w-10 h-10 rounded-full border border-white/20 flex items-center justify-center text-[10px] font-bold text-white/50 text-white/50">3</div>
+             <div className="w-10 h-10 rounded-full border border-white/20 flex items-center justify-center text-[10px] font-bold text-white/50">3</div>
              <p className="text-[10px] uppercase tracking-widest font-bold text-white/50">Preview & Ship</p>
           </div>
       </div>
