@@ -10,14 +10,6 @@ const nextConfig = {
         destination: '/polaroid',
       },
       {
-        source: '/dashboard/events/:path*',
-        destination: '/events/:path*',
-      },
-      {
-        source: '/dashboard/templates/:path*',
-        destination: '/templates/:path*',
-      },
-      {
          source: '/dashboard/join',
          destination: '/join',
       }
