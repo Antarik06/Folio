@@ -11,72 +11,65 @@ export default async function TemplatesPage() {
     redirect('/auth/login')
   }
 
-  // Fetch user's events to show in the "Use Template" modal (simplified for now)
-  const { data: events } = await supabase
-    .from('events')
-    .select('id, title')
-    .eq('host_id', user.id)
-    .order('created_at', { ascending: false })
-
   return (
-    <div className="max-w-7xl mx-auto px-6 py-12">
-      <div className="mb-12">
-        <h1 className="font-serif text-4xl text-foreground mb-4">Magazine Templates</h1>
-        <p className="text-muted-foreground text-lg max-w-2xl">
-          Start with a professionally designed travel magazine layout. 
-          Just add your photos and customize the text to tell your unique story.
+    <div className="max-w-7xl mx-auto px-6 py-20">
+      <div className="mb-20 text-center">
+        <span className="text-[10px] uppercase tracking-[0.3em] text-primary font-bold mb-4 block">Collection</span>
+        <h1 className="font-serif text-5xl md:text-6xl text-foreground mb-6">Magazine Templates</h1>
+        <p className="text-muted-foreground text-lg max-w-2xl mx-auto font-light leading-relaxed">
+          Curated layouts designed to transform your memories into a high-end publication. 
+          Professional typography, spacious grids, and timeless aesthetics.
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-12">
         {MAGAZINE_TEMPLATES.map((template) => (
-          <div key={template.id} className="group bg-card border border-border overflow-hidden flex flex-col">
-            <div className="aspect-[3/4] relative overflow-hidden bg-muted">
+          <div key={template.id} className="group flex flex-col">
+            <Link 
+              href={`/dashboard/templates/use/${template.id}`}
+              className="aspect-[3/4] relative overflow-hidden bg-muted mb-8 block"
+            >
               <img 
                 src={template.thumbnail} 
                 alt={template.name}
-                className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                className="w-full h-full object-cover transition-all duration-1000 group-hover:scale-105 group-hover:brightness-90"
               />
-              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center p-6 text-center">
-                 <p className="text-white text-sm font-medium">{template.description}</p>
-              </div>
-              <div className="absolute top-4 left-4">
-                <span className="bg-background/90 backdrop-blur-md text-foreground px-3 py-1 text-[10px] uppercase tracking-widest font-semibold border border-border">
+              <div className="absolute inset-0 bg-ink/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+              <div className="absolute top-6 left-6">
+                <span className="bg-white/90 backdrop-blur-md text-ink px-4 py-1.5 text-[10px] uppercase tracking-[0.2em] font-bold border border-white/20">
                   {template.category}
                 </span>
               </div>
-            </div>
-            <div className="p-6 border-t border-border flex-1 flex flex-col">
-              <h3 className="font-serif text-2xl text-foreground mb-2">{template.name}</h3>
-              <p className="text-sm text-muted-foreground mb-6 flex-1">
-                {template.spreads.length} spreads · Fully customizable
+            </Link>
+            
+            <div className="flex flex-col">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-serif text-3xl text-foreground group-hover:text-primary transition-colors duration-500">
+                  {template.name}
+                </h3>
+              </div>
+              <p className="text-muted-foreground text-sm leading-relaxed mb-8 font-light line-clamp-2">
+                {template.description}
               </p>
               
-              <div className="flex items-center gap-3">
-                 <Link 
-                    href={`/dashboard/templates/preview/${template.id}`}
-                    className="flex-1 text-center py-3 border border-border text-sm hover:bg-secondary/5 transition-colors"
-                 >
-                    Preview
-                 </Link>
+              <div className="flex items-center gap-6">
                  <Link
                     href={`/dashboard/templates/use/${template.id}`}
-                    className="flex-1 text-center py-3 bg-primary text-primary-foreground text-sm hover:bg-primary/90 transition-colors"
+                    className="text-[11px] uppercase tracking-[0.2em] font-bold text-foreground border-b border-foreground/20 pb-1 hover:border-primary hover:text-primary transition-all"
                  >
-                    Use Template
+                    Select Template
+                 </Link>
+                 <Link 
+                    href={`/dashboard/templates/preview/${template.id}`}
+                    className="text-[11px] uppercase tracking-[0.2em] font-bold text-muted-foreground hover:text-foreground transition-colors"
+                 >
+                    View Layout
                  </Link>
               </div>
             </div>
           </div>
         ))}
       </div>
-
-      {/* Empty State if no templates (shouldn't happen with our mock data) */}
-      {MAGAZINE_TEMPLATES.length === 0 && (
-        <div className="text-center py-20 border-2 border-dashed border-border rounded-lg">
-          <p className="text-muted-foreground">No templates available yet.</p>
-        </div>
-      )}
     </div>
   )
 }
