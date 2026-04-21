@@ -21,13 +21,12 @@ interface DashboardNavProps {
 
 export function DashboardNav({ user, profile }: DashboardNavProps) {
   const pathname = usePathname()
-  
+
   const navItems = [
     { href: '/dashboard', label: 'Overview' },
     { href: '/dashboard/events', label: 'Events' },
     { href: '/dashboard/templates', label: 'Templates' },
     { href: '/dashboard/polaroid', label: 'Polaroid' },
-    { href: '/dashboard/join', label: 'Join' },
   ]
 
   return (
@@ -37,24 +36,23 @@ export function DashboardNav({ user, profile }: DashboardNavProps) {
           <Link href="/dashboard" className="font-serif text-xl tracking-tight text-foreground">
             Folio
           </Link>
-          
+
           <nav className="hidden md:flex items-center gap-8">
             {navItems.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
-                className={`text-sm transition-colors ${
-                  pathname === item.href || pathname.startsWith(item.href + '/')
-                    ? 'text-foreground'
-                    : 'text-muted-foreground hover:text-foreground'
-                }`}
+                className={`text-sm transition-colors ${pathname === item.href || pathname.startsWith(item.href + '/')
+                  ? 'text-foreground'
+                  : 'text-muted-foreground hover:text-foreground'
+                  }`}
               >
                 {item.label}
               </Link>
             ))}
           </nav>
         </div>
-        
+
         <div className="flex items-center gap-4">
           <ThemeToggle />
           <Link
@@ -66,7 +64,13 @@ export function DashboardNav({ user, profile }: DashboardNavProps) {
             </svg>
             New Event
           </Link>
-          
+          <Link
+            href="/dashboard/join"
+            className="hidden md:inline-flex items-center gap-2 bg-primary/10 text-primary px-5 py-2.5 text-sm rounded-md hover:bg-primary/20 transition"
+          >
+            Join
+          </Link>
+
           <DropdownMenu>
             <DropdownMenuTrigger className="flex items-center gap-2 p-2 hover:bg-card transition-colors">
               <div className="w-8 h-8 bg-card border border-border flex items-center justify-center">
