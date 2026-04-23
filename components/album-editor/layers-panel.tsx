@@ -15,15 +15,43 @@ interface LayersPanelProps {
   onMoveDown: (id: string) => void
 }
 
+function inferImageLayerName(src: string) {
+  const normalized = src.toLowerCase()
+
+  if (normalized.startsWith('data:image/svg+xml') || normalized.includes('svg+xml')) {
+    return 'Graphic Element'
+  }
+
+  if (normalized.startsWith('blob:')) {
+    return 'Uploaded Photo'
+  }
+
+  if (normalized.includes('pixabay.com')) {
+    return 'Stock Image'
+  }
+
+  if (normalized.includes('/storage/v1/object') || normalized.includes('supabase')) {
+    return 'Event Photo'
+  }
+
+  return 'Image Layer'
+}
+
 function getDefaultName(el: AlbumElement) {
   if (el.type === 'text') {
     const snippet = el.text?.trim().slice(0, 24)
     return snippet ? `Text: ${snippet}` : 'Text Layer'
   }
   if (el.type === 'image') {
-    return 'Photo Layer'
+    return inferImageLayerName(el.src)
   }
-  return `${el.shapeType[0].toUpperCase()}${el.shapeType.slice(1)} Layer`
+  if (el.type === 'drawing') {
+    return 'Freehand Sketch'
+  }
+  if (el.type === 'shape') {
+    return `${el.shapeType[0].toUpperCase()}${el.shapeType.slice(1)} Layer`
+  }
+  return 'Layer'
 }
 
 export function LayersPanel({
@@ -37,6 +65,26 @@ export function LayersPanel({
   onMoveDown,
 }: LayersPanelProps) {
   const ordered = [...elements].sort((a, b) => b.zIndex - a.zIndex)
+  const [movedLayerId, setMovedLayerId] = React.useState<string | null>(null)
+
+  React.useEffect(() => {
+    if (!movedLayerId) return
+
+    const timer = window.setTimeout(() => {
+      setMovedLayerId(null)
+    }, 260)
+
+    return () => window.clearTimeout(timer)
+  }, [movedLayerId])
+
+  const handleMoveLayer = React.useCallback(
+    (id: string, direction: 'up' | 'down') => {
+      setMovedLayerId(id)
+      if (direction === 'up') onMoveUp(id)
+      else onMoveDown(id)
+    },
+    [onMoveDown, onMoveUp]
+  )
 
   return (
     <aside className="w-75 border-l border-[#E5E5E5] dark:border-[#3a342b] bg-white dark:bg-[#171511] h-full overflow-y-auto p-3 shrink-0">
@@ -51,9 +99,13 @@ export function LayersPanel({
         </div>
       ) : (
         <div className="space-y-2">
-          {ordered.map((el) => {
+          {ordered.map((el, index) => {
             const isSelected = selection.includes(el.id)
             const layerName = el.name?.trim() || getDefaultName(el)
+            const canMoveUp = index > 0
+            const canMoveDown = index < ordered.length - 1
+            const stackLabel =
+              index === 0 ? 'Front' : index === ordered.length - 1 ? 'Back' : 'Middle'
 
             return (
               <div
@@ -62,7 +114,7 @@ export function LayersPanel({
                   isSelected
                     ? 'border-terracotta/60 bg-terracotta/10'
                     : 'border-border bg-card hover:border-terracotta/40'
-                }`}
+                } ${movedLayerId === el.id ? 'ring-1 ring-terracotta/70' : ''} transition-all`}
               >
                 <button
                   type="button"
@@ -73,7 +125,10 @@ export function LayersPanel({
                     <span className="text-[11px] uppercase tracking-wider text-muted-foreground">
                       {el.type}
                     </span>
-                    <span className="text-[11px] text-muted-foreground">z{el.zIndex}</span>
+                    <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                      <span className="rounded-full px-1.5 py-0.5 bg-muted">{stackLabel}</span>
+                      <span>z{el.zIndex}</span>
+                    </div>
                   </div>
                 </button>
 
@@ -105,8 +160,9 @@ export function LayersPanel({
 
                   <button
                     type="button"
-                    onClick={() => onMoveUp(el.id)}
-                    className="p-1.5 rounded hover:bg-muted"
+                    onClick={() => handleMoveLayer(el.id, 'up')}
+                    disabled={!canMoveUp}
+                    className="p-1.5 rounded hover:bg-muted disabled:opacity-35 disabled:cursor-not-allowed"
                     title="Move forward"
                   >
                     <ChevronUp className="w-4 h-4" />
@@ -114,8 +170,9 @@ export function LayersPanel({
 
                   <button
                     type="button"
-                    onClick={() => onMoveDown(el.id)}
-                    className="p-1.5 rounded hover:bg-muted"
+                    onClick={() => handleMoveLayer(el.id, 'down')}
+                    disabled={!canMoveDown}
+                    className="p-1.5 rounded hover:bg-muted disabled:opacity-35 disabled:cursor-not-allowed"
                     title="Move backward"
                   >
                     <ChevronDown className="w-4 h-4" />

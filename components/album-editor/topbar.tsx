@@ -50,6 +50,7 @@ interface TopbarProps {
   onUndo: () => void
   onRedo: () => void
   onSaveNow: () => void
+  onExport: () => void
   onAlign: (mode: 'left' | 'center' | 'right' | 'top' | 'middle' | 'bottom') => void
   onDistribute: (axis: 'horizontal' | 'vertical') => void
   showGrid: boolean
@@ -77,6 +78,7 @@ export function Topbar({
   onUndo,
   onRedo,
   onSaveNow,
+  onExport,
   onAlign,
   onDistribute,
   showGrid,
@@ -433,12 +435,12 @@ export function Topbar({
           <DropdownMenuContent align="end" className="w-44">
             <DropdownMenuItem onSelect={onSaveNow}>
               <Save className="w-4 h-4" />
-              Save
+              Save as Draft
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onSelect={() => window.alert('Export formats coming soon') }>
+            <DropdownMenuItem onSelect={onExport}>
               <Download className="w-4 h-4" />
-              Export
+              Export & Order
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

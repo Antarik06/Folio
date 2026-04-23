@@ -42,7 +42,13 @@ export default async function EditorPage({
 
   return (
     <div className="bg-background min-h-screen">
-      <AlbumEditor albumId={id} photos={photos || []} initialSpreads={initialSpreads} layoutField={layoutField as 'layout_data' | 'theme_config'} />
+      <AlbumEditor
+        albumId={id}
+        photos={photos || []}
+        initialSpreads={initialSpreads}
+        layoutField={layoutField as 'layout_data' | 'theme_config'}
+        coverImageUrl={album.cover_image_url}
+      />
     </div>
   )
 }

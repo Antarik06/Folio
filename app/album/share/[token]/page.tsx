@@ -54,20 +54,44 @@ function mapSpreadsToPages(spreads: AlbumSpread[]): FlipbookPageData[] {
     }))
 
   orderedSpreads.forEach((spread, spreadIndex) => {
+    const isFirst = spreadIndex === 0
+    const isLast = spreadIndex === orderedSpreads.length - 1
+    
     const front = spread.front ?? { background: spread.background, elements: spread.elements }
     const back = spread.back ?? { background: '#ffffff', elements: [] }
 
-    pages.push({
-      id: `${spread.id}-front-${spreadIndex}`,
-      background: front.background || '#ffffff',
-      elements: normalizePageElements(front.elements, 'front'),
-    })
+    if (isFirst && spread.isCover) {
+      // Just the cover page
+      pages.push({
+        id: `${spread.id}-front-${spreadIndex}`,
+        background: front.background || '#ffffff',
+        elements: normalizePageElements(front.elements, 'front'),
+      })
+    } else if (isLast && orderedSpreads.length > 1) {
+      // Just the back cover
+      // If the spread has content in 'back', use that as back cover, 
+      // otherwise use 'front' if it's the only thing there.
+      // Typically back cover is the last page.
+      const backCover = back.elements.length > 0 ? back : front
+      pages.push({
+        id: `${spread.id}-back-${spreadIndex}`,
+        background: backCover.background || '#ffffff',
+        elements: normalizePageElements(backCover.elements, 'back'),
+      })
+    } else {
+      // Regular spread - both pages
+      pages.push({
+        id: `${spread.id}-front-${spreadIndex}`,
+        background: front.background || '#ffffff',
+        elements: normalizePageElements(front.elements, 'front'),
+      })
 
-    pages.push({
-      id: `${spread.id}-back-${spreadIndex}`,
-      background: back.background || '#ffffff',
-      elements: normalizePageElements(back.elements, 'back'),
-    })
+      pages.push({
+        id: `${spread.id}-back-${spreadIndex}`,
+        background: back.background || '#ffffff',
+        elements: normalizePageElements(back.elements, 'back'),
+      })
+    }
   })
 
   if (pages.length === 0) {
@@ -109,13 +133,15 @@ export default async function SharedAlbumPage({
   const hasCover = spreads.some(s => s.isCover)
 
   return (
-    <main className="min-h-screen bg-[radial-gradient(circle_at_top,#f8f3e8_0%,#e3dac7_45%,#c8b699_100%)] px-4 py-6 sm:px-8 sm:py-10">
-      <FlipBook
-        title={album.title || 'Shared Album'}
-        pages={pages}
-        protections={payload.protections}
-        hasCover={hasCover}
-      />
+    <main className="dark min-h-screen bg-background text-foreground flex flex-col items-center justify-center p-4 sm:p-8">
+      <div className="w-full max-w-[1240px]">
+        <FlipBook
+          title={album.title || 'Shared Album'}
+          pages={pages}
+          protections={payload.protections}
+          hasCover={hasCover}
+        />
+      </div>
     </main>
   )
 }

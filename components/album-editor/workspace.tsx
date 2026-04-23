@@ -3,7 +3,7 @@
 import React, { useRef, useEffect, useState } from 'react'
 import { Stage, Layer, Image as KonvaImage, Text, Transformer, Rect, Circle, Line } from 'react-konva'
 import useImage from 'use-image'
-import { AlbumSpread, AlbumElement } from './types'
+import { AlbumSpread, AlbumElement, DrawingElement } from './types'
 import Konva from 'konva'
 
 interface URLImageProps {
@@ -56,6 +56,9 @@ interface WorkspaceProps {
   onDropElement: (el: Omit<AlbumElement, 'id' | 'zIndex'>, position: { x: number; y: number }) => void
   watermarkText?: string | null
   blockContextMenu?: boolean
+  isDrawingMode?: boolean
+  brushColor?: string
+  brushSize?: number
 }
 
 const DRAG_MIME = 'application/x-folio-album-element'
@@ -78,6 +81,14 @@ const GRID_LINES = (() => {
   return lines
 })()
 
+const QUICK_FONT_OPTIONS = [
+  { label: 'Serif', value: 'serif' },
+  { label: 'Sans', value: 'sans-serif' },
+  { label: 'Monospace', value: 'monospace' },
+  { label: 'Cormorant', value: 'Cormorant Garamond, serif' },
+  { label: 'DM Sans', value: 'DM Sans, sans-serif' },
+]
+
 const WATERMARK_POINTS = (() => {
   const points: Array<{ x: number; y: number }> = []
   for (let y = 120; y <= SPREAD_HEIGHT + 120; y += 220) {
@@ -99,12 +110,20 @@ export function Workspace({
   onDropElement,
   watermarkText = null,
   blockContextMenu = false,
+  isDrawingMode = false,
+  brushColor = '#1C1814',
+  brushSize = 5,
 }: WorkspaceProps) {
+  const containerRef = useRef<HTMLDivElement>(null)
+  const contextMenuRef = useRef<HTMLDivElement>(null)
   const stageRef = useRef<Konva.Stage>(null)
   const [nodes, setNodes] = useState<Konva.Node[]>([])
   const [guide, setGuide] = useState<{ x: number | null; y: number | null }>({ x: null, y: null })
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; targetId: string | null } | null>(null)
 
   const [editingTextId, setEditingTextId] = useState<string | null>(null)
+  const [currentLine, setCurrentLine] = useState<{ points: number[] } | null>(null)
+  const isDrawing = useRef(false)
 
   const scale = zoom / 100
 
@@ -125,11 +144,106 @@ export function Workspace({
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [selection, deleteElements, editingTextId])
 
+  useEffect(() => {
+    if (!contextMenu) return
+
+    const handlePointerDown = (event: PointerEvent) => {
+      if (contextMenuRef.current?.contains(event.target as Node)) return
+      setContextMenu(null)
+    }
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setContextMenu(null)
+      }
+    }
+
+    const handleViewportChange = () => {
+      setContextMenu(null)
+    }
+
+    window.addEventListener('pointerdown', handlePointerDown)
+    window.addEventListener('keydown', handleEscape)
+    window.addEventListener('resize', handleViewportChange)
+    window.addEventListener('scroll', handleViewportChange, true)
+
+    return () => {
+      window.removeEventListener('pointerdown', handlePointerDown)
+      window.removeEventListener('keydown', handleEscape)
+      window.removeEventListener('resize', handleViewportChange)
+      window.removeEventListener('scroll', handleViewportChange, true)
+    }
+  }, [contextMenu])
+
+  const openContextMenu = (rawEvent: any, targetId: string | null) => {
+    const nativeEvent = rawEvent?.evt ?? rawEvent?.nativeEvent ?? rawEvent
+    nativeEvent?.preventDefault?.()
+
+    if (blockContextMenu) {
+      return
+    }
+
+    if (targetId && !selection.includes(targetId)) {
+      setSelection([targetId])
+    }
+
+    if (!targetId && selection.length === 0) {
+      return
+    }
+
+    const bounds = containerRef.current?.getBoundingClientRect()
+    if (!bounds) return
+
+    const clientX = Number(nativeEvent?.clientX ?? bounds.left)
+    const clientY = Number(nativeEvent?.clientY ?? bounds.top)
+    const menuWidth = 230
+    const menuHeight = 300
+
+    const x = Math.max(8, Math.min(bounds.width - menuWidth - 8, clientX - bounds.left))
+    const y = Math.max(8, Math.min(bounds.height - menuHeight - 8, clientY - bounds.top))
+
+    setContextMenu({ x, y, targetId })
+  }
+
+  const contextTargetId = contextMenu?.targetId ?? (selection.length === 1 ? selection[0] : null)
+  const contextElement = contextTargetId
+    ? spread.elements.find((el) => el.id === contextTargetId) || null
+    : null
+
+  const handleContextDelete = () => {
+    const ids = contextElement
+      ? selection.includes(contextElement.id) && selection.length > 1
+        ? selection
+        : [contextElement.id]
+      : selection
+
+    if (ids.length === 0) return
+    deleteElements(ids)
+    setContextMenu(null)
+  }
+
+  const handleImageCropToggle = () => {
+    if (!contextElement || contextElement.type !== 'image') return
+    updateElement(
+      contextElement.id,
+      { fitMode: contextElement.fitMode === 'fill' ? 'fit' : 'fill' },
+      { historyGroup: 'image-style' }
+    )
+    setContextMenu(null)
+  }
+
+  const handleTextStyle = (changes: Partial<AlbumElement>) => {
+    if (!contextElement || contextElement.type !== 'text') return
+    updateElement(contextElement.id, changes, { historyGroup: 'text-style' })
+    setContextMenu(null)
+  }
+
   const checkDeselect = (e: any) => {
     const clickedOnEmpty = e.target === e.target.getStage()
     if (clickedOnEmpty) {
       setSelection([])
       setEditingTextId(null)
+      setContextMenu(null)
     }
   }
 
@@ -234,7 +348,11 @@ export function Workspace({
   }
 
   return (
-    <div className="relative flex justify-center items-center h-full w-full" style={{ overflow: 'visible' }}>
+    <div
+      ref={containerRef}
+      className="relative flex justify-center items-center h-full w-full"
+      style={{ overflow: 'visible' }}
+    >
       <div
         className="bg-white dark:bg-[#1d1a15] border border-transparent dark:border-[#3a342b] shadow-xl flex transition-colors"
         style={{
@@ -256,8 +374,80 @@ export function Workspace({
           height={SPREAD_HEIGHT * scale}
           scaleX={scale}
           scaleY={scale}
-          onMouseDown={checkDeselect}
-          onTouchStart={checkDeselect}
+          onMouseDown={(e) => {
+            if (isDrawingMode) {
+              const pos = e.target.getStage()?.getRelativePointerPosition()
+              if (pos) {
+                isDrawing.current = true
+                setCurrentLine({ points: [pos.x, pos.y] })
+              }
+              return
+            }
+            checkDeselect(e)
+          }}
+          onMouseMove={(e) => {
+            if (!isDrawing.current || !isDrawingMode) return
+            const stage = e.target.getStage()
+            const point = stage?.getRelativePointerPosition()
+            if (point && currentLine) {
+              setCurrentLine({
+                points: currentLine.points.concat([point.x, point.y])
+              })
+            }
+          }}
+          onMouseUp={() => {
+            if (isDrawing.current && currentLine && currentLine.points.length > 2) {
+              // Calculate bounds of the drawing
+              const xs = currentLine.points.filter((_, i) => i % 2 === 0)
+              const ys = currentLine.points.filter((_, i) => i % 2 === 1)
+              const minX = Math.min(...xs)
+              const minY = Math.min(...ys)
+              const maxX = Math.max(...xs)
+              const maxY = Math.max(...ys)
+              
+              // Normalize points relative to element top-left
+              const normalizedPoints = currentLine.points.map((val, i) => 
+                i % 2 === 0 ? val - minX : val - minY
+              )
+
+              onDropElement({
+                type: 'drawing',
+                name: 'Freehand Sketch',
+                points: normalizedPoints,
+                stroke: brushColor,
+                strokeWidth: brushSize,
+                x: minX,
+                y: minY,
+                width: Math.max(5, maxX - minX),
+                height: Math.max(5, maxY - minY),
+                rotation: 0,
+              } as Omit<DrawingElement, 'id' | 'zIndex'>, { x: minX, y: minY })
+            }
+            isDrawing.current = false
+            setCurrentLine(null)
+          }}
+          onTouchStart={(e) => {
+            if (isDrawingMode) {
+              const pos = e.target.getStage()?.getRelativePointerPosition()
+              if (pos) {
+                isDrawing.current = true
+                setCurrentLine({ points: [pos.x, pos.y] })
+              }
+              return
+            }
+            checkDeselect(e)
+          }}
+          onContextMenu={(event) => {
+            const stage = event.target.getStage()
+            const targetNode = event.target
+            const targetId = targetNode?.id?.() || null
+            const isBackground =
+              !targetId ||
+              targetNode === stage ||
+              targetId === 'bg-page'
+
+            openContextMenu(event, isBackground ? null : targetId)
+          }}
           className="outline-none"
         >
           <Layer>
@@ -374,7 +564,6 @@ export function Workspace({
 
               if (el.type === 'shape') {
                 const commonProps = {
-                  key: el.id,
                   id: el.id,
                   x: el.x,
                   y: el.y,
@@ -394,14 +583,37 @@ export function Workspace({
                 }
 
                 if (el.shapeType === 'rectangle') {
-                  return <Rect {...commonProps} />
+                  return <Rect key={el.id} {...commonProps} />
                 }
                 if (el.shapeType === 'circle') {
-                  return <Circle {...commonProps} radius={Math.min(el.width, el.height) / 2} />
+                  return <Circle key={el.id} {...commonProps} radius={Math.min(el.width, el.height) / 2} />
                 }
                 if (el.shapeType === 'line') {
-                  return <Line {...commonProps} points={[0, 0, el.width, el.height]} />
+                  return <Line key={el.id} {...commonProps} points={[0, 0, el.width, el.height]} />
                 }
+              }
+
+              if (el.type === 'drawing') {
+                return (
+                  <Line
+                    key={el.id}
+                    id={el.id}
+                    points={el.points}
+                    x={el.x}
+                    y={el.y}
+                    stroke={el.stroke}
+                    strokeWidth={el.strokeWidth}
+                    lineCap="round"
+                    lineJoin="round"
+                    draggable={!locked}
+                    onClick={() => setSelection([el.id])}
+                    onTap={() => setSelection([el.id])}
+                    onDragMove={onDragMove}
+                    onDragEnd={onDragEnd}
+                    onTransformEnd={onTransformEnd}
+                    opacity={locked ? 0.7 : 1}
+                  />
+                )
               }
 
               if (el.type === 'image') {
@@ -439,6 +651,16 @@ export function Workspace({
 
               return null
             })}
+
+            {currentLine && (
+              <Line
+                points={currentLine.points}
+                stroke={brushColor}
+                strokeWidth={brushSize}
+                lineCap="round"
+                lineJoin="round"
+              />
+            )}
 
             <Transformer
               nodes={nodes}
@@ -489,6 +711,84 @@ export function Workspace({
           </div>
         )}
       </div>
+
+      {contextMenu && !blockContextMenu && (
+        <div
+          ref={contextMenuRef}
+          className="absolute z-40 min-w-[230px] rounded-md border border-border bg-popover text-popover-foreground shadow-xl p-1"
+          style={{ left: contextMenu.x, top: contextMenu.y }}
+          onContextMenu={(event) => event.preventDefault()}
+        >
+          <button
+            type="button"
+            onClick={handleContextDelete}
+            className="w-full text-left px-2 py-1.5 rounded text-sm hover:bg-muted"
+          >
+            Delete
+          </button>
+
+          {contextElement?.type === 'image' && (
+            <button
+              type="button"
+              onClick={handleImageCropToggle}
+              className="w-full text-left px-2 py-1.5 rounded text-sm hover:bg-muted"
+            >
+              {contextElement.fitMode === 'fill' ? 'Show Full Image' : 'Crop to Frame'}
+            </button>
+          )}
+
+          {contextElement?.type === 'text' && (
+            <>
+              <div className="my-1 border-t border-border" />
+              <div className="px-2 py-1 text-[11px] uppercase tracking-wider text-muted-foreground">Font</div>
+              {QUICK_FONT_OPTIONS.map((font) => (
+                <button
+                  key={font.value}
+                  type="button"
+                  onClick={() => handleTextStyle({ fontFamily: font.value })}
+                  className="w-full text-left px-2 py-1.5 rounded text-sm hover:bg-muted"
+                >
+                  {font.label}
+                </button>
+              ))}
+              <div className="my-1 border-t border-border" />
+              <button
+                type="button"
+                onClick={() =>
+                  handleTextStyle({
+                    fontWeight: contextElement.fontWeight === 'bold' ? 'normal' : 'bold',
+                  })
+                }
+                className="w-full text-left px-2 py-1.5 rounded text-sm hover:bg-muted"
+              >
+                {contextElement.fontWeight === 'bold' ? 'Set Normal Weight' : 'Set Bold'}
+              </button>
+              <button
+                type="button"
+                onClick={() =>
+                  handleTextStyle({
+                    fontSize: Math.max(8, contextElement.fontSize - 2),
+                  })
+                }
+                className="w-full text-left px-2 py-1.5 rounded text-sm hover:bg-muted"
+              >
+                Smaller Text
+              </button>
+              <button
+                type="button"
+                onClick={() =>
+                  handleTextStyle({
+                    fontSize: Math.min(320, contextElement.fontSize + 2),
+                  })
+                }
+                className="w-full text-left px-2 py-1.5 rounded text-sm hover:bg-muted"
+              >
+                Bigger Text
+              </button>
+            </>
+          )}
+        </div>
+      )}
     </div>
   )
 }
