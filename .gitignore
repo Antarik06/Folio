@@ -12,4 +12,6 @@ build/
 .vscode/
 .idea/
 text.txt
-
+graphify-out/
+.agents/
+.github/

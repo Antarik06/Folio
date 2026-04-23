@@ -106,39 +106,64 @@ function renderElement(el: AlbumElement) {
     )
   }
 
-  if (el.shapeType === 'line') {
-    const lineLength = Math.max(1, Math.hypot(el.width, el.height))
-    const lineAngle = (Math.atan2(el.height, el.width) * 180) / Math.PI
+  if (el.type === 'drawing') {
+    return (
+      <div key={el.id} className={styles.element} style={baseStyle}>
+        <svg
+          width={el.width}
+          height={el.height}
+          viewBox={`0 0 ${el.width} ${el.height}`}
+          style={{ overflow: 'visible' }}
+        >
+          <polyline
+            points={el.points.join(',')}
+            stroke={el.stroke}
+            strokeWidth={el.strokeWidth}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            fill="none"
+          />
+        </svg>
+      </div>
+    )
+  }
+
+  if (el.type === 'shape') {
+    if (el.shapeType === 'line') {
+      const lineLength = Math.max(1, Math.hypot(el.width, el.height))
+      const lineAngle = (Math.atan2(el.height, el.width) * 180) / Math.PI
+
+      return (
+        <div
+          key={el.id}
+          className={styles.element}
+          style={{
+            left: el.x,
+            top: el.y,
+            width: lineLength,
+            height: Math.max(1, el.strokeWidth ?? 2),
+            transform: `rotate(${lineAngle + (el.rotation || 0)}deg)`,
+            transformOrigin: 'left center',
+            backgroundColor: el.stroke || el.fill,
+          }}
+        />
+      )
+    }
 
     return (
       <div
         key={el.id}
         className={styles.element}
         style={{
-          left: el.x,
-          top: el.y,
-          width: lineLength,
-          height: Math.max(1, el.strokeWidth ?? 2),
-          transform: `rotate(${lineAngle + (el.rotation || 0)}deg)`,
-          transformOrigin: 'left center',
-          backgroundColor: el.stroke || el.fill,
+          ...baseStyle,
+          borderRadius: el.shapeType === 'circle' ? '999px' : undefined,
+          backgroundColor: el.fill,
+          border: el.stroke ? `${el.strokeWidth ?? 1}px solid ${el.stroke}` : undefined,
         }}
       />
     )
   }
-
-  return (
-    <div
-      key={el.id}
-      className={styles.element}
-      style={{
-        ...baseStyle,
-        borderRadius: el.shapeType === 'circle' ? '999px' : undefined,
-        backgroundColor: el.fill,
-        border: el.stroke ? `${el.strokeWidth ?? 1}px solid ${el.stroke}` : undefined,
-      }}
-    />
-  )
+  return null
 }
 
 function PageContent({ page }: { page: FlipbookPageData }) {
@@ -179,6 +204,7 @@ export function FlipBook({ title, pages, protections, hasCover = false }: FlipBo
   const [currentPage, setCurrentPage] = React.useState(0)
   const [isReady, setIsReady] = React.useState(false)
   const [isFlipping, setIsFlipping] = React.useState(false)
+  const [orientation, setOrientation] = React.useState<'landscape' | 'portrait'>('landscape')
 
   const totalPages = pages.length
   const canGoPrev = currentPage > 0
@@ -224,13 +250,13 @@ export function FlipBook({ title, pages, protections, hasCover = false }: FlipBo
         size: 'stretch',
         maxShadowOpacity: 0.45,
         showCover: hasCover,
-        usePortrait: true,
+        usePortrait: false, // Changed to false to allow 2-page spreads
         drawShadow: true,
-        flippingTime: 600,
+        flippingTime: 800,
         startZIndex: 1,
         autoSize: true,
-        mobileScrollSupport: false,
-        swipeDistance: 18,
+        mobileScrollSupport: true,
+        swipeDistance: 25,
         useMouseEvents: true,
         clickEventForward: false,
       })
@@ -248,6 +274,11 @@ export function FlipBook({ title, pages, protections, hasCover = false }: FlipBo
         const isMoving = event.data !== 'read'
         setIsFlipping(isMoving)
         interactionLockRef.current = isMoving
+      })
+
+      instance.on('changeOrientation', (event: { data: string }) => {
+        if (!active) return
+        setOrientation(event.data as 'landscape' | 'portrait')
       })
 
       pageFlipRef.current = instance
@@ -320,7 +351,11 @@ export function FlipBook({ title, pages, protections, hasCover = false }: FlipBo
       </header>
 
       <div
-        className={`${styles.viewer} ${isFlipping ? styles.viewerFlipping : ''}`}
+        className={`
+          ${styles.viewer} 
+          ${isFlipping ? styles.viewerFlipping : ''} 
+          ${orientation === 'landscape' ? styles.landscape : styles.portrait}
+        `}
         onContextMenu={(event) => {
           if (protections.noRightClick) event.preventDefault()
         }}
@@ -359,34 +394,46 @@ export function FlipBook({ title, pages, protections, hasCover = false }: FlipBo
           }
         }}
       >
-        <div ref={containerRef} className={styles.flipRoot}>
-          {pages.map((page, index) => (
-            <div
-              key={page.id}
-              ref={(node) => {
-                pageRefs.current[index] = node
-              }}
-              className={`${styles.page} page`}
-              data-density={index === 0 ? 'hard' : 'soft'}
-            >
-              <MemoPageContent page={page} />
-            </div>
-          ))}
-        </div>
-
-        {protections.watermark && (
-          <div className={styles.watermarkLayer}>
-            {watermarkGrid.map((point, index) => (
-              <span
-                key={`wm-${index}`}
-                className={styles.watermarkText}
-                style={{ left: point.x, top: point.y }}
+        <div 
+          className={`
+            ${styles.bookWrapper} 
+            ${hasCover && currentPage === 0 ? styles.closedStart : ''} 
+            ${hasCover && currentPage === totalPages - 1 ? styles.closedEnd : ''}
+          `}
+        >
+          <div ref={containerRef} className={styles.flipRoot}>
+            {pages.map((page, index) => (
+              <div
+                key={page.id}
+                ref={(node) => {
+                  pageRefs.current[index] = node
+                }}
+                className={`${styles.page} page`}
+                data-density={index === 0 ? 'hard' : 'soft'}
               >
-                FOLIO SHARED VIEW
-              </span>
+                <MemoPageContent page={page} />
+              </div>
             ))}
           </div>
-        )}
+
+          {/* Physical spine element - Moved outside flipRoot to prevent React reconciliation errors */}
+          {orientation === 'landscape' && currentPage > 0 && currentPage < totalPages - 1 && (
+            <div className={styles.spineLine} />
+          )}
+          {protections.watermark && (
+            <div className={styles.watermarkLayer}>
+              {watermarkGrid.map((point, index) => (
+                <span
+                  key={`wm-${index}`}
+                  className={styles.watermarkText}
+                  style={{ left: point.x, top: point.y }}
+                >
+                  FOLIO SHARED VIEW
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     </section>
   )

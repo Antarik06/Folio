@@ -1,4 +1,4 @@
-export type ElementType = 'image' | 'text' | 'shape'
+export type ElementType = 'image' | 'text' | 'shape' | 'drawing'
 
 export interface BaseElement {
   id: string
@@ -53,7 +53,14 @@ export interface ShapeElement extends BaseElement {
   strokeWidth?: number
 }
 
-export type AlbumElement = ImageElement | TextElement | ShapeElement
+export interface DrawingElement extends BaseElement {
+  type: 'drawing'
+  points: number[]
+  stroke: string
+  strokeWidth: number
+}
+
+export type AlbumElement = ImageElement | TextElement | ShapeElement | DrawingElement
 
 export interface AlbumPageSide {
   background: string

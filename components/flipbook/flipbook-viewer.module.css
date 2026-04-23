@@ -14,12 +14,13 @@
 .title {
   margin: 0;
   font-size: clamp(20px, 2vw, 28px);
-  color: #1c1814;
+  color: inherit;
 }
 
 .subtitle {
   margin: 4px 0 0;
-  color: #5f5648;
+  color: inherit;
+  opacity: 0.7;
   font-size: 12px;
 }
 
@@ -68,8 +69,8 @@
   position: relative;
   border-radius: 16px;
   padding: 16px;
-  background: radial-gradient(circle at top, rgba(255, 255, 255, 0.58), rgba(240, 230, 212, 0.38));
-  box-shadow: 0 24px 60px rgba(44, 33, 17, 0.18);
+  background: rgba(0, 0, 0, 0.2);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.4);
   overflow: hidden;
   isolation: isolate;
 }
@@ -88,20 +89,53 @@
   opacity: 0.26;
 }
 
-.flipRoot {
+.bookWrapper {
   margin: 0 auto;
-  width: min(100%, 1064px);
+  width: min(100%, calc((100vh - 180px) * 1.4));
   aspect-ratio: 14 / 10;
   height: auto;
   min-height: 360px;
-  max-height: 760px;
+  max-height: calc(100vh - 180px);
   position: relative;
   will-change: transform;
+  transition: transform 0.8s cubic-bezier(0.645, 0.045, 0.355, 1);
+}
+
+.flipRoot {
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
+
+.closedStart {
+  transform: translateX(-25%);
+}
+
+.closedEnd {
+  transform: translateX(25%);
+}
+
+.spineLine {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  width: 40px;
+  transform: translateX(-50%);
+  background: linear-gradient(
+    to right,
+    transparent,
+    rgba(0, 0, 0, 0.08) 35%,
+    rgba(0, 0, 0, 0.15) 50%,
+    rgba(0, 0, 0, 0.08) 65%,
+    transparent
+  );
+  z-index: 5;
+  pointer-events: none;
 }
 
 .page {
-  background: #ffffff;
-  border-radius: 4px;
+  background: transparent;
   overflow: visible;
   position: absolute;
   inset: 0;
@@ -112,6 +146,7 @@
   -webkit-backface-visibility: hidden;
   transform-style: preserve-3d;
   will-change: transform;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
 }
 
 .pageSurface {
@@ -157,12 +192,19 @@
   position: relative;
   width: 100%;
   height: 100%;
-  overflow: visible;
+  overflow: hidden;
   box-shadow: inset 0 0 0 1px rgba(35, 25, 12, 0.07);
-  background-image: linear-gradient(to bottom, rgba(255, 255, 255, 0.95), rgba(251, 247, 239, 0.95));
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
   transform-style: preserve-3d;
+}
+
+.pageInner::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  box-shadow: inset 0 0 100px rgba(0, 0, 0, 0.03);
 }
 
 .element {
@@ -217,11 +259,21 @@
     border-radius: 12px;
   }
 
-  .flipRoot {
+  .bookWrapper {
     width: min(100%, 476px);
     aspect-ratio: 7 / 10;
     height: auto;
     min-height: 420px;
+    transform: none !important; /* Force center on mobile/portrait */
+  }
+
+  .flipRoot {
+    width: 100%;
+    height: 100%;
+  }
+
+  .spineLine {
+    display: none;
   }
 }
 
