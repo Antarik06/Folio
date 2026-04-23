@@ -1,29 +1,12 @@
 import type { Metadata, Viewport } from 'next'
-import { DM_Sans, DM_Mono, Cormorant_Garamond } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import { ThemeProvider } from '@/components/theme-provider'
 import './globals.css'
 
-const dmSans = DM_Sans({ 
-  subsets: ["latin"],
-  variable: '--font-sans',
-  display: 'swap',
-})
-
-const dmMono = DM_Mono({ 
-  subsets: ["latin"],
-  weight: ['400', '500'],
-  variable: '--font-mono',
-  display: 'swap',
-})
-
-const cormorant = Cormorant_Garamond({ 
-  subsets: ["latin"],
-  weight: ['300', '400', '500', '600', '700'],
-  style: ['normal', 'italic'],
-  variable: '--font-serif',
-  display: 'swap',
-})
+// We're using system font stacks to avoid build-time fetch errors with Google Fonts
+const dmSans = { variable: '--font-sans' }
+const dmMono = { variable: '--font-mono' }
+const cormorant = { variable: '--font-serif' }
 
 export const metadata: Metadata = {
   title: 'Folio — Where memories become books',
