@@ -1401,7 +1401,7 @@ export function AlbumEditor({
     if (confirmed) {
       const saved = await persistDraft()
       if (saved) {
-        router.push(`/order/${albumId}`)
+        router.push(`/preview/${albumId}`)
       }
     }
   }, [albumId, persistDraft, router])
