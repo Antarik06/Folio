@@ -12,6 +12,8 @@ build/
 .vscode/
 .idea/
 text.txt
+*.tsbuildinfo
+.kiro
 graphify-out/
 .agents/
 .github/

@@ -3,7 +3,7 @@
 import { useMemo, useState, useTransition, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Edit3, Image as ImageIcon, PencilLine, Trash2 } from 'lucide-react'
+import { Edit3, Image as ImageIcon, PencilLine, Printer, Trash2 } from 'lucide-react'
 import { deleteAlbum, renameAlbum, updateAlbumCoverPhoto } from '@/lib/actions/events'
 import { Button } from '@/components/ui/button'
 import {
@@ -248,6 +248,21 @@ export function AlbumsGrid({ albums, photos }: AlbumsGridProps) {
               </div>
             </Link>
 
+            {/* ORDER button — always visible on the card */}
+            <div className="px-6 pb-5">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault()
+                  router.push(`/dashboard/albums/${album.id}/order`)
+                }}
+                className="w-full flex items-center justify-center gap-2 py-2.5 rounded border border-primary bg-primary text-primary-foreground text-sm font-medium uppercase tracking-widest hover:bg-primary/90 transition-colors"
+              >
+                <Printer className="w-4 h-4" />
+                Order
+              </button>
+            </div>
+
             <div className="absolute top-3 right-3 z-10">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -278,6 +293,13 @@ export function AlbumsGrid({ albums, photos }: AlbumsGridProps) {
                   <DropdownMenuItem onClick={() => openAlbumArtDialog(album)}>
                     <ImageIcon className="w-4 h-4" />
                     Change album art
+                  </DropdownMenuItem>
+
+                  <DropdownMenuSeparator />
+
+                  <DropdownMenuItem onClick={() => router.push(`/dashboard/albums/${album.id}/order`)}>
+                    <Printer className="w-4 h-4" />
+                    Order print
                   </DropdownMenuItem>
 
                   <DropdownMenuSeparator />

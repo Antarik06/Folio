@@ -307,3 +307,92 @@ body::-webkit-scrollbar-corner,
 .text-balance {
   text-wrap: balance;
 }
+
+/* ── Order wizard step transitions ──────────────────────────────────────────── */
+
+@keyframes stepSlideIn {
+  from {
+    opacity: 0;
+    transform: translateX(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes stepSlideOut {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(-24px);
+  }
+}
+
+@keyframes stepFadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.step-enter {
+  animation: stepSlideIn 0.4s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.step-fade-in {
+  animation: stepFadeIn 0.5s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+/* Step indicator active pulse */
+@keyframes indicatorPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(184, 92, 56, 0.35); }
+  50%      { box-shadow: 0 0 0 6px rgba(184, 92, 56, 0); }
+}
+
+.step-indicator-active {
+  animation: indicatorPulse 2s ease-in-out infinite;
+}
+
+/* Confirmation entrance */
+@keyframes confirmationEntrance {
+  0% {
+    opacity: 0;
+    transform: scale(0.95) translateY(16px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.confirmation-enter {
+  animation: confirmationEntrance 0.6s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+/* Decorative dots for confirmation */
+@keyframes floatDot {
+  0%, 100% { transform: translateY(0) rotate(0deg); opacity: 0.5; }
+  50%      { transform: translateY(-12px) rotate(180deg); opacity: 1; }
+}
+
+.confirmation-dot {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--terracotta);
+  opacity: 0.3;
+  animation: floatDot 3s ease-in-out infinite;
+}
+
+/* Line-item reveal */
+@keyframes lineItemReveal {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.line-item-enter {
+  animation: lineItemReveal 0.35s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
