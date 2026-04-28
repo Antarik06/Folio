@@ -32,7 +32,7 @@ export function QuickBuilder({ album, initialSpreads, photos }: Props) {
       .eq('id', album.id)
 
     if (!error) {
-       router.push(`/dashboard/templates/checkout/${album.id}`)
+       router.push(`/preview/template/${album.id}`)
     }
     setSaving(false)
   }
