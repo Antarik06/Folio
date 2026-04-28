@@ -1,15 +1,12 @@
 'use client'
 
-import { useState, useRef, useCallback } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { Upload, ChevronRight, Check, Camera, Frame, Image as ImageIcon, ShoppingBag, Trash2, Plus } from 'lucide-react'
 import { useRouter } from 'next/navigation'
-import {
-  Upload, ChevronRight, Check, Camera, Frame,
-  Image as ImageIcon, ShoppingBag, Eye, X, Plus, Minus,
-} from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 
-type Step = 'upload' | 'template' | 'preview' | 'order'
+type Step = 'upload' | 'edit' | 'template' | 'preview' | 'order'
 
 interface Template {
   id: string
@@ -18,100 +15,95 @@ interface Template {
   description: string
 }
 
+interface PolaroidItem {
+  id: string
+  url: string
+  templateId: string
+}
+
 const TEMPLATES: Template[] = [
-  {
-    id: 'classic',
-    name: 'Classic White',
-    frameClass: 'bg-[#FDFAF5] shadow-md',
-    description: 'The timeless original with a clean white border.',
-  },
-  {
-    id: 'midnight',
-    name: 'Midnight Black',
-    frameClass: 'bg-[#1C1814] shadow-md text-white border-none',
-    description: 'A bold, sophisticated look for high-contrast shots.',
-  },
-  {
-    id: 'vintage',
-    name: 'Vintage Cream',
-    frameClass: 'bg-[#F2E8D5] shadow-sm border border-[#D1C7B1]',
-    description: 'Aged paper feel for a nostalgic aesthetic.',
-  },
-  {
-    id: 'modern',
-    name: 'Gallery Minimal',
-    frameClass: 'bg-white shadow-xl p-3',
-    description: 'Ultra-clean with a subtle depth for modern spaces.',
-  },
+  { id: 'classic', name: 'Classic White', frameClass: 'bg-[#FDFAF5] shadow-md', description: 'The timeless original with a clean white border.' },
+  { id: 'midnight', name: 'Midnight Black', frameClass: 'bg-[#1C1814] shadow-md text-white border-none', description: 'A bold, sophisticated look for high-contrast shots.' },
+  { id: 'vintage', name: 'Vintage Cream', frameClass: 'bg-[#F2E8D5] shadow-sm border border-[#D1C7B1]', description: 'Aged paper feel for a nostalgic aesthetic.' },
+  { id: 'modern', name: 'Gallery Minimal', frameClass: 'bg-white shadow-xl p-3', description: 'Ultra-clean with a subtle depth for modern spaces.' },
 ]
 
 const PRICE_PER_PRINT = 199
-const MAX_IMAGES = 10
 
 export function PolaroidStudio() {
   const router = useRouter()
   const [step, setStep] = useState<Step>('upload')
-  const [images, setImages] = useState<string[]>([])           // object URLs
-  const [quantities, setQuantities] = useState<number[]>([])   // qty per print
-  const [activeIdx, setActiveIdx] = useState(0)                // thumbnail focus
+  const [items, setItems] = useState<PolaroidItem[]>([])
+  const [activeItemId, setActiveItemId] = useState<string | null>(null)
   const [selectedTemplate, setSelectedTemplate] = useState<Template>(TEMPLATES[0])
+  const [tilt, setTilt] = useState({ x: 0, y: 0 })
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const addMoreRef   = useRef<HTMLInputElement>(null)
 
-  // --- helpers ---
-  const addFiles = useCallback((files: FileList | null) => {
-    if (!files) return
-    const urls = Array.from(files)
-      .slice(0, MAX_IMAGES - images.length)
-      .map((f) => URL.createObjectURL(f))
-    if (urls.length === 0) return
-    setImages((prev) => [...prev, ...urls])
-    setQuantities((prev) => [...prev, ...urls.map(() => 1)])
-    setActiveIdx(images.length)   // focus first new one
-    setStep('template')
-  }, [images.length])
+  const activeItem = useMemo(
+    () => items.find((item) => item.id === activeItemId) ?? items[0] ?? null,
+    [items, activeItemId]
+  )
 
-  const removeImage = (idx: number) => {
-    setImages((prev) => prev.filter((_, i) => i !== idx))
-    setQuantities((prev) => prev.filter((_, i) => i !== idx))
-    setActiveIdx((prev) => Math.max(0, prev >= idx ? prev - 1 : prev))
-    if (images.length === 1) setStep('upload')
+  const totalPrice = items.length * PRICE_PER_PRINT
+
+  useEffect(() => {
+    if (!activeItem) return
+    const linkedTemplate = TEMPLATES.find((template) => template.id === activeItem.templateId) ?? TEMPLATES[0]
+    setSelectedTemplate(linkedTemplate)
+  }, [activeItem])
+
+  useEffect(() => {
+    return () => {
+      items.forEach((item) => URL.revokeObjectURL(item.url))
+    }
+  }, [items])
+
+  const addFiles = (files: FileList | null) => {
+    if (!files || files.length === 0) return
+    const incoming = Array.from(files).map((file) => ({
+      id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      url: URL.createObjectURL(file),
+      templateId: selectedTemplate.id,
+    }))
+    setItems((prev) => [...prev, ...incoming])
+    setActiveItemId((prev) => prev ?? incoming[0]?.id ?? null)
+    setStep('edit')
   }
 
-  const changeQty = (idx: number, delta: number) =>
-    setQuantities((prev) => prev.map((q, i) => i === idx ? Math.max(1, Math.min(20, q + delta)) : q))
+  const removeItem = (id: string) => {
+    setItems((prev) => {
+      const target = prev.find((item) => item.id === id)
+      if (target) URL.revokeObjectURL(target.url)
+      const next = prev.filter((item) => item.id !== id)
+      if (!next.length) {
+        setActiveItemId(null)
+        setStep('upload')
+      } else if (activeItemId === id) {
+        setActiveItemId(next[0].id)
+      }
+      return next
+    })
+  }
 
-  const totalPrints = quantities.reduce((s, q) => s + q, 0)
-  const totalPrice  = totalPrints * PRICE_PER_PRINT
-
-  const goTo3DPreview = () => {
-    if (images.length === 0) return
-    sessionStorage.setItem(
-      'polaroid-preview-state',
-      JSON.stringify({ images, frame: selectedTemplate.id, quantities })
-    )
-    router.push('/preview/polaroid')
+  const applyTemplateToActive = (template: Template) => {
+    setSelectedTemplate(template)
+    if (!activeItem) return
+    setItems((prev) => prev.map((item) => (item.id === activeItem.id ? { ...item, templateId: template.id } : item)))
   }
 
   const reset = () => {
-    images.forEach((url) => URL.revokeObjectURL(url))
-    setImages([])
-    setQuantities([])
-    setActiveIdx(0)
+    items.forEach((item) => URL.revokeObjectURL(item.url))
+    setItems([])
+    setActiveItemId(null)
     setStep('upload')
   }
 
-  // --- step bar ---
-  const STEPS = [
-    { id: 'upload',   label: 'Upload',   icon: Camera      },
-    { id: 'template', label: 'Template', icon: Frame       },
-    { id: 'preview',  label: 'Preview',  icon: ImageIcon   },
-    { id: 'order',    label: 'Order',    icon: ShoppingBag },
-  ]
-  const stepOrder = STEPS.map((s) => s.id)
+  const openUnifiedCheckout = () => {
+    router.push(`/dashboard/orders/checkout?source=polaroid&product=polaroid&items=${items.length}`)
+  }
 
   return (
-    <div className="max-w-5xl mx-auto px-6">
+    <div className="max-w-6xl mx-auto px-6">
       {/* Header */}
       <div className="text-center mb-16">
         <h1 className="font-serif text-4xl md:text-5xl lg:text-6xl text-foreground mb-4">
@@ -125,10 +117,17 @@ export function PolaroidStudio() {
 
       {/* Progress Bar */}
       <div className="flex items-center justify-center mb-12 gap-4 md:gap-8 overflow-x-auto pb-4 scrollbar-hide">
-        {STEPS.map((s, idx) => {
-          const Icon     = s.icon
+        {[
+          { id: 'upload', label: 'Upload', icon: Camera },
+          { id: 'edit', label: 'Quick Edit', icon: ImageIcon },
+          { id: 'template', label: 'Template', icon: Frame },
+          { id: 'preview', label: 'Preview', icon: ImageIcon },
+          { id: 'order', label: 'Order', icon: ShoppingBag },
+        ].map((s, idx) => {
+          const Icon = s.icon
           const isActive = step === s.id
-          const isDone   = stepOrder.indexOf(step) > idx
+          const isDone = ['upload', 'edit', 'template', 'preview', 'order'].indexOf(step) > idx
+          
           return (
             <div key={s.id} className="flex items-center gap-2 md:gap-4 shrink-0">
               <div
@@ -147,7 +146,7 @@ export function PolaroidStudio() {
               )}>
                 {s.label}
               </span>
-              {idx < 3 && <div className="hidden sm:block w-8 md:w-16 h-px bg-border mx-2" />}
+              {idx < 4 && <div className="hidden sm:block w-8 md:w-12 h-px bg-border mx-2" />}
             </div>
           )
         })}
@@ -161,7 +160,10 @@ export function PolaroidStudio() {
           <div
             className="absolute inset-0 flex flex-col items-center justify-center p-8"
             onDragOver={(e) => e.preventDefault()}
-            onDrop={(e) => { e.preventDefault(); addFiles(e.dataTransfer.files) }}
+            onDrop={(e) => {
+              e.preventDefault()
+              addFiles(e.dataTransfer.files)
+            }}
           >
             <div
               className="w-24 h-24 bg-muted rounded-full flex items-center justify-center mb-6 cursor-pointer hover:bg-muted/70 transition-colors"
@@ -174,7 +176,7 @@ export function PolaroidStudio() {
               Drag and drop your photos here, or click to browse.
             </p>
             <p className="text-xs text-muted-foreground/60 mb-8 font-mono uppercase tracking-widest">
-              Up to {MAX_IMAGES} images per order
+              Upload your polaroid images
             </p>
             <input
               type="file"
@@ -184,14 +186,69 @@ export function PolaroidStudio() {
               multiple
               onChange={(e) => addFiles(e.target.files)}
             />
-            <Button size="lg" className="px-8" onClick={() => fileInputRef.current?.click()}>
+            <Button 
+              size="lg" 
+              className="px-8"
+              onClick={() => fileInputRef.current?.click()}
+            >
               Select Photos
             </Button>
           </div>
         )}
 
-        {/* ── TEMPLATE ── */}
-        {step === 'template' && images.length > 0 && (
+{/* ── EDIT ── */}
+        {step === 'edit' && items.length > 0 && (
+          <div className="p-8 md:p-12 animate-in fade-in duration-500">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h2 className="font-serif text-3xl mb-1">Quick editor</h2>
+                <p className="text-muted-foreground">Keep only what matters: add and remove images.</p>
+              </div>
+              <Button variant="outline" onClick={() => fileInputRef.current?.click()}>
+                <Plus className="w-4 h-4 mr-2" />
+                Add Images
+              </Button>
+              <input ref={fileInputRef} type="file" multiple accept="image/*" className="hidden" onChange={(e) => addFiles(e.target.files)} />
+            </div>
+
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {items.map((item) => (
+                <button
+                  key={item.id}
+                  onClick={() => setActiveItemId(item.id)}
+                  className={cn(
+                    'relative aspect-square overflow-hidden border transition-all',
+                    activeItem?.id === item.id ? 'border-primary ring-1 ring-primary' : 'border-border'
+                  )}
+                >
+                  <img src={item.url} alt="Uploaded" className="h-full w-full object-cover" />
+                  <span className="absolute left-2 top-2 rounded bg-black/70 px-2 py-0.5 text-[10px] text-white">
+                    #{items.findIndex((entry) => entry.id === item.id) + 1}
+                  </span>
+                  <span
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      removeItem(item.id)
+                    }}
+                    className="absolute right-2 top-2 rounded bg-black/70 p-1 text-white hover:bg-black"
+                  >
+                    <Trash2 className="h-3 w-3" />
+                  </span>
+                </button>
+              ))}
+            </div>
+
+            <div className="flex gap-4 pt-8">
+              <Button variant="outline" onClick={reset}>Start over</Button>
+              <Button className="flex-1" onClick={() => setStep('template')}>
+                Continue to Templates
+                <ChevronRight className="w-4 h-4 ml-2" />
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {step === 'template' && activeItem && (
           <div className="p-8 md:p-12 animate-in fade-in duration-500">
             <div className="grid lg:grid-cols-2 gap-12 items-start">
 
@@ -205,73 +262,56 @@ export function PolaroidStudio() {
                   )}
                 >
                   <div className="aspect-square bg-muted overflow-hidden relative border border-black/5">
-                    <img
-                      src={images[activeIdx]}
-                      alt="Preview"
-                      className="w-full h-full object-cover transition-opacity duration-300"
+                    <img 
+                      src={activeItem.url} 
+                      alt="Preview" 
+                      className="w-full h-full object-cover"
                     />
                   </div>
                   <div className="mt-8 h-3 w-3/4 mx-auto bg-black/5 rounded-full" />
                 </div>
                 <p className="text-xs font-mono text-muted-foreground uppercase tracking-widest">
-                  {activeIdx + 1} / {images.length} photo{images.length > 1 ? 's' : ''}
+                  {items.findIndex((item) => item.id === activeItem?.id) + 1} / {items.length} photo{items.length > 1 ? 's' : ''}
                 </p>
 
                 {/* Thumbnail strip */}
                 <div className="flex flex-wrap gap-3 justify-center max-w-[360px]">
-                  {images.map((src, i) => (
+                  {items.map((item, i) => (
                     <div
-                      key={i}
+                      key={item.id}
                       className={cn(
                         'relative w-16 h-16 cursor-pointer border-2 transition-all duration-200 overflow-hidden rounded-sm',
-                        i === activeIdx ? 'border-primary shadow-lg shadow-primary/20 scale-105' : 'border-transparent opacity-60 hover:opacity-100',
+                        activeItem?.id === item.id ? 'border-primary shadow-lg shadow-primary/20 scale-105' : 'border-transparent opacity-60 hover:opacity-100',
                       )}
-                      onClick={() => setActiveIdx(i)}
+                      onClick={() => setActiveItemId(item.id)}
                     >
-                      <img src={src} alt="" className="w-full h-full object-cover" />
-                      <button
-                        onClick={(e) => { e.stopPropagation(); removeImage(i) }}
+                      <img src={item.url} alt="" className="w-full h-full object-cover" />
+                      <span
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          removeItem(item.id)
+                        }}
                         className="absolute top-0.5 right-0.5 w-5 h-5 bg-black/70 text-white rounded-full flex items-center justify-center hover:bg-red-600 transition-colors"
                       >
-                        <X className="w-3 h-3" />
-                      </button>
+                        <Trash2 className="w-3 h-3" />
+                      </span>
                     </div>
                   ))}
-
-                  {/* Add more button */}
-                  {images.length < MAX_IMAGES && (
-                    <button
-                      onClick={() => addMoreRef.current?.click()}
-                      className="w-16 h-16 border-2 border-dashed border-border hover:border-primary text-muted-foreground hover:text-primary flex items-center justify-center rounded-sm transition-all"
-                    >
-                      <Plus className="w-5 h-5" />
-                    </button>
-                  )}
-                  <input
-                    ref={addMoreRef}
-                    type="file"
-                    accept="image/*"
-                    multiple
-                    className="hidden"
-                    onChange={(e) => addFiles(e.target.files)}
-                  />
                 </div>
               </div>
 
-              {/* Right: frame options */}
+              {/* Options + template sidebar */}
               <div className="space-y-8">
                 <div>
                   <h2 className="font-serif text-3xl mb-2">Choose your frame</h2>
-                  <p className="text-muted-foreground">
-                    Applied to all {images.length} print{images.length > 1 ? 's' : ''}.
-                  </p>
+                  <p className="text-muted-foreground">Template sidebar supports fast switching for selected image.</p>
                 </div>
 
                 <div className="grid grid-cols-1 gap-4">
                   {TEMPLATES.map((t) => (
                     <button
                       key={t.id}
-                      onClick={() => setSelectedTemplate(t)}
+                      onClick={() => applyTemplateToActive(t)}
                       className={cn(
                         'flex items-start gap-4 p-4 text-left border transition-all duration-200',
                         selectedTemplate.id === t.id
@@ -294,7 +334,7 @@ export function PolaroidStudio() {
                 </div>
 
                 <div className="flex gap-4 pt-4">
-                  <Button variant="outline" onClick={() => setStep('upload')}>
+                  <Button variant="outline" onClick={() => setStep('edit')}>
                     Back
                   </Button>
                   <Button className="flex-1" onClick={() => setStep('preview')}>
@@ -308,112 +348,85 @@ export function PolaroidStudio() {
         )}
 
         {/* ── PREVIEW ── */}
-        {step === 'preview' && images.length > 0 && (
+        {step === 'preview' && activeItem && (
           <div className="p-8 md:p-12 animate-in zoom-in duration-500">
-            <div className="max-w-3xl mx-auto">
-              <h2 className="font-serif text-3xl mb-8 text-center">Review your prints</h2>
-
-              {/* Polaroid stack preview (scrollable when many) */}
-              <div className="flex gap-6 overflow-x-auto pb-6 mb-8 scrollbar-hide justify-start md:justify-center">
-                {images.map((src, i) => (
-                  <div key={i} className="shrink-0 flex flex-col items-center gap-3">
-                    <div className="relative">
-                      {/* Stack depth layers */}
-                      <div className="absolute inset-0 bg-white shadow-sm transform rotate-2 translate-x-1.5 translate-y-1.5 -z-10" />
-                      <div className="absolute inset-0 bg-white shadow-sm transform -rotate-1 -translate-x-1 translate-y-0.5 -z-20" />
-                      <div
+             <div className="max-w-2xl mx-auto text-center">
+                <h2 className="font-serif text-3xl mb-2">3D Preview</h2>
+                <p className="text-muted-foreground mb-8">
+                  Optimized interactive preview for smooth Polaroid rendering ({items.length} print{items.length > 1 ? 's' : ''}).
+                </p>
+                
+                <div className="flex justify-center mb-12">
+                   <div className="relative group">
+                     {/* Stack effect */}
+                     <div className="absolute inset-0 bg-white shadow-sm transform rotate-2 translate-x-2 translate-y-2 -z-10" />
+                     <div className="absolute inset-0 bg-white shadow-sm transform -rotate-1 -translate-x-1 -translate-y-1 -z-20" />
+                     
+                     <div 
                         className={cn(
-                          'transition-all duration-500 p-3 pb-10 w-[180px]',
-                          selectedTemplate.frameClass,
+                          'transition-transform duration-150 will-change-transform p-4 pb-16 w-[360px] relative',
+                          selectedTemplate.frameClass
                         )}
+                        onMouseMove={(event) => {
+                          const rect = (event.currentTarget as HTMLDivElement).getBoundingClientRect()
+                          const x = ((event.clientX - rect.left) / rect.width - 0.5) * 8
+                          const y = ((event.clientY - rect.top) / rect.height - 0.5) * -8
+                          setTilt({ x, y })
+                        }}
+                        onMouseLeave={() => setTilt({ x: 0, y: 0 })}
+                        style={{ transform: `perspective(1000px) rotateX(${tilt.y}deg) rotateY(${tilt.x}deg)` }}
                       >
-                        <div className="aspect-square overflow-hidden shadow-inner">
-                          <img
-                            src={src}
-                            alt={`Print ${i + 1}`}
-                            className="w-full h-full object-cover filter contrast-[1.04] brightness-[1.02]"
+                        <div className="aspect-square bg-muted overflow-hidden relative shadow-inner">
+                          <img 
+                            src={activeItem.url} 
+                            alt="Preview" 
+                            className="w-full h-full object-cover filter contrast-[1.05] brightness-[1.02]"
                           />
                         </div>
                         <div className="mt-6 px-1 flex justify-between items-end">
                           <div className="h-px w-1/3 bg-muted-foreground/20" />
-                          <span className="font-serif text-[10px] opacity-25">#{1000 + i}</span>
+                          <span className="font-serif text-[10px] opacity-25">#{1000 + items.findIndex((item) => item.id === activeItem.id)}</span>
                         </div>
                       </div>
                     </div>
-
-                    {/* Per-print quantity stepper */}
-                    <div className="flex items-center gap-2 bg-muted rounded-full px-3 py-1.5">
-                      <button
-                        onClick={() => changeQty(i, -1)}
-                        className="w-5 h-5 text-muted-foreground hover:text-foreground transition-colors"
-                      >
-                        <Minus className="w-4 h-4" />
-                      </button>
-                      <span className="font-mono text-sm font-bold w-5 text-center">{quantities[i]}</span>
-                      <button
-                        onClick={() => changeQty(i, 1)}
-                        className="w-5 h-5 text-muted-foreground hover:text-foreground transition-colors"
-                      >
-                        <Plus className="w-4 h-4" />
-                      </button>
+                </div>
+                
+                <div className="bg-paper p-6 border border-border mb-8 text-left">
+                  <h4 className="font-mono text-xs uppercase tracking-widest text-muted-foreground mb-4">Final Specifications</h4>
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <p className="text-muted-foreground">Format</p>
+                      <p className="font-sans font-medium">Classic Polaroid print</p>
                     </div>
-                    <p className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest">
-                      × ₹{PRICE_PER_PRINT}
-                    </p>
-                  </div>
-                ))}
-              </div>
-
-              {/* Spec sheet */}
-              <div className="bg-paper p-6 border border-border mb-8 text-left">
-                <h4 className="font-mono text-xs uppercase tracking-widest text-muted-foreground mb-4">
-                  Order Summary
-                </h4>
-                <div className="grid grid-cols-2 gap-4 text-sm mb-4">
-                  <div>
-                    <p className="text-muted-foreground">Unique prints</p>
-                    <p className="font-sans font-medium">{images.length}</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">Total pieces</p>
-                    <p className="font-sans font-medium">{totalPrints}</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">Frame style</p>
-                    <p className="font-sans font-medium">{selectedTemplate.name}</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">Paper</p>
-                    <p className="font-sans font-medium">320gsm premium silk</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">Dimensions</p>
-                    <p className="font-sans font-medium">107 × 88 mm</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">Price per print</p>
-                    <p className="font-sans font-medium">₹{PRICE_PER_PRINT}</p>
+                    <div>
+                      <p className="text-muted-foreground">Template</p>
+                      <p className="font-sans font-medium">{TEMPLATES.find((t) => t.id === activeItem.templateId)?.name ?? selectedTemplate.name}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Paper Type</p>
+                      <p className="font-sans font-medium">320gsm premium silk</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Quantity</p>
+                      <p className="font-sans font-medium">{items.length} print(s)</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Dimensions</p>
+                      <p className="font-sans font-medium">107 × 88 mm</p>
+                    </div>
                   </div>
                 </div>
-                <div className="pt-4 border-t border-border flex justify-between items-center">
-                  <span className="font-serif text-base">Total</span>
-                  <span className="font-serif text-2xl">₹{totalPrice}</span>
-                </div>
-              </div>
 
-              <div className="flex gap-4">
-                <Button variant="outline" className="flex-1" onClick={() => setStep('template')}>
-                  Edit Options
-                </Button>
-                <Button
-                  className="flex-1 bg-ink text-white hover:bg-ink/90"
-                  onClick={goTo3DPreview}
-                >
-                  <Eye className="w-4 h-4 mr-2" />
-                  View in 3D Preview
-                </Button>
-              </div>
-            </div>
+                <div className="flex gap-4">
+                  <Button variant="outline" className="flex-1" onClick={() => setStep('template')}>
+                    Edit Options
+                  </Button>
+                  <Button className="flex-1 bg-ink text-white hover:bg-ink/90" onClick={() => setStep('order')}>
+                    Checkout • ₹{totalPrice}
+                    <ShoppingBag className="w-4 h-4 ml-2" />
+                  </Button>
+                </div>
+             </div>
           </div>
         )}
 
@@ -425,7 +438,7 @@ export function PolaroidStudio() {
             </div>
             <h2 className="font-serif text-4xl mb-4 text-center">Ready to print</h2>
             <p className="text-muted-foreground text-center max-w-sm mb-12">
-              {totalPrints} polaroid{totalPrints > 1 ? 's' : ''} ready for production. Fill in your details to complete the order.
+              Your combined Polaroid order is ready. Continue to the shared preview and payment system.
             </p>
 
             <div className="w-full max-w-md space-y-6 bg-paper p-8 border border-border">
@@ -442,14 +455,11 @@ export function PolaroidStudio() {
                 </div>
               </div>
               <div className="pt-4 border-t border-border flex justify-between items-center">
-                <span className="font-serif text-lg">Total — {totalPrints} prints</span>
+                <span className="font-serif text-lg">Total</span>
                 <span className="font-serif text-2xl">₹{totalPrice}</span>
               </div>
-              <Button
-                className="w-full h-12 text-lg font-serif"
-                onClick={() => alert('Order placed! Thank you.')}
-              >
-                Confirm and Pay
+              <Button className="w-full h-12 text-lg font-serif" onClick={openUnifiedCheckout}>
+                Continue to Unified Checkout
               </Button>
             </div>
 
