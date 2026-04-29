@@ -1,10 +1,10 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { AlbumSpread } from '@/components/album-editor/types'
-import { ChevronLeft, ChevronRight, Edit3, Settings2, Check, ArrowRight, Type } from 'lucide-react'
+import { ChevronLeft, Edit3, Settings2, Check, ArrowRight } from 'lucide-react'
 
 interface Props {
   album: any
@@ -121,15 +121,74 @@ export function QuickBuilder({ album, initialSpreads, photos }: Props) {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-white/40 p-12 lg:p-16 shadow-2xl backdrop-blur-sm border border-white/60">
                    {/* FRONT PAGE */}
                    <div 
-                      className="aspect-[3/4] bg-white shadow-xl relative overflow-hidden group/page border border-border/50"
+                      className="aspect-3/4 bg-white shadow-xl relative overflow-hidden group/page border border-border/50"
                       style={{ background: spread.front?.background || spread.background }}
                     >
                       {spread.front?.elements.map(el => {
                         if (el.type === 'image') {
                           return (
-                            <button 
+                            <button
                               key={el.id}
-                              onClick={() => handlePhotoSwap(spread.id!, 'front', el.id!)}
+                            onClick={() => handlePhotoSwap(spread.id!, 'front', el.id!)}
+                            className="absolute bg-muted flex items-center justify-center overflow-hidden transition-all hover:ring-4 hover:ring-primary/30 group/img shadow-sm"
+                            style={{
+                              left: `${(el.x / 700) * 100}%`,
+                              top: `${(el.y / 1000) * 100}%`,
+                              width: `${(el.width / 700) * 100}%`,
+                              height: `${(el.height / 1000) * 100}%`,
+                              zIndex: el.zIndex
+                            }}
+                          >
+                            <img src={el.src} alt="" className="w-full h-full object-cover transition-transform duration-700 group-hover/img:scale-110" />
+                            <div className="absolute inset-0 bg-black/0 group-hover/img:bg-black/20 transition-all flex items-center justify-center">
+                               <div className="bg-white/90 backdrop-blur-sm p-3 rounded-full opacity-0 group-hover/img:opacity-100 scale-90 group-hover/img:scale-100 transition-all shadow-xl">
+                                  <Edit3 className="w-5 h-5 text-ink" />
+                               </div>
+                            </div>
+                          </button>
+                          )
+                        }
+                        if (el.type === 'text') {
+                          return (
+                          <div 
+                            key={el.id}
+                            contentEditable
+                            suppressContentEditableWarning
+                            onBlur={(e) => handleTextChange(spread.id!, 'front', el.id!, e.currentTarget.innerText)}
+                            className="absolute p-2 border border-transparent hover:border-primary/20 hover:bg-primary/5 transition-all text-left flex items-center outline-none focus:ring-2 focus:ring-primary/30"
+                            style={{
+                              left: `${(el.x / 700) * 100}%`,
+                              top: `${(el.y / 1000) * 100}%`,
+                              width: `${(el.width / 700) * 100}%`,
+                              height: `${(el.height / 1000) * 100}%`,
+                              zIndex: el.zIndex,
+                              fontSize: `${(el.fontSize / 700) * 100}cqw`,
+                              fontFamily: el.fontFamily === 'serif' ? 'var(--font-serif)' : 'inherit',
+                              color: el.fill,
+                              fontWeight: el.fontWeight,
+                              textAlign: el.textAlign as any || 'left'
+                            }}
+                          >
+                            {el.text}
+                          </div>
+                          )
+                        }
+                        return null
+                      })}
+                    </div>
+
+                    {/* BACK PAGE */}
+                    <div 
+                      className="aspect-3/4 bg-white shadow-xl relative overflow-hidden group/page border border-border/50 hidden md:block"
+                      style={{ background: spread.back ? (spread.back.background || spread.background) : '#F9F9F9' }}
+                    >
+                      {spread.back ? (
+                        spread.back.elements.map(el => {
+                          if (el.type === 'image') {
+                            return (
+                              <button
+                                key={el.id}
+                              onClick={() => handlePhotoSwap(spread.id!, 'back', el.id!)}
                               className="absolute bg-muted flex items-center justify-center overflow-hidden transition-all hover:ring-4 hover:ring-primary/30 group/img shadow-sm"
                               style={{
                                 left: `${(el.x / 700) * 100}%`,
@@ -146,15 +205,15 @@ export function QuickBuilder({ album, initialSpreads, photos }: Props) {
                                  </div>
                               </div>
                             </button>
-                          )
-                        }
-                        if (el.type === 'text') {
-                          return (
+                            )
+                          }
+                          if (el.type === 'text') {
+                            return (
                             <div 
                               key={el.id}
                               contentEditable
                               suppressContentEditableWarning
-                              onBlur={(e) => handleTextChange(spread.id!, 'front', el.id!, e.currentTarget.innerText)}
+                              onBlur={(e) => handleTextChange(spread.id!, 'back', el.id!, e.currentTarget.innerText)}
                               className="absolute p-2 border border-transparent hover:border-primary/20 hover:bg-primary/5 transition-all text-left flex items-center outline-none focus:ring-2 focus:ring-primary/30"
                               style={{
                                 left: `${(el.x / 700) * 100}%`,
@@ -171,65 +230,6 @@ export function QuickBuilder({ album, initialSpreads, photos }: Props) {
                             >
                               {el.text}
                             </div>
-                          )
-                        }
-                        return null
-                      })}
-                    </div>
-
-                    {/* BACK PAGE */}
-                    <div 
-                      className="aspect-[3/4] bg-white shadow-xl relative overflow-hidden group/page border border-border/50 hidden md:block"
-                      style={{ background: spread.back ? (spread.back.background || spread.background) : '#F9F9F9' }}
-                    >
-                      {spread.back ? (
-                        spread.back.elements.map(el => {
-                          if (el.type === 'image') {
-                            return (
-                              <button 
-                                key={el.id}
-                                onClick={() => handlePhotoSwap(spread.id!, 'back', el.id!)}
-                                className="absolute bg-muted flex items-center justify-center overflow-hidden transition-all hover:ring-4 hover:ring-primary/30 group/img shadow-sm"
-                                style={{
-                                  left: `${(el.x / 700) * 100}%`,
-                                  top: `${(el.y / 1000) * 100}%`,
-                                  width: `${(el.width / 700) * 100}%`,
-                                  height: `${(el.height / 1000) * 100}%`,
-                                  zIndex: el.zIndex
-                                }}
-                              >
-                                <img src={el.src} alt="" className="w-full h-full object-cover transition-transform duration-700 group-hover/img:scale-110" />
-                                <div className="absolute inset-0 bg-black/0 group-hover/img:bg-black/20 transition-all flex items-center justify-center">
-                                   <div className="bg-white/90 backdrop-blur-sm p-3 rounded-full opacity-0 group-hover/img:opacity-100 scale-90 group-hover/img:scale-100 transition-all shadow-xl">
-                                      <Edit3 className="w-5 h-5 text-ink" />
-                                   </div>
-                                </div>
-                              </button>
-                            )
-                          }
-                          if (el.type === 'text') {
-                            return (
-                              <div 
-                                key={el.id}
-                                contentEditable
-                                suppressContentEditableWarning
-                                onBlur={(e) => handleTextChange(spread.id!, 'back', el.id!, e.currentTarget.innerText)}
-                                className="absolute p-2 border border-transparent hover:border-primary/20 hover:bg-primary/5 transition-all text-left flex items-center outline-none focus:ring-2 focus:ring-primary/30"
-                                style={{
-                                  left: `${(el.x / 700) * 100}%`,
-                                  top: `${(el.y / 1000) * 100}%`,
-                                  width: `${(el.width / 700) * 100}%`,
-                                  height: `${(el.height / 1000) * 100}%`,
-                                  zIndex: el.zIndex,
-                                  fontSize: `${(el.fontSize / 700) * 100}cqw`,
-                                  fontFamily: el.fontFamily === 'serif' ? 'var(--font-serif)' : 'inherit',
-                                  color: el.fill,
-                                  fontWeight: el.fontWeight,
-                                  textAlign: el.textAlign as any || 'left'
-                                }}
-                              >
-                                {el.text}
-                              </div>
                             )
                           }
                           return null
