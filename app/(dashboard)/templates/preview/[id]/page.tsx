@@ -78,7 +78,7 @@ export default async function TemplatePreviewPage({ params }: Props) {
                           <img src={el.src} alt="" className="w-full h-full object-cover" />
                         ) : 'Image Placeholder'}
                       </div>
-                    ) : (
+                    ) : el.type === 'text' ? (
                       <div 
                         key={el.id}
                         className="absolute flex items-center"
@@ -96,7 +96,7 @@ export default async function TemplatePreviewPage({ params }: Props) {
                       >
                         {el.text}
                       </div>
-                    )
+                    ) : null
                   ))}
                 </div>
 
@@ -120,7 +120,7 @@ export default async function TemplatePreviewPage({ params }: Props) {
                           >
                             <img src={el.src} alt="" className="w-full h-full object-cover" />
                           </div>
-                        ) : (
+                        ) : el.type === 'text' ? (
                           <div 
                             key={el.id}
                             className="absolute flex items-center"
@@ -138,7 +138,7 @@ export default async function TemplatePreviewPage({ params }: Props) {
                           >
                             {el.text}
                           </div>
-                        )
+                        ) : null
                       ))
                    ) : (
                       <div className="w-full h-full flex items-center justify-center border-l border-border bg-muted/20">
