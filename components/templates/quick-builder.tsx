@@ -145,7 +145,7 @@ export function QuickBuilder({ album, initialSpreads, photos }: Props) {
                                </div>
                             </div>
                           </button>
-                        ) : (
+                        ) : el.type === 'text' ? (
                           <div 
                             key={el.id}
                             contentEditable
@@ -167,7 +167,7 @@ export function QuickBuilder({ album, initialSpreads, photos }: Props) {
                           >
                             {el.text}
                           </div>
-                        )
+                        ) : null
                       ))}
                     </div>
 
@@ -198,7 +198,7 @@ export function QuickBuilder({ album, initialSpreads, photos }: Props) {
                                  </div>
                               </div>
                             </button>
-                          ) : (
+                          ) : el.type === 'text' ? (
                             <div 
                               key={el.id}
                               contentEditable
@@ -220,7 +220,7 @@ export function QuickBuilder({ album, initialSpreads, photos }: Props) {
                             >
                               {el.text}
                             </div>
-                          )
+                          ) : null
                         ))
                       ) : (
                         <div className="w-full h-full flex items-center justify-center bg-[#F9F9F9]">

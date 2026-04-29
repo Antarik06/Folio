@@ -206,7 +206,7 @@ export function Book3D({ album }: Book3DProps) {
     ctx.fillStyle = pageData.background || '#F5F0E8'
     ctx.fillRect(0, 0, width, height)
 
-    // Handle Cover Image with Fill logic
+    // Handle Cover Image with object-fit: cover logic
     if (coverImg) {
       await new Promise<void>((resolve) => {
         const img = new Image()
@@ -214,17 +214,22 @@ export function Book3D({ album }: Book3DProps) {
         img.onload = () => {
           const imgRatio = img.width / img.height
           const frameRatio = width / height
-          
           let sx = 0, sy = 0, sWidth = img.width, sHeight = img.height
-          
+          // Always fill the canvas, cropping excess
           if (imgRatio > frameRatio) {
+            // Image is wider than frame, crop sides
             sWidth = img.height * frameRatio
             sx = (img.width - sWidth) / 2
           } else {
+            // Image is taller than frame, crop top/bottom
             sHeight = img.width / frameRatio
             sy = (img.height - sHeight) / 2
           }
-          
+          // Ensure no negative or out-of-bounds values
+          sx = Math.max(0, sx)
+          sy = Math.max(0, sy)
+          sWidth = Math.max(1, sWidth)
+          sHeight = Math.max(1, sHeight)
           ctx.drawImage(img, sx, sy, sWidth, sHeight, 0, 0, width, height)
           resolve()
         }
