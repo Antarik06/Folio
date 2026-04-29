@@ -19,6 +19,7 @@ const turningCurveStrength = 0.09
 const PAGE_WIDTH    = 1.28
 const PAGE_HEIGHT   = 1.71
 const PAGE_DEPTH    = 0.003
+const PAGE_GAP      = 0.0015
 const PAGE_SEGMENTS = 30
 const SEGMENT_WIDTH = PAGE_WIDTH / PAGE_SEGMENTS
 
@@ -98,7 +99,12 @@ const MagazinePage = ({ number, frontTexture, backTexture, opened, bookClosed, c
     turningTime = Math.sin(turningTime * Math.PI)
 
     let targetRotation = opened ? -Math.PI / 2 : Math.PI / 2
-    if (!bookClosed) targetRotation += (number * 0.8 * Math.PI) / 180
+    if (!bookClosed) {
+      targetRotation += (number * 0.8 * Math.PI) / 180
+    } else {
+      // Add a tiny fanning effect even when closed to eliminate Z-fighting (flickering)
+      targetRotation += (number * 0.15 * Math.PI) / 180
+    }
 
     const bones = skinnedMeshRef.current.skeleton.bones
     for (let i = 0; i < bones.length; i++) {
@@ -129,7 +135,7 @@ const MagazinePage = ({ number, frontTexture, backTexture, opened, bookClosed, c
   })
 
   return (
-    <group ref={group} position-z={-number * (PAGE_DEPTH + 0.0005) + currentPage * (PAGE_DEPTH + 0.0005)}>
+    <group ref={group} position-z={-number * (PAGE_DEPTH + PAGE_GAP) + currentPage * (PAGE_DEPTH + PAGE_GAP)}>
       <primitive object={manualSkinnedMesh} ref={skinnedMeshRef} />
     </group>
   )
