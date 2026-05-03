@@ -1,7 +1,8 @@
 'use client'
 
 import React from 'react'
-import { MAGAZINE_TEMPLATES } from '@/lib/magazine-templates'
+import { ALL_MAGAZINE_TEMPLATES } from '@/lib/magazine-templates'
+import { inferTemplateProductType, productTypeLabel } from '@/lib/product-type'
 import { useRouter } from 'next/navigation'
 
 interface TemplateSelectorProps {
@@ -23,7 +24,7 @@ export function TemplateSelector({ eventId }: TemplateSelectorProps) {
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-      {MAGAZINE_TEMPLATES.map((template) => (
+      {ALL_MAGAZINE_TEMPLATES.map((template) => (
         <div key={template.id} className="group relative bg-card border border-border overflow-hidden flex flex-col">
           <div className="aspect-[4/5] relative overflow-hidden bg-muted">
             <img 
@@ -43,10 +44,15 @@ export function TemplateSelector({ eventId }: TemplateSelectorProps) {
                 {isPending === template.id ? 'Creating...' : 'Select'}
               </button>
             </div>
+            <div className="absolute top-3 left-3">
+              <span className="bg-background/90 text-foreground border border-border px-2 py-1 text-[10px] uppercase tracking-widest font-semibold">
+                {productTypeLabel(inferTemplateProductType(template))}
+              </span>
+            </div>
           </div>
           <div className="p-4 border-t border-border bg-background">
             <h3 className="font-medium text-sm text-foreground">{template.name}</h3>
-            <p className="text-[10px] uppercase tracking-widest text-muted-foreground mt-1">Travel Magazine</p>
+            <p className="text-[10px] uppercase tracking-widest text-muted-foreground mt-1">{template.category}</p>
           </div>
         </div>
       ))}

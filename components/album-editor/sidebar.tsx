@@ -11,9 +11,10 @@ import {
   Check,
   Search,
 } from 'lucide-react'
+import type { MagazineTemplate } from '@/lib/magazine-templates'
 import type { AlbumElement, ImageElement, ShapeElement, DrawingElement } from './types'
 
-type SidebarPanel = 'design' | 'elements' | 'photos' | 'uploads' | 'text' | 'ai' | 'draw' | 'projects'
+type SidebarPanel = 'templates' | 'design' | 'elements' | 'photos' | 'uploads' | 'text' | 'ai' | 'draw' | 'projects'
 type PixabayImageType = 'all' | 'photo' | 'illustration' | 'vector'
 
 interface SidebarProps {
@@ -39,9 +40,14 @@ interface SidebarProps {
   // Projects props
   currentAlbumId?: string
   onSwitchAlbum?: (id: string) => void
+  simpleMode?: boolean
+  templates?: MagazineTemplate[]
+  activeTemplateId?: string | null
+  onApplyTemplate?: (templateId: string) => Promise<boolean> | boolean
 }
 
-const TABS: { id: SidebarPanel; label: string; icon: any; disabled?: boolean }[] = [
+const FULL_TABS: { id: SidebarPanel; label: string; icon: any; disabled?: boolean }[] = [
+  { id: 'templates', label: 'Templates', icon: LayoutTemplate },
   { id: 'design', label: 'Design', icon: LayoutTemplate },
   { id: 'elements', label: 'Elements', icon: Shapes },
   { id: 'photos', label: 'Photos', icon: Images },
@@ -50,6 +56,12 @@ const TABS: { id: SidebarPanel; label: string; icon: any; disabled?: boolean }[]
   { id: 'ai', label: 'AI', icon: Sparkles },
   { id: 'draw', label: 'Draw', icon: PenTool },
   { id: 'projects', label: 'Projects', icon: FolderOpen },
+]
+
+const SIMPLE_TABS: { id: SidebarPanel; label: string; icon: any; disabled?: boolean }[] = [
+  { id: 'templates', label: 'Templates', icon: LayoutTemplate },
+  { id: 'photos', label: 'Photos', icon: Images },
+  { id: 'uploads', label: 'Uploads', icon: UploadCloud },
 ]
 
 const DRAG_MIME = 'application/x-folio-album-element'
@@ -493,6 +505,10 @@ export function Sidebar({
   onChangeBrushSize,
   currentAlbumId,
   onSwitchAlbum,
+  simpleMode = false,
+  templates = [],
+  activeTemplateId = null,
+  onApplyTemplate,
 }: SidebarProps) {
   const [selectedPhotoIds, setSelectedPhotoIds] = React.useState<Set<string>>(new Set())
   const [elementQuery, setElementQuery] = React.useState('')
@@ -514,6 +530,8 @@ export function Sidebar({
   const [aiFillColor, setAiFillColor] = React.useState('#D54D34')
   const [aiMessage, setAiMessage] = React.useState<string | null>(null)
   const [aiProcessing, setAiProcessing] = React.useState(false)
+  const [applyingTemplateId, setApplyingTemplateId] = React.useState<string | null>(null)
+  const visibleTabs = simpleMode ? SIMPLE_TABS : FULL_TABS
 
   const primarySelected = selectedElements[0] || null
   const canRemoveImageBackground = primarySelected?.type === 'image'
@@ -905,6 +923,17 @@ export function Sidebar({
     return localCountMap
   }, [elementQuery, remoteTotalHits, showRemoteSection])
 
+  const handleApplyTemplate = React.useCallback(async (templateId: string) => {
+    if (!onApplyTemplate) return
+
+    setApplyingTemplateId(templateId)
+    try {
+      await onApplyTemplate(templateId)
+    } finally {
+      setApplyingTemplateId(null)
+    }
+  }, [onApplyTemplate])
+
   return (
     <div className="flex h-full bg-[#18191B] dark:bg-[#0F0D0B] flex-shrink-0 z-20 transition-colors">
       
@@ -921,7 +950,7 @@ export function Sidebar({
           F
         </button>
 
-        {TABS.map((t) => {
+        {visibleTabs.map((t) => {
           const Icon = t.icon
           const isActive = activePanel === t.id
           
@@ -946,6 +975,52 @@ export function Sidebar({
 
       {/* Expanded properties panel */}
       <div className="w-[320px] border-r border-[#E5E5E5] dark:border-[#3a342b] bg-white dark:bg-[#171511] h-full overflow-y-auto flex flex-col p-4 z-10 shadow-[1px_0_10px_rgba(0,0,0,0.05)] transition-colors">
+
+        {activePanel === 'templates' && (
+          <div className="flex flex-col h-full animate-in fade-in slide-in-from-left-4 duration-300">
+            <h2 className="text-xl font-serif text-foreground mb-3">Templates</h2>
+            <p className="text-xs text-muted-foreground mb-4">Pick a template style. Your current photos will be remapped automatically.</p>
+
+            <div className="space-y-3 overflow-y-auto no-scrollbar pr-1 pb-8">
+              {templates.map((template) => {
+                const isActive = template.id === activeTemplateId
+                const hasLayout = template.spreads.length > 0
+                const isApplying = applyingTemplateId === template.id
+
+                return (
+                  <button
+                    key={template.id}
+                    type="button"
+                    disabled={!hasLayout || isApplying}
+                    onClick={() => void handleApplyTemplate(template.id)}
+                    className={`w-full text-left rounded-md border p-2 transition-colors ${
+                      isActive
+                        ? 'border-terracotta bg-terracotta/10'
+                        : 'border-black/10 dark:border-white/10 hover:border-terracotta/60'
+                    } ${!hasLayout ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  >
+                    <div className="aspect-[4/3] overflow-hidden rounded mb-2 bg-black/10">
+                      <img src={template.thumbnail} alt={template.name} className="h-full w-full object-cover" />
+                    </div>
+                    <div className="flex items-center justify-between gap-2">
+                      <div>
+                        <p className="text-sm font-medium text-foreground">{template.name}</p>
+                        <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{template.category}</p>
+                      </div>
+                      {isActive ? (
+                        <span className="text-[10px] font-semibold uppercase tracking-wider text-terracotta">Active</span>
+                      ) : !hasLayout ? (
+                        <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Soon</span>
+                      ) : isApplying ? (
+                        <span className="text-[10px] font-semibold uppercase tracking-wider text-terracotta">Applying</span>
+                      ) : null}
+                    </div>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        )}
 
         {activePanel === 'design' && (
           <div className="flex flex-col h-full animate-in fade-in slide-in-from-left-4 duration-300">
@@ -1022,7 +1097,7 @@ export function Sidebar({
           </div>
         )}
         
-        {activePanel === 'elements' && (
+        {activePanel === 'elements' && !simpleMode && (
           <div className="flex flex-col h-full animate-in fade-in slide-in-from-left-4 duration-300">
             <h2 className="text-xl font-serif text-foreground mb-3">Elements</h2>
             <p className="text-xs text-muted-foreground mb-4">Search and filter elements, then click or drag to drop on canvas.</p>
@@ -1281,7 +1356,7 @@ export function Sidebar({
           </div>
         )}
 
-        {activePanel === 'text' && (
+        {activePanel === 'text' && !simpleMode && (
           <div className="flex flex-col h-full animate-in fade-in slide-in-from-left-4 duration-300">
             <h2 className="text-xl font-serif text-foreground mb-6">Text</h2>
             <p className="text-xs text-muted-foreground mb-4">Use heading, subheading, and body blocks for faster typography layout.</p>

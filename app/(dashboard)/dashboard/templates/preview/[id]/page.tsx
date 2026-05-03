@@ -1,4 +1,4 @@
-import { MAGAZINE_TEMPLATES } from '@/lib/magazine-templates'
+import { ALL_MAGAZINE_TEMPLATES } from '@/lib/magazine-templates'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 
@@ -8,7 +8,7 @@ interface Props {
 
 export default async function TemplatePreviewPage({ params }: Props) {
   const { id } = await params
-  const template = MAGAZINE_TEMPLATES.find(t => t.id === id)
+  const template = ALL_MAGAZINE_TEMPLATES.find(t => t.id === id)
   
   if (!template) {
     notFound()

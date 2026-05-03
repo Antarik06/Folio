@@ -6,6 +6,7 @@ export interface MagazineTemplate {
   description: string
   thumbnail: string
   category: string
+  productType?: 'magazine' | 'photo_book'
   spreads: AlbumSpread[]
 }
 
@@ -190,6 +191,52 @@ export const MAGAZINE_TEMPLATES: MagazineTemplate[] = [
   }
 ]
 
+function cloneTemplateSpreads(baseSpreads: AlbumSpread[], targetTemplateId: string, coverText?: string): AlbumSpread[] {
+  const cloned = JSON.parse(JSON.stringify(baseSpreads)) as AlbumSpread[]
+
+  const remapElements = (elements: any[], spreadIndex: number, side: 'front' | 'back') =>
+    elements.map((element, elementIndex) => ({
+      ...element,
+      id: `${targetTemplateId}-${spreadIndex + 1}-${side}-${elementIndex + 1}`,
+    }))
+
+  return cloned.map((spread, spreadIndex) => {
+    const front = spread.front
+      ? {
+          ...spread.front,
+          elements: remapElements(spread.front.elements || [], spreadIndex, 'front'),
+        }
+      : undefined
+    const back = spread.back
+      ? {
+          ...spread.back,
+          elements: remapElements(spread.back.elements || [], spreadIndex, 'back'),
+        }
+      : undefined
+
+    if (spread.isCover && coverText && front?.elements?.length) {
+      const textElement = front.elements.find((element: any) => element.type === 'text')
+      if (textElement) {
+        textElement.text = coverText.toUpperCase()
+      }
+    }
+
+    return {
+      ...spread,
+      id: `${targetTemplateId}-spread-${spreadIndex + 1}`,
+      front,
+      back,
+      elements: front?.elements || spread.elements || [],
+    }
+  })
+}
+
+const BASE_TEMPLATE_SPREADS = {
+  minimalist: MAGAZINE_TEMPLATES.find((template) => template.id === 'travel-minimalist')!.spreads,
+  vintage: MAGAZINE_TEMPLATES.find((template) => template.id === 'travel-vintage')!.spreads,
+  modern: MAGAZINE_TEMPLATES.find((template) => template.id === 'travel-modern')!.spreads,
+}
+
 // Additional premium templates
 export const EXTENDED_TEMPLATES: MagazineTemplate[] = [
   {
@@ -198,7 +245,8 @@ export const EXTENDED_TEMPLATES: MagazineTemplate[] = [
     category: 'Wedding',
     description: 'Soft blush palettes, romantic serif typography, and full-page imagery for your most cherished day.',
     thumbnail: 'https://images.unsplash.com/photo-1519225421980-715cb0215aed?q=80&w=800&auto=format&fit=crop',
-    spreads: []
+    productType: 'magazine',
+    spreads: cloneTemplateSpreads(BASE_TEMPLATE_SPREADS.vintage, 'wedding-eternal', 'Eternal Romance')
   },
   {
     id: 'fashion-monochrome',
@@ -206,7 +254,8 @@ export const EXTENDED_TEMPLATES: MagazineTemplate[] = [
     category: 'Fashion',
     description: 'High-contrast monochrome layout with bold asymmetric grids and a sharp editorial eye.',
     thumbnail: 'https://images.unsplash.com/photo-1469334031218-e382a71b716b?q=80&w=800&auto=format&fit=crop',
-    spreads: []
+    productType: 'magazine',
+    spreads: cloneTemplateSpreads(BASE_TEMPLATE_SPREADS.modern, 'fashion-monochrome', 'Noir Editorial')
   },
   {
     id: 'baby-tender',
@@ -214,7 +263,8 @@ export const EXTENDED_TEMPLATES: MagazineTemplate[] = [
     category: 'Birthday',
     description: 'Soft pastels, warm storytelling layouts, and playful compositions for little ones.',
     thumbnail: 'https://images.unsplash.com/photo-1544126592-807ade215a0b?q=80&w=800&auto=format&fit=crop',
-    spreads: []
+    productType: 'magazine',
+    spreads: cloneTemplateSpreads(BASE_TEMPLATE_SPREADS.vintage, 'baby-tender', 'Tender Moments')
   },
   {
     id: 'portfolio-clean',
@@ -222,7 +272,8 @@ export const EXTENDED_TEMPLATES: MagazineTemplate[] = [
     category: 'Portfolio',
     description: 'A pristine, gallery-style layout that puts your work at the center of every spread.',
     thumbnail: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?q=80&w=800&auto=format&fit=crop',
-    spreads: []
+    productType: 'magazine',
+    spreads: cloneTemplateSpreads(BASE_TEMPLATE_SPREADS.minimalist, 'portfolio-clean', 'Clean Canvas')
   },
   {
     id: 'luxury-gold',
@@ -230,7 +281,8 @@ export const EXTENDED_TEMPLATES: MagazineTemplate[] = [
     category: 'Luxury',
     description: 'Gold accents, deep blacks, and opulent spacing for events that demand the finest presentation.',
     thumbnail: 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?q=80&w=800&auto=format&fit=crop',
-    spreads: []
+    productType: 'magazine',
+    spreads: cloneTemplateSpreads(BASE_TEMPLATE_SPREADS.modern, 'luxury-gold', 'Gilded Moments')
   }
 ]
 

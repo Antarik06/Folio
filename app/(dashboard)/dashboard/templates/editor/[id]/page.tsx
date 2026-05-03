@@ -1,35 +1,37 @@
-import { redirect } from 'next/navigation'
+import { redirect, notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { AlbumEditor } from '@/components/album-editor'
+import { ALL_MAGAZINE_TEMPLATES } from '@/lib/magazine-templates'
 
-// Disable standard dashboard wrapper by putting this under /editor root (or /app/editor)
-// bypassing the dashboard layout
-
-export default async function EditorPage({
-  params
-}: {
+interface Props {
   params: Promise<{ id: string }>
-}) {
+}
+
+export default async function SimpleTemplateEditorPage({ params }: Props) {
   const { id } = await params
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
 
   if (!user) {
     redirect('/auth/login')
   }
 
-  // Fetch the album to ensure it exists and to get the event_id
-  const { data: album, error: albumError } = await supabase
+  const { data: album, error } = await supabase
     .from('albums')
     .select('*')
     .eq('id', id)
     .single()
 
-  if (albumError || !album) {
-    redirect('/dashboard') // Or some error page
+  if (error || !album) {
+    notFound()
   }
 
-  // Fetch all photos for this event so they can be available in the editor sidebar
+  if (album.owner_id !== user.id) {
+    redirect('/dashboard/templates')
+  }
+
   const { data: photos } = await supabase
     .from('photos')
     .select('*')
@@ -49,7 +51,8 @@ export default async function EditorPage({
         layoutField={layoutField as 'layout_data' | 'theme_config'}
         coverImageUrl={album.cover_image_url}
         initialLayoutData={rawLayout ?? undefined}
-        mode="advanced"
+        mode="simple"
+        templates={ALL_MAGAZINE_TEMPLATES}
       />
     </div>
   )

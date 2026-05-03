@@ -1,6 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
-import { notFound } from 'next/navigation'
-import MagazinePreviewClient from './preview-client'
+import { redirect } from 'next/navigation'
 
 interface Props {
   params: Promise<{ albumId: string }>
@@ -8,15 +6,5 @@ interface Props {
 
 export default async function MagazinePreviewPage({ params }: Props) {
   const { albumId } = await params
-  const supabase = await createClient()
-
-  const { data: album, error } = await supabase
-    .from('albums')
-    .select('*')
-    .eq('id', albumId)
-    .single()
-
-  if (error || !album) notFound()
-
-  return <MagazinePreviewClient album={album} />
+  redirect(`/preview/${albumId}`)
 }

@@ -4,7 +4,7 @@ interface Props {
   params: Promise<{ id: string }>
 }
 
-export default async function LegacyTemplatePreviewPage({ params }: Props) {
+export default async function LegacySimpleEditorRoute({ params }: Props) {
   const { id } = await params
-  redirect(`/dashboard/templates/preview/${id}`)
+  redirect(`/dashboard/templates/editor/${id}`)
 }

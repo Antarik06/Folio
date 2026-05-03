@@ -55,6 +55,8 @@ interface TopbarProps {
   onDistribute: (axis: 'horizontal' | 'vertical') => void
   showGrid: boolean
   onToggleGrid: () => void
+  onOpenAdvancedView?: () => void
+  simpleMode?: boolean
 }
 
 const FONT_OPTIONS = [
@@ -83,6 +85,8 @@ export function Topbar({
   onDistribute,
   showGrid,
   onToggleGrid,
+  onOpenAdvancedView,
+  simpleMode = false,
 }: TopbarProps) {
   const handleZoomOut = () => setZoom(Math.max(10, zoom - 10))
   const handleZoomIn = () => setZoom(Math.min(300, zoom + 10))
@@ -175,241 +179,259 @@ export function Topbar({
 
   return (
     <div className="relative h-14 bg-white dark:bg-[#171511] text-foreground border-b border-[#E5E5E5] dark:border-[#3a342b] flex items-center justify-between px-3 z-10 shrink-0 shadow-[0_1px_4px_rgba(0,0,0,0.02)] gap-3">
-      <div className="flex items-center gap-1 min-w-0">
-        <button
-          onClick={onUndo}
-          disabled={!canUndo}
-          className="p-2 text-foreground/80 hover:text-foreground hover:bg-gray-100 dark:hover:bg-[#26211b] rounded transition-colors disabled:opacity-30"
-          title="Undo"
-        >
-          <Undo2 className="w-4.5 h-4.5" strokeWidth={1.5} />
-        </button>
-        <button
-          onClick={onRedo}
-          disabled={!canRedo}
-          className="p-2 text-foreground/80 hover:text-foreground hover:bg-gray-100 dark:hover:bg-[#26211b] rounded transition-colors disabled:opacity-30"
-          title="Redo"
-        >
-          <Redo2 className="w-4.5 h-4.5" strokeWidth={1.5} />
-        </button>
-        {selectedElements.length > 0 ? (
-          <div className="flex items-center border-l border-gray-200 dark:border-[#3a342b] pl-3 gap-1 overflow-x-auto">
-            <button onClick={() => onAlign('left')} className="p-1.5 rounded hover:bg-muted" title="Align left">
-              <AlignStartHorizontal className="w-4 h-4" />
-            </button>
-            <button onClick={() => onAlign('center')} className="p-1.5 rounded hover:bg-muted" title="Align center">
-              <AlignCenterHorizontal className="w-4 h-4" />
-            </button>
-            <button onClick={() => onAlign('right')} className="p-1.5 rounded hover:bg-muted" title="Align right">
-              <AlignEndHorizontal className="w-4 h-4" />
-            </button>
-            <button onClick={() => onAlign('top')} className="p-1.5 rounded hover:bg-muted" title="Align top">
-              <AlignStartVertical className="w-4 h-4" />
-            </button>
-            <button onClick={() => onAlign('middle')} className="p-1.5 rounded hover:bg-muted" title="Align middle">
-              <AlignCenterVertical className="w-4 h-4" />
-            </button>
-            <button onClick={() => onAlign('bottom')} className="p-1.5 rounded hover:bg-muted" title="Align bottom">
-              <AlignEndVertical className="w-4 h-4" />
-            </button>
-            <button onClick={() => onDistribute('horizontal')} className="p-1.5 rounded hover:bg-muted" title="Distribute horizontally">
-              <Space className="w-4 h-4" />
-            </button>
-            <button onClick={() => onDistribute('vertical')} className="p-1.5 rounded hover:bg-muted" title="Distribute vertically">
-              <Space className="w-4 h-4 rotate-90" />
-            </button>
+      {simpleMode ? (
+        <div className="text-sm font-medium text-muted-foreground px-2">Simple Editor</div>
+      ) : (
+        <div className="flex items-center gap-1 min-w-0">
+          <button
+            onClick={onUndo}
+            disabled={!canUndo}
+            className="p-2 text-foreground/80 hover:text-foreground hover:bg-gray-100 dark:hover:bg-[#26211b] rounded transition-colors disabled:opacity-30"
+            title="Undo"
+          >
+            <Undo2 className="w-4.5 h-4.5" strokeWidth={1.5} />
+          </button>
+          <button
+            onClick={onRedo}
+            disabled={!canRedo}
+            className="p-2 text-foreground/80 hover:text-foreground hover:bg-gray-100 dark:hover:bg-[#26211b] rounded transition-colors disabled:opacity-30"
+            title="Redo"
+          >
+            <Redo2 className="w-4.5 h-4.5" strokeWidth={1.5} />
+          </button>
+          {selectedElements.length > 0 ? (
+            <div className="flex items-center border-l border-gray-200 dark:border-[#3a342b] pl-3 gap-1 overflow-x-auto">
+              <button onClick={() => onAlign('left')} className="p-1.5 rounded hover:bg-muted" title="Align left">
+                <AlignStartHorizontal className="w-4 h-4" />
+              </button>
+              <button onClick={() => onAlign('center')} className="p-1.5 rounded hover:bg-muted" title="Align center">
+                <AlignCenterHorizontal className="w-4 h-4" />
+              </button>
+              <button onClick={() => onAlign('right')} className="p-1.5 rounded hover:bg-muted" title="Align right">
+                <AlignEndHorizontal className="w-4 h-4" />
+              </button>
+              <button onClick={() => onAlign('top')} className="p-1.5 rounded hover:bg-muted" title="Align top">
+                <AlignStartVertical className="w-4 h-4" />
+              </button>
+              <button onClick={() => onAlign('middle')} className="p-1.5 rounded hover:bg-muted" title="Align middle">
+                <AlignCenterVertical className="w-4 h-4" />
+              </button>
+              <button onClick={() => onAlign('bottom')} className="p-1.5 rounded hover:bg-muted" title="Align bottom">
+                <AlignEndVertical className="w-4 h-4" />
+              </button>
+              <button onClick={() => onDistribute('horizontal')} className="p-1.5 rounded hover:bg-muted" title="Distribute horizontally">
+                <Space className="w-4 h-4" />
+              </button>
+              <button onClick={() => onDistribute('vertical')} className="p-1.5 rounded hover:bg-muted" title="Distribute vertically">
+                <Space className="w-4 h-4 rotate-90" />
+              </button>
 
-            {firstSelected?.type === 'text' && (
-              <>
-                <select
-                  value={firstSelected.fontFamily}
-                  onChange={(event) => onUpdateElement(firstSelected.id, { fontFamily: event.target.value }, { historyGroup: 'text-style' })}
-                  className="h-8 text-xs text-foreground bg-gray-50 dark:bg-[#201c16] border border-gray-200 dark:border-[#3a342b] rounded px-2"
-                >
-                  {FONT_OPTIONS.map((font) => (
-                    <option key={font.value} value={font.value}>{font.label}</option>
-                  ))}
-                </select>
+              {firstSelected?.type === 'text' && (
+                <>
+                  <select
+                    value={firstSelected.fontFamily}
+                    onChange={(event) => onUpdateElement(firstSelected.id, { fontFamily: event.target.value }, { historyGroup: 'text-style' })}
+                    className="h-8 text-xs text-foreground bg-gray-50 dark:bg-[#201c16] border border-gray-200 dark:border-[#3a342b] rounded px-2"
+                  >
+                    {FONT_OPTIONS.map((font) => (
+                      <option key={font.value} value={font.value}>{font.label}</option>
+                    ))}
+                  </select>
 
-                <select
-                  value={firstSelected.fontWeight}
-                  onChange={(event) => onUpdateElement(firstSelected.id, { fontWeight: event.target.value as 'normal' | 'bold' }, { historyGroup: 'text-style' })}
-                  className="h-8 text-xs text-foreground bg-gray-50 dark:bg-[#201c16] border border-gray-200 dark:border-[#3a342b] rounded px-2"
-                >
-                  <option value="normal">Normal</option>
-                  <option value="bold">Bold</option>
-                </select>
+                  <select
+                    value={firstSelected.fontWeight}
+                    onChange={(event) => onUpdateElement(firstSelected.id, { fontWeight: event.target.value as 'normal' | 'bold' }, { historyGroup: 'text-style' })}
+                    className="h-8 text-xs text-foreground bg-gray-50 dark:bg-[#201c16] border border-gray-200 dark:border-[#3a342b] rounded px-2"
+                  >
+                    <option value="normal">Normal</option>
+                    <option value="bold">Bold</option>
+                  </select>
 
-                <label className="flex items-center gap-1 text-xs px-2">
-                  Size
-                  <input
-                    type="number"
-                    min={8}
-                    max={320}
-                    value={firstSelected.fontSize}
-                    onChange={(event) => onUpdateElement(firstSelected.id, { fontSize: Number(event.target.value) || firstSelected.fontSize }, { historyGroup: 'text-style' })}
-                    className="w-16 h-8 text-xs text-foreground bg-gray-50 dark:bg-[#201c16] border border-gray-200 dark:border-[#3a342b] rounded px-1"
-                  />
-                </label>
+                  <label className="flex items-center gap-1 text-xs px-2">
+                    Size
+                    <input
+                      type="number"
+                      min={8}
+                      max={320}
+                      value={firstSelected.fontSize}
+                      onChange={(event) => onUpdateElement(firstSelected.id, { fontSize: Number(event.target.value) || firstSelected.fontSize }, { historyGroup: 'text-style' })}
+                      className="w-16 h-8 text-xs text-foreground bg-gray-50 dark:bg-[#201c16] border border-gray-200 dark:border-[#3a342b] rounded px-1"
+                    />
+                  </label>
 
-                <label className="flex items-center gap-1 text-xs px-2">
-                  Line
-                  <input
-                    type="number"
-                    min={0.8}
-                    max={3}
-                    step={0.1}
-                    value={firstSelected.lineHeight ?? 1.2}
-                    onChange={(event) => onUpdateElement(firstSelected.id, { lineHeight: Number(event.target.value) || 1.2 }, { historyGroup: 'text-style' })}
-                    className="w-14 h-8 text-xs text-foreground bg-gray-50 dark:bg-[#201c16] border border-gray-200 dark:border-[#3a342b] rounded px-1"
-                  />
-                </label>
+                  <label className="flex items-center gap-1 text-xs px-2">
+                    Line
+                    <input
+                      type="number"
+                      min={0.8}
+                      max={3}
+                      step={0.1}
+                      value={firstSelected.lineHeight ?? 1.2}
+                      onChange={(event) => onUpdateElement(firstSelected.id, { lineHeight: Number(event.target.value) || 1.2 }, { historyGroup: 'text-style' })}
+                      className="w-14 h-8 text-xs text-foreground bg-gray-50 dark:bg-[#201c16] border border-gray-200 dark:border-[#3a342b] rounded px-1"
+                    />
+                  </label>
 
-                <label className="flex items-center gap-1 text-xs px-2">
-                  Letter
-                  <input
-                    type="number"
-                    min={-4}
-                    max={20}
-                    step={0.5}
-                    value={firstSelected.letterSpacing ?? 0}
-                    onChange={(event) => onUpdateElement(firstSelected.id, { letterSpacing: Number(event.target.value) || 0 }, { historyGroup: 'text-style' })}
-                    className="w-14 h-8 text-xs text-foreground bg-gray-50 dark:bg-[#201c16] border border-gray-200 dark:border-[#3a342b] rounded px-1"
-                  />
-                </label>
+                  <label className="flex items-center gap-1 text-xs px-2">
+                    Letter
+                    <input
+                      type="number"
+                      min={-4}
+                      max={20}
+                      step={0.5}
+                      value={firstSelected.letterSpacing ?? 0}
+                      onChange={(event) => onUpdateElement(firstSelected.id, { letterSpacing: Number(event.target.value) || 0 }, { historyGroup: 'text-style' })}
+                      className="w-14 h-8 text-xs text-foreground bg-gray-50 dark:bg-[#201c16] border border-gray-200 dark:border-[#3a342b] rounded px-1"
+                    />
+                  </label>
 
-                <label className="text-sm bg-gray-50 dark:bg-[#201c16] border border-gray-200 dark:border-[#3a342b] px-2 py-1.5 rounded cursor-pointer hover:bg-gray-100 dark:hover:bg-[#2c261f]">
-                  <span className="sr-only">Color</span>
-                  <input
-                    type="color"
-                    className="w-0 h-0 invisible"
-                    value={firstSelected.fill}
-                    onChange={(event) => onUpdateElement(firstSelected.id, { fill: event.target.value }, { historyGroup: 'text-style' })}
-                  />
-                  Color
-                </label>
-              </>
-            )}
+                  <label className="text-sm bg-gray-50 dark:bg-[#201c16] border border-gray-200 dark:border-[#3a342b] px-2 py-1.5 rounded cursor-pointer hover:bg-gray-100 dark:hover:bg-[#2c261f]">
+                    <span className="sr-only">Color</span>
+                    <input
+                      type="color"
+                      className="w-0 h-0 invisible"
+                      value={firstSelected.fill}
+                      onChange={(event) => onUpdateElement(firstSelected.id, { fill: event.target.value }, { historyGroup: 'text-style' })}
+                    />
+                    Color
+                  </label>
+                </>
+              )}
 
-            {firstSelected?.type === 'image' && (
-              <>
-                <button
-                  onClick={handleReplacePhoto}
-                  className="inline-flex items-center gap-2 text-sm bg-gray-50 dark:bg-[#201c16] border border-gray-200 dark:border-[#3a342b] px-3 py-1.5 rounded hover:bg-gray-100 dark:hover:bg-[#2c261f]"
-                >
-                  <ImagePlus className="w-4 h-4" />
-                  Replace
-                </button>
+              {firstSelected?.type === 'image' && (
+                <>
+                  <button
+                    onClick={handleReplacePhoto}
+                    className="inline-flex items-center gap-2 text-sm bg-gray-50 dark:bg-[#201c16] border border-gray-200 dark:border-[#3a342b] px-3 py-1.5 rounded hover:bg-gray-100 dark:hover:bg-[#2c261f]"
+                  >
+                    <ImagePlus className="w-4 h-4" />
+                    Replace
+                  </button>
 
-                <button
-                  onClick={() => onUpdateElement(firstSelected.id, { fitMode: firstSelected.fitMode === 'fill' ? 'fit' : 'fill' }, { historyGroup: 'image-style' })}
-                  className="h-8 px-2 text-xs text-foreground rounded border border-gray-200 dark:border-[#3a342b] bg-gray-50 dark:bg-[#201c16]"
-                >
-                  {firstSelected.fitMode === 'fill' ? 'Fill' : 'Fit'}
-                </button>
+                  <button
+                    onClick={() => onUpdateElement(firstSelected.id, { fitMode: firstSelected.fitMode === 'fill' ? 'fit' : 'fill' }, { historyGroup: 'image-style' })}
+                    className="h-8 px-2 text-xs text-foreground rounded border border-gray-200 dark:border-[#3a342b] bg-gray-50 dark:bg-[#201c16]"
+                  >
+                    {firstSelected.fitMode === 'fill' ? 'Fill' : 'Fit'}
+                  </button>
 
-                <button
-                  onClick={() => onUpdateElement(firstSelected.id, { flipX: !firstSelected.flipX }, { historyGroup: 'image-style' })}
-                  className="p-1.5 rounded hover:bg-muted"
-                  title="Flip horizontal"
-                >
-                  <FlipHorizontal2 className="w-4 h-4" />
-                </button>
+                  <button
+                    onClick={() => onUpdateElement(firstSelected.id, { flipX: !firstSelected.flipX }, { historyGroup: 'image-style' })}
+                    className="p-1.5 rounded hover:bg-muted"
+                    title="Flip horizontal"
+                  >
+                    <FlipHorizontal2 className="w-4 h-4" />
+                  </button>
 
-                <button
-                  onClick={() => onUpdateElement(firstSelected.id, { flipY: !firstSelected.flipY }, { historyGroup: 'image-style' })}
-                  className="p-1.5 rounded hover:bg-muted"
-                  title="Flip vertical"
-                >
-                  <FlipVertical2 className="w-4 h-4" />
-                </button>
+                  <button
+                    onClick={() => onUpdateElement(firstSelected.id, { flipY: !firstSelected.flipY }, { historyGroup: 'image-style' })}
+                    className="p-1.5 rounded hover:bg-muted"
+                    title="Flip vertical"
+                  >
+                    <FlipVertical2 className="w-4 h-4" />
+                  </button>
 
-                <label className="flex items-center gap-1 text-xs px-2">
-                  Rot
-                  <input
-                    type="number"
-                    value={Math.round(firstSelected.rotation)}
-                    onChange={(event) => onUpdateElement(firstSelected.id, { rotation: Number(event.target.value) || 0 }, { historyGroup: 'image-style' })}
-                    className="w-14 h-8 text-xs text-foreground bg-gray-50 dark:bg-[#201c16] border border-gray-200 dark:border-[#3a342b] rounded px-1"
-                  />
-                </label>
+                  <label className="flex items-center gap-1 text-xs px-2">
+                    Rot
+                    <input
+                      type="number"
+                      value={Math.round(firstSelected.rotation)}
+                      onChange={(event) => onUpdateElement(firstSelected.id, { rotation: Number(event.target.value) || 0 }, { historyGroup: 'image-style' })}
+                      className="w-14 h-8 text-xs text-foreground bg-gray-50 dark:bg-[#201c16] border border-gray-200 dark:border-[#3a342b] rounded px-1"
+                    />
+                  </label>
 
-                <label className="flex items-center gap-1 text-xs px-2">
-                  Opacity
-                  <input
-                    type="range"
-                    min={0}
-                    max={1}
-                    step={0.05}
-                    value={firstSelected.opacity ?? 1}
-                    onChange={(event) => onUpdateElement(firstSelected.id, { opacity: Number(event.target.value) }, { historyGroup: 'image-style' })}
-                  />
-                </label>
+                  <label className="flex items-center gap-1 text-xs px-2">
+                    Opacity
+                    <input
+                      type="range"
+                      min={0}
+                      max={1}
+                      step={0.05}
+                      value={firstSelected.opacity ?? 1}
+                      onChange={(event) => onUpdateElement(firstSelected.id, { opacity: Number(event.target.value) }, { historyGroup: 'image-style' })}
+                    />
+                  </label>
 
-                <label className="flex items-center gap-1 text-xs px-2">
-                  Radius
-                  <input
-                    type="range"
-                    min={0}
-                    max={80}
-                    step={1}
-                    value={firstSelected.cornerRadius ?? 0}
-                    onChange={(event) => onUpdateElement(firstSelected.id, { cornerRadius: Number(event.target.value) }, { historyGroup: 'image-style' })}
-                  />
-                </label>
+                  <label className="flex items-center gap-1 text-xs px-2">
+                    Radius
+                    <input
+                      type="range"
+                      min={0}
+                      max={80}
+                      step={1}
+                      value={firstSelected.cornerRadius ?? 0}
+                      onChange={(event) => onUpdateElement(firstSelected.id, { cornerRadius: Number(event.target.value) }, { historyGroup: 'image-style' })}
+                    />
+                  </label>
 
-                <label className="flex items-center gap-1 text-xs px-2">
-                  Shadow
-                  <input
-                    type="range"
-                    min={0}
-                    max={60}
-                    step={1}
-                    value={firstSelected.shadowBlur ?? 0}
-                    onChange={(event) => onUpdateElement(firstSelected.id, { shadowBlur: Number(event.target.value), shadowOpacity: (Number(event.target.value) || 0) > 0 ? 0.35 : 0 }, { historyGroup: 'image-style' })}
-                  />
-                </label>
-              </>
-            )}
+                  <label className="flex items-center gap-1 text-xs px-2">
+                    Shadow
+                    <input
+                      type="range"
+                      min={0}
+                      max={60}
+                      step={1}
+                      value={firstSelected.shadowBlur ?? 0}
+                      onChange={(event) => onUpdateElement(firstSelected.id, { shadowBlur: Number(event.target.value), shadowOpacity: (Number(event.target.value) || 0) > 0 ? 0.35 : 0 }, { historyGroup: 'image-style' })}
+                    />
+                  </label>
+                </>
+              )}
 
-            <button
-              onClick={onDeleteSelected}
-              className="inline-flex items-center gap-2 text-sm bg-[#FCE8E6] dark:bg-[#3a1f1a] border border-[#F6C8C2] dark:border-[#6b2f28] text-[#B42318] dark:text-[#ffb4a8] px-3 py-1.5 rounded hover:bg-[#FAD6D2] dark:hover:bg-[#4a251f]"
-            >
-              <Trash2 className="w-4 h-4" />
-              Delete
-            </button>
-          </div>
-        ) : (
-          <div className="text-sm text-muted-foreground px-3 border-l border-gray-200 dark:border-[#3a342b]">No layer selected</div>
-        )}
-      </div>
+              <button
+                onClick={onDeleteSelected}
+                className="inline-flex items-center gap-2 text-sm bg-[#FCE8E6] dark:bg-[#3a1f1a] border border-[#F6C8C2] dark:border-[#6b2f28] text-[#B42318] dark:text-[#ffb4a8] px-3 py-1.5 rounded hover:bg-[#FAD6D2] dark:hover:bg-[#4a251f]"
+              >
+                <Trash2 className="w-4 h-4" />
+                Delete
+              </button>
+            </div>
+          ) : (
+            <div className="text-sm text-muted-foreground px-3 border-l border-gray-200 dark:border-[#3a342b]">No layer selected</div>
+          )}
+        </div>
+      )}
 
       <div className="flex items-center gap-3 shrink-0">
-        <div className="flex items-center bg-gray-100 dark:bg-[#26211b] rounded-full px-2 py-0.5">
-          <button onClick={handleZoomOut} className="p-1 text-muted-foreground hover:text-foreground">
-            <ZoomOut className="w-4 h-4" strokeWidth={1.5} />
-          </button>
-          <span className="text-sm font-medium w-[4ch] text-center">{zoom}%</span>
-          <button onClick={handleZoomIn} className="p-1 text-muted-foreground hover:text-foreground">
-            <ZoomIn className="w-4 h-4" strokeWidth={1.5} />
-          </button>
-        </div>
+        {!simpleMode && (
+          <div className="flex items-center bg-gray-100 dark:bg-[#26211b] rounded-full px-2 py-0.5">
+            <button onClick={handleZoomOut} className="p-1 text-muted-foreground hover:text-foreground">
+              <ZoomOut className="w-4 h-4" strokeWidth={1.5} />
+            </button>
+            <span className="text-sm font-medium w-[4ch] text-center">{zoom}%</span>
+            <button onClick={handleZoomIn} className="p-1 text-muted-foreground hover:text-foreground">
+              <ZoomIn className="w-4 h-4" strokeWidth={1.5} />
+            </button>
+          </div>
+        )}
 
         <ThemeToggle />
 
-        <button
-          onClick={onToggleGrid}
-          className={`flex items-center gap-2 text-sm font-medium px-2 py-1.5 rounded transition-colors ${
-            showGrid
-              ? 'text-foreground bg-gray-100 dark:bg-[#26211b]'
-              : 'text-foreground/85 hover:text-foreground hover:bg-gray-100 dark:hover:bg-[#26211b]'
-          }`}
-          title={showGrid ? 'Hide grid' : 'Show grid'}
-        >
-          <Grid className="w-4.5 h-4.5" strokeWidth={1.5} />
-          Grid
-        </button>
+        {!simpleMode && (
+          <button
+            onClick={onToggleGrid}
+            className={`flex items-center gap-2 text-sm font-medium px-2 py-1.5 rounded transition-colors ${
+              showGrid
+                ? 'text-foreground bg-gray-100 dark:bg-[#26211b]'
+                : 'text-foreground/85 hover:text-foreground hover:bg-gray-100 dark:hover:bg-[#26211b]'
+            }`}
+            title={showGrid ? 'Hide grid' : 'Show grid'}
+          >
+            <Grid className="w-4.5 h-4.5" strokeWidth={1.5} />
+            Grid
+          </button>
+        )}
+
+        {onOpenAdvancedView && (
+          <button
+            onClick={onOpenAdvancedView}
+            className="flex items-center gap-2 text-sm font-medium px-2 py-1.5 rounded transition-colors text-foreground/85 hover:text-foreground hover:bg-gray-100 dark:hover:bg-[#26211b]"
+            title="Open full editor"
+          >
+            Advanced View
+          </button>
+        )}
 
         <button
           onClick={() => setSharePanelOpen((open) => !open)}

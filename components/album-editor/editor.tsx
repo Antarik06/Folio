@@ -5,6 +5,7 @@ import { v4 as uuidv4 } from 'uuid'
 import Konva from 'konva'
 import { useRouter } from 'next/navigation'
 import { createClient as createBrowserClient } from '@/lib/supabase/client'
+import { MagazineTemplate } from '@/lib/magazine-templates'
 import { AlbumSpread, AlbumElement, AlbumPageSide, TextElement } from './types'
 import { Sidebar } from './sidebar'
 import { Topbar } from './topbar'
@@ -12,12 +13,17 @@ import { Workspace } from './workspace'
 import { Timeline } from './timeline'
 import { LayersPanel } from './layers-panel'
 
+type EditorMode = 'simple' | 'advanced'
+
 interface EditorProps {
   albumId: string
   initialSpreads?: AlbumSpread[]
   photos?: any[]
   layoutField?: 'layout_data' | 'theme_config'
   coverImageUrl?: string
+  initialLayoutData?: Record<string, any>
+  mode?: EditorMode
+  templates?: MagazineTemplate[]
 }
 
 interface EditorDocumentState {
@@ -258,6 +264,77 @@ function withSpreadSide(spread: AlbumSpread, side: SpreadSide, nextSide: AlbumPa
     front,
     back,
   }
+}
+
+function collectPhotoPool(currentSpreads: AlbumSpread[], photos: any[]) {
+  const pool = new Map<string, string>()
+
+  currentSpreads.forEach((spread) => {
+    const sides: AlbumPageSide[] = [
+      getSpreadSide(spread, 'front'),
+      getSpreadSide(spread, 'back'),
+    ]
+
+    sides.forEach((side) => {
+      side.elements.forEach((element) => {
+        if (element.type !== 'image') return
+        if (!element.src) return
+        if (!pool.has(element.src)) {
+          pool.set(element.src, element.src)
+        }
+      })
+    })
+  })
+
+  photos.forEach((photo) => {
+    const source = photo?.blob_url || photo?.thumbnail_url
+    if (!source) return
+    if (!pool.has(source)) {
+      pool.set(source, source)
+    }
+  })
+
+  return Array.from(pool.values())
+}
+
+function applyImagePoolToSpreads(spreads: AlbumSpread[], imagePool: string[]) {
+  if (!imagePool.length) return spreads
+
+  let cursor = 0
+  const nextSource = () => {
+    const value = imagePool[cursor % imagePool.length]
+    cursor += 1
+    return value
+  }
+
+  const swapImages = (elements: AlbumElement[]) =>
+    elements.map((element) => {
+      if (element.type !== 'image') return element
+      return {
+        ...element,
+        src: nextSource(),
+      }
+    })
+
+  return spreads.map((spread) => {
+    const front = getSpreadSide(spread, 'front')
+    const back = getSpreadSide(spread, 'back')
+    const frontElements = swapImages(front.elements)
+    const backElements = swapImages(back.elements)
+
+    return {
+      ...spread,
+      elements: frontElements,
+      front: {
+        ...front,
+        elements: frontElements,
+      },
+      back: {
+        ...back,
+        elements: backElements,
+      },
+    }
+  })
 }
 
 function getDraftKey(albumId: string) {
@@ -573,12 +650,19 @@ export function AlbumEditor({
   photos = [],
   layoutField = 'layout_data',
   coverImageUrl,
+  initialLayoutData,
+  mode = 'advanced',
+  templates = [],
 }: EditorProps) {
+  const isSimpleMode = mode === 'simple'
   const router = useRouter()
   const fallbackSpreads = useMemo(
     () => normalizeSpreads(initialSpreads?.length ? initialSpreads : [DEFAULT_COVER_SPREAD('spread-0', coverImageUrl), DEFAULT_SPREAD]),
     [initialSpreads, coverImageUrl]
   )
+
+  const startingTemplateId =
+    typeof initialLayoutData?.templateId === 'string' ? initialLayoutData.templateId : null
 
   const [documentState, setDocumentState] = useState<EditorDocumentState>({
     spreads: fallbackSpreads,
@@ -590,7 +674,15 @@ export function AlbumEditor({
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('saved')
   const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null)
   const [layoutSaveField, setLayoutSaveField] = useState<'layout_data' | 'theme_config'>(layoutField)
-  const [activePanel, setActivePanel] = useState<'design' | 'elements' | 'photos' | 'uploads' | 'text' | 'ai' | 'draw' | 'projects'>('photos')
+  const [layoutMeta, setLayoutMeta] = useState<Record<string, any>>(() => {
+    const safeLayout = (initialLayoutData && typeof initialLayoutData === 'object') ? initialLayoutData : {}
+    const { spreads: _spreads, activeSpreadId: _activeSpreadId, ...rest } = safeLayout
+    return rest
+  })
+  const [activeTemplateId, setActiveTemplateId] = useState<string | null>(startingTemplateId)
+  const [activePanel, setActivePanel] = useState<
+    'design' | 'elements' | 'photos' | 'uploads' | 'text' | 'ai' | 'draw' | 'projects' | 'templates'
+  >(isSimpleMode ? 'templates' : 'photos')
   
   // Drawing state
   const [isDrawingMode, setIsDrawingMode] = useState(false)
@@ -781,9 +873,13 @@ export function AlbumEditor({
     try {
       window.localStorage.setItem(getDraftKey(albumId), JSON.stringify(payload))
 
-      const draftDocument = {
+      const draftDocument: Record<string, any> = {
+        ...layoutMeta,
         spreads: documentState.spreads,
         activeSpreadId: documentState.activeSpreadId,
+      }
+      if (activeTemplateId) {
+        draftDocument.templateId = activeTemplateId
       }
 
       const firstTry = await supabase
@@ -811,7 +907,7 @@ export function AlbumEditor({
       setSaveStatus('error')
       return false
     }
-  }, [albumId, documentState, layoutSaveField, supabase])
+  }, [activeTemplateId, albumId, documentState, layoutMeta, layoutSaveField, supabase])
 
   const handleBackToSite = useCallback(() => {
     if (typeof window !== 'undefined' && window.history.length > 1) {
@@ -1357,6 +1453,31 @@ export function AlbumEditor({
     router.push(`/editor/${id}`)
   }, [router])
 
+  const handleApplyTemplate = useCallback(async (templateId: string) => {
+    const targetTemplate = templates.find((template) => template.id === templateId)
+    if (!targetTemplate || !targetTemplate.spreads.length) return false
+
+    const normalizedTemplate = normalizeSpreads(targetTemplate.spreads)
+    const imagePool = collectPhotoPool(documentState.spreads, photos)
+    const remappedSpreads = applyImagePoolToSpreads(normalizedTemplate, imagePool)
+
+    applyDocumentChange(
+      (doc) => ({
+        ...doc,
+        spreads: remappedSpreads,
+        activeSpreadId: remappedSpreads[0]?.id || null,
+        activeSide: 'front',
+      }),
+      { historyGroup: 'template-switch' }
+    )
+
+    setSelection([])
+    setActiveTemplateId(templateId)
+    setLayoutMeta((previous) => ({ ...previous, templateId, productType: 'magazine' }))
+    setActivePanel('photos')
+    return true
+  }, [applyDocumentChange, documentState.spreads, photos, templates])
+
   const setSpreadBackground = useCallback(
     (background: string, applyToAll: boolean = false) => {
       applyDocumentChange(
@@ -1406,6 +1527,14 @@ export function AlbumEditor({
     }
   }, [albumId, persistDraft, router])
 
+  const handleOpenAdvancedEditor = useCallback(() => {
+    void (async () => {
+      const saved = await persistDraft()
+      if (!saved) return
+      router.push(`/editor/${albumId}`)
+    })()
+  }, [albumId, persistDraft, router])
+
   if (!activeSpread) {
     return null
   }
@@ -1437,6 +1566,10 @@ export function AlbumEditor({
         // Projects
         currentAlbumId={albumId}
         onSwitchAlbum={handleSwitchAlbum}
+        simpleMode={isSimpleMode}
+        templates={templates}
+        activeTemplateId={activeTemplateId}
+        onApplyTemplate={handleApplyTemplate}
       />
 
       <div className="flex-1 flex flex-col h-full min-w-0 transition-all duration-300">
@@ -1465,6 +1598,8 @@ export function AlbumEditor({
           onDistribute={distributeSelection}
           showGrid={showGrid}
           onToggleGrid={toggleGrid}
+          onOpenAdvancedView={isSimpleMode ? handleOpenAdvancedEditor : undefined}
+          simpleMode={isSimpleMode}
         />
 
         <div className="flex-1 min-h-0 flex bg-[#E5E5E5] dark:bg-[#171411] transition-colors">
@@ -1484,16 +1619,18 @@ export function AlbumEditor({
             />
           </div>
 
-          <LayersPanel
-            elements={activeSpreadSide.elements}
-            selection={selection}
-            onSelect={setSelectionSafe}
-            onRename={handleRenameLayer}
-            onToggleLock={handleToggleLock}
-            onToggleHidden={handleToggleHidden}
-            onMoveUp={(id) => moveLayer(id, 'up')}
-            onMoveDown={(id) => moveLayer(id, 'down')}
-          />
+          {!isSimpleMode && (
+            <LayersPanel
+              elements={activeSpreadSide.elements}
+              selection={selection}
+              onSelect={setSelectionSafe}
+              onRename={handleRenameLayer}
+              onToggleLock={handleToggleLock}
+              onToggleHidden={handleToggleHidden}
+              onMoveUp={(id) => moveLayer(id, 'up')}
+              onMoveDown={(id) => moveLayer(id, 'down')}
+            />
+          )}
         </div>
 
         <Timeline

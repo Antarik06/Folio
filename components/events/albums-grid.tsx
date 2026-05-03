@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Edit3, Image as ImageIcon, PencilLine, Printer, Trash2 } from 'lucide-react'
 import { deleteAlbum, renameAlbum, updateAlbumCoverPhoto } from '@/lib/actions/events'
+import { inferAlbumProductType, productTypeLabel } from '@/lib/product-type'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -31,6 +32,8 @@ type Album = {
   status?: 'draft' | 'ready' | 'ordered'
   is_published?: boolean | null
   cover_photo_id: string | null
+  layout_data?: Record<string, unknown> | null
+  theme_config?: Record<string, unknown> | null
   updated_at: string
 }
 
@@ -208,6 +211,8 @@ export function AlbumsGrid({ albums, photos }: AlbumsGridProps) {
         const coverUrl = coverPhoto?.thumbnail_url || coverPhoto?.blob_url || null
 
         const status = getAlbumStatus(album)
+        const productType = inferAlbumProductType(album.layout_data ?? album.theme_config ?? {})
+        const productLabel = productTypeLabel(productType)
 
         return (
           <article
@@ -234,17 +239,22 @@ export function AlbumsGrid({ albums, photos }: AlbumsGridProps) {
                 <h3 className="font-serif text-xl text-foreground mb-2">{album.title}</h3>
                 <p className="text-sm text-muted-foreground mb-2">{album.subtitle || 'No subtitle'}</p>
                 <p className="text-xs text-muted-foreground mb-4">{formatLastModified(album.updated_at)}</p>
-                <span
-                  className={`text-xs uppercase tracking-wider px-2 py-1 ${
-                    status === 'ready'
-                      ? 'bg-secondary/20 text-secondary'
-                      : status === 'ordered'
-                      ? 'bg-primary/20 text-primary'
-                      : 'bg-border text-muted-foreground'
-                  }`}
-                >
-                  {status}
-                </span>
+                <div className="flex items-center gap-2">
+                  <span
+                    className={`text-xs uppercase tracking-wider px-2 py-1 ${
+                      status === 'ready'
+                        ? 'bg-secondary/20 text-secondary'
+                        : status === 'ordered'
+                        ? 'bg-primary/20 text-primary'
+                        : 'bg-border text-muted-foreground'
+                    }`}
+                  >
+                    {status}
+                  </span>
+                  <span className="text-xs uppercase tracking-wider px-2 py-1 bg-muted text-foreground">
+                    {productLabel}
+                  </span>
+                </div>
               </div>
             </Link>
 
