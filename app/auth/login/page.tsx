@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, Suspense } from 'react'
+import { useState, Suspense, useEffect } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { signIn, signInWithGoogle } from '@/lib/actions/auth'
@@ -20,8 +20,17 @@ function LoginPageContent() {
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [googleLoading, setGoogleLoading] = useState(false)
+  const [mounted, setMounted] = useState(false)
   const searchParams = useSearchParams()
+  
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
   const next = searchParams.get('next') ?? '/dashboard'
+  const signUpHref = mounted && next !== '/dashboard' 
+    ? `/auth/sign-up?next=${encodeURIComponent(next)}` 
+    : '/auth/sign-up'
 
   async function handleSubmit(formData: FormData) {
     setLoading(true)
@@ -130,7 +139,7 @@ function LoginPageContent() {
           <p className="mt-8 text-center text-muted-foreground text-sm">
             Don&apos;t have an account?{' '}
             <Link
-              href={`/auth/sign-up${next !== '/dashboard' ? `?next=${encodeURIComponent(next)}` : ''}`}
+              href={signUpHref}
               className="text-primary hover:text-primary/80 transition-colors"
             >
               Create one

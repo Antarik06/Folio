@@ -3,10 +3,20 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { QrCode } from 'lucide-react'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
+import { Scanner } from '@yudiel/react-qr-scanner'
 
 export default function JoinPage() {
   const [code, setCode] = useState('')
   const [error, setError] = useState<string | null>(null)
+  const [isScannerOpen, setIsScannerOpen] = useState(false)
   const router = useRouter()
 
   function handleSubmit(e: React.FormEvent) {
@@ -60,12 +70,58 @@ export default function JoinPage() {
             />
           </div>
 
-          <button
-            type="submit"
-            className="w-full bg-primary text-primary-foreground py-4 text-sm font-sans uppercase tracking-[0.2em] hover:bg-primary/90 transition-colors"
-          >
-            Join Event →
-          </button>
+          <div className="flex gap-4">
+            <button
+              type="submit"
+              className="flex-1 bg-primary text-primary-foreground py-4 text-sm font-sans uppercase tracking-[0.2em] hover:bg-primary/90 transition-colors"
+            >
+              Join Event →
+            </button>
+            
+            <Dialog open={isScannerOpen} onOpenChange={setIsScannerOpen}>
+              <DialogTrigger asChild>
+                <button
+                  type="button"
+                  className="flex-none bg-card border border-border text-foreground px-6 py-4 hover:border-primary/50 hover:bg-primary/5 transition-colors group"
+                  title="Scan QR Code"
+                >
+                  <QrCode className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors" />
+                </button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-md p-6">
+                <DialogHeader>
+                  <DialogTitle className="font-serif text-2xl mb-4">Scan QR Code</DialogTitle>
+                </DialogHeader>
+                <div className="bg-black/5 rounded-xl overflow-hidden aspect-square relative">
+                  <Scanner 
+                    onScan={(result) => {
+                      if (result && result.length > 0) {
+                        const url = result[0].rawValue;
+                        setIsScannerOpen(false);
+                        try {
+                          const parsedUrl = new URL(url);
+                          const pathParts = parsedUrl.pathname.split('/');
+                          const extractedCode = pathParts[pathParts.length - 1];
+                          if (extractedCode) {
+                            setCode(extractedCode);
+                            router.push(`/join/${extractedCode}`);
+                          } else {
+                            setError('Invalid QR code format.');
+                          }
+                        } catch(e) {
+                          setCode(url);
+                          router.push(`/join/${url}`);
+                        }
+                      }
+                    }} 
+                  />
+                </div>
+                <p className="text-sm text-center text-muted-foreground mt-4">
+                  Point your camera at the event's QR code.
+                </p>
+              </DialogContent>
+            </Dialog>
+          </div>
         </form>
 
         <p className="mt-8 text-center text-sm text-muted-foreground">

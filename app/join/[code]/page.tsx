@@ -153,22 +153,24 @@ export default async function JoinCodePage({ params }: Props) {
       {/* Right: Join Action */}
       <div className="w-full lg:w-1/2 flex flex-col justify-center px-8 md:px-16 lg:px-24">
         <div className="max-w-md w-full mx-auto">
-          <Link href="/" className="inline-block mb-12">
-            <span className="font-serif text-2xl tracking-tight text-foreground">Folio</span>
-          </Link>
+          <div className="flex items-center gap-5 mb-16">
+            <Link href="/" className="inline-block">
+              <span className="font-serif text-3xl tracking-tight text-foreground">Folio</span>
+            </Link>
 
-          {/* Mobile: Event title */}
-          <div className="lg:hidden mb-6">
-            <h2 className="font-serif text-2xl text-foreground">{event.title}</h2>
-            {eventDate && <p className="text-sm text-muted-foreground mt-1">{eventDate}</p>}
+            {/* Invite code badge */}
+            <div className={`inline-flex items-center gap-2 px-3 py-1.5 border rounded-full shadow-sm ${isCollaboratorFlow ? 'bg-secondary/10 border-secondary/20' : 'bg-primary/10 border-primary/20'}`}>
+              <span className={`w-1.5 h-1.5 rounded-full ${isCollaboratorFlow ? 'bg-secondary animate-pulse' : 'bg-primary animate-pulse'}`} />
+              <span className={`text-[10px] font-mono uppercase tracking-[0.2em] font-medium ${isCollaboratorFlow ? 'text-secondary' : 'text-primary'}`}>
+                CODE: {code.toUpperCase()}
+              </span>
+            </div>
           </div>
 
-          {/* Invite code badge */}
-          <div className={`inline-flex items-center gap-2 px-3 py-1.5 border mb-8 ${isCollaboratorFlow ? 'bg-secondary/10 border-secondary/20' : 'bg-primary/5 border-primary/20'}`}>
-            <span className={`w-1.5 h-1.5 rounded-full ${isCollaboratorFlow ? 'bg-secondary' : 'bg-primary'}`} />
-            <span className={`text-xs font-mono uppercase tracking-widest ${isCollaboratorFlow ? 'text-secondary' : 'text-primary'}`}>
-              CODE: {code.toUpperCase()}
-            </span>
+          {/* Mobile: Event title */}
+          <div className="lg:hidden mb-8">
+            <h2 className="font-serif text-2xl text-foreground">{event.title}</h2>
+            {eventDate && <p className="text-sm text-muted-foreground mt-1">{eventDate}</p>}
           </div>
 
           {/* Host view */}
@@ -238,28 +240,30 @@ export default async function JoinCodePage({ params }: Props) {
 
           {/* Not logged in */}
           {!user && (
-            <>
-              <h1 className="font-serif text-4xl text-foreground mb-4">
-                {isCollaboratorFlow ? 'Join as Collaborator' : 'You\'re invited'}
+            <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 ease-out">
+              <h1 className="font-serif text-5xl text-foreground mb-6 leading-tight">
+                {isCollaboratorFlow ? 'Join as Collaborator' : 'You\'re invited.'}
               </h1>
-              <p className="text-muted-foreground mb-8">
+              <p className="text-muted-foreground text-lg mb-10 leading-relaxed font-light max-w-sm">
                 {isCollaboratorFlow 
                   ? 'Sign in or create an account to help manage this event.' 
                   : 'Sign in or create a free account to join this event and access your personalized photo album.'}
               </p>
-              <Link
-                href={`/auth/login?next=/join/${code}`}
-                className="w-full block text-center bg-primary text-primary-foreground py-4 text-sm uppercase tracking-[0.2em] hover:bg-primary/90 transition-colors mb-4"
-              >
-                Sign In to Join
-              </Link>
-              <Link
-                href={`/auth/sign-up?next=/join/${code}`}
-                className="w-full block text-center border border-border text-foreground py-4 text-sm uppercase tracking-[0.2em] hover:bg-card transition-colors"
-              >
-                Create Free Account
-              </Link>
-            </>
+              <div className="space-y-4">
+                <Link
+                  href={`/auth/login?next=/join/${code}`}
+                  className="w-full flex items-center justify-center bg-primary text-primary-foreground py-4 text-sm font-medium uppercase tracking-[0.2em] hover:bg-primary/90 hover:shadow-lg hover:-translate-y-0.5 hover:shadow-primary/20 transition-all duration-300"
+                >
+                  Sign In to Join
+                </Link>
+                <Link
+                  href={`/auth/sign-up?next=/join/${code}`}
+                  className="w-full flex items-center justify-center border border-border text-foreground py-4 text-sm font-medium uppercase tracking-[0.2em] hover:bg-secondary/5 hover:border-secondary/30 hover:-translate-y-0.5 transition-all duration-300"
+                >
+                  Create Free Account
+                </Link>
+              </div>
+            </div>
           )}
 
           {/* Logged in but not yet joined */}

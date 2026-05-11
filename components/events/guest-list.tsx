@@ -2,6 +2,15 @@
 
 import { useState, useTransition } from 'react'
 import { removeGuest, generateCollaboratorCode } from '@/lib/actions/events'
+import QRCode from "react-qr-code"
+import { Printer } from "lucide-react"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
 
 interface GuestWithEnrollment {
   id: string
@@ -278,13 +287,172 @@ export function GuestList({
                   )}
                 </div>
 
-                <button
-                  onClick={copyCode}
-                  disabled={!inviteCode}
-                  className="w-full py-3 bg-primary-foreground text-primary text-xs font-bold hover:bg-primary-foreground/90 transition-colors uppercase tracking-[0.15em]"
-                >
-                  {codeCopied ? 'Copied' : 'Copy Code'}
-                </button>
+                <div className="flex flex-row gap-3">
+                  <button
+                    onClick={copyCode}
+                    disabled={!inviteCode}
+                    className="w-full py-3 bg-primary-foreground text-primary text-xs font-bold hover:bg-primary-foreground/90 transition-colors uppercase tracking-[0.15em]"
+                  >
+                    {codeCopied ? 'Copied' : 'Copy Code'}
+                  </button>
+                  {inviteCode && inviteLink && (
+                    <Dialog>
+                      <DialogTrigger asChild>
+                        <button className="w-full py-3 bg-transparent border border-primary-foreground/30 text-primary-foreground text-xs font-bold hover:bg-primary-foreground/10 transition-colors uppercase tracking-[0.15em] flex items-center justify-center gap-2" title="Print QR Code">
+                          <Printer className="w-4 h-4" />
+                          Print QR Poster
+                        </button>
+                      </DialogTrigger>
+                      <DialogContent className="sm:max-w-md flex flex-col items-center p-0 overflow-hidden border-0">
+                        <div className="w-full bg-primary p-8 text-primary-foreground text-center">
+                          <DialogTitle className="font-serif text-3xl mb-2">Event QR Code</DialogTitle>
+                          <p className="text-primary-foreground/80 text-sm">Download or print this poster for your guests.</p>
+                        </div>
+                        <div className="p-8 flex flex-col items-center bg-background w-full">
+                          <div className="bg-white p-6 rounded-2xl shadow-xl border border-border/50 mb-8 transform transition-transform hover:scale-105 duration-300">
+                            <QRCode
+                              id="qr-code-svg"
+                              value={inviteLink}
+                              size={220}
+                              level="H"
+                            />
+                          </div>
+                          <button
+                            onClick={() => {
+                              const printWindow = window.open('', '', 'width=800,height=800');
+                              if (!printWindow) return;
+                              const qrSvg = document.getElementById('qr-code-svg');
+                              if (!qrSvg) return;
+                              
+                              const svgData = new XMLSerializer().serializeToString(qrSvg);
+                              const eventName = settings?.name || 'Our Event';
+                              
+                              printWindow.document.write(`
+                                <html>
+                                  <head>
+                                    <title>Print QR Code - ${eventName}</title>
+                                    <style>
+                                      @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=Inter:wght@400;500;600&display=swap');
+                                      body { 
+                                        display: flex; 
+                                        justify-content: center; 
+                                        align-items: center; 
+                                        height: 100vh; 
+                                        margin: 0; 
+                                        font-family: 'Inter', sans-serif; 
+                                        background: #f9f9f9; 
+                                        color: #111;
+                                      }
+                                      .poster { 
+                                        text-align: center; 
+                                        padding: 60px 40px; 
+                                        background: white; 
+                                        border: 1px solid #eaeaea; 
+                                        border-radius: 24px; 
+                                        box-shadow: 0 20px 40px rgba(0,0,0,0.08); 
+                                        width: 100%;
+                                        max-width: 500px;
+                                      }
+                                      .eyebrow {
+                                        font-size: 12px;
+                                        text-transform: uppercase;
+                                        letter-spacing: 0.3em;
+                                        color: #666;
+                                        margin-bottom: 16px;
+                                        font-weight: 600;
+                                      }
+                                      .title { 
+                                        font-family: 'Playfair Display', serif;
+                                        font-size: 42px; 
+                                        margin-bottom: 12px; 
+                                        font-weight: 600; 
+                                        line-height: 1.1;
+                                      }
+                                      .subtitle { 
+                                        font-size: 16px; 
+                                        margin-bottom: 48px; 
+                                        color: #555; 
+                                        max-width: 80%;
+                                        margin-left: auto;
+                                        margin-right: auto;
+                                        line-height: 1.5;
+                                      }
+                                      .qr-wrapper { 
+                                        display: inline-block; 
+                                        padding: 24px; 
+                                        background: white; 
+                                        border-radius: 20px; 
+                                        box-shadow: 0 8px 30px rgba(0,0,0,0.06); 
+                                        margin-bottom: 48px;
+                                        border: 1px solid #f0f0f0;
+                                      }
+                                      svg { width: 280px; height: 280px; }
+                                      .code-display {
+                                        font-family: monospace;
+                                        font-size: 24px;
+                                        letter-spacing: 0.4em;
+                                        padding: 16px 32px;
+                                        background: #f5f5f5;
+                                        border-radius: 12px;
+                                        display: inline-block;
+                                        margin-bottom: 32px;
+                                      }
+                                      .footer { 
+                                        font-size: 12px; 
+                                        color: #999; 
+                                        text-transform: uppercase;
+                                        letter-spacing: 0.1em;
+                                      }
+                                      @media print {
+                                        body { background: white; }
+                                        .poster { 
+                                          border: none; 
+                                          box-shadow: none; 
+                                          max-width: none;
+                                          padding: 0;
+                                        }
+                                        .qr-wrapper { 
+                                          box-shadow: none; 
+                                          border: 2px solid #000;
+                                        }
+                                      }
+                                    </style>
+                                  </head>
+                                  <body>
+                                    <div class="poster">
+                                      <div class="eyebrow">Welcome to</div>
+                                      <div class="title">${eventName}</div>
+                                      <div class="subtitle">Open your camera and scan the QR code to join our shared gallery.</div>
+                                      
+                                      <div class="qr-wrapper">
+                                        ${svgData}
+                                      </div>
+                                      
+                                      <div class="code-display">${inviteCode}</div>
+                                      
+                                      <div class="footer">Powered by Folio</div>
+                                    </div>
+                                    <script>
+                                      setTimeout(() => {
+                                        window.print();
+                                        window.close();
+                                      }, 800);
+                                    </script>
+                                  </body>
+                                </html>
+                              `);
+                              printWindow.document.close();
+                            }}
+                            className="w-full py-4 bg-primary text-primary-foreground text-sm font-bold hover:bg-primary/90 transition-colors flex items-center justify-center gap-2 rounded-xl uppercase tracking-wider shadow-lg shadow-primary/20"
+                          >
+                            <Printer className="w-5 h-5" />
+                            Print High-Res Poster
+                          </button>
+                        </div>
+                      </DialogContent>
+                    </Dialog>
+                  )}
+                </div>
               </div>
             </div>
           </div>

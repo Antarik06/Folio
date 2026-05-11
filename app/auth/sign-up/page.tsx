@@ -1,7 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import Link from 'next/link'
+import { useSearchParams } from 'next/navigation'
 import { signUp, signInWithGoogle } from '@/lib/actions/auth'
 
 function GoogleIcon() {
@@ -15,11 +16,23 @@ function GoogleIcon() {
   )
 }
 
-export default function SignUpPage() {
+function SignUpPageContent() {
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
   const [loading, setLoading] = useState(false)
   const [googleLoading, setGoogleLoading] = useState(false)
+  const [mounted, setMounted] = useState(false)
+  
+  const searchParams = useSearchParams()
+  
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  const next = searchParams.get('next') ?? '/dashboard'
+  const loginHref = mounted && next !== '/dashboard' 
+    ? `/auth/login?next=${encodeURIComponent(next)}` 
+    : '/auth/login'
 
   async function handleSubmit(formData: FormData) {
     setLoading(true)
@@ -39,7 +52,7 @@ export default function SignUpPage() {
   async function handleGoogleSignIn() {
     setGoogleLoading(true)
     setError(null)
-    const result = await signInWithGoogle()
+    const result = await signInWithGoogle(next)
     if (result?.error) {
       setError(result.error)
       setGoogleLoading(false)
@@ -60,7 +73,7 @@ export default function SignUpPage() {
             We&apos;ve sent you a confirmation link. Click it to activate your account and start creating.
           </p>
           <Link 
-            href="/auth/login"
+            href={loginHref}
             className="inline-block bg-primary text-primary-foreground px-8 py-4 text-sm font-sans uppercase tracking-[0.2em] hover:bg-primary/90 transition-colors"
           >
             Back to login
@@ -209,12 +222,24 @@ export default function SignUpPage() {
           
           <p className="mt-8 text-center text-muted-foreground text-sm">
             Already have an account?{' '}
-            <Link href="/auth/login" className="text-primary hover:text-primary/80 transition-colors">
+            <Link href={loginHref} className="text-primary hover:text-primary/80 transition-colors">
               Sign in
             </Link>
           </p>
         </div>
       </div>
     </main>
+  )
+}
+
+export default function SignUpPage() {
+  return (
+    <Suspense fallback={
+      <main className="min-h-screen bg-background flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-primary/20 border-t-primary rounded-full animate-spin" />
+      </main>
+    }>
+      <SignUpPageContent />
+    </Suspense>
   )
 }
