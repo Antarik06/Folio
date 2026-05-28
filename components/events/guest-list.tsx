@@ -52,11 +52,11 @@ export function GuestList({
   const [isPending, startTransition] = useTransition()
   const [actionError, setActionError] = useState<string | null>(null)
 
-  const siteUrl =
-    typeof window !== 'undefined'
-      ? window.location.origin
-      : (process as any).env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
-
+const envSiteUrl = process.env.NEXT_PUBLIC_SITE_URL
+const siteUrl =
+  envSiteUrl && envSiteUrl.length > 0
+    ? envSiteUrl
+    : window.location.origin
   const inviteLink = inviteCode ? `${siteUrl}/join/${inviteCode}` : ''
   const colInviteLink = collaboratorCode ? `${siteUrl}/join/${collaboratorCode}` : ''
 
