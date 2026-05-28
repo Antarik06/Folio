@@ -1,0 +1,105 @@
+'use server'
+
+import { createClient } from '@/lib/supabase/server'
+import { redirect } from 'next/navigation'
+import { revalidatePath } from 'next/cache'
+import { headers } from 'next/headers'
+
+export async function signUp(formData: FormData) {
+  const supabase = await createClient()
+  
+  const email = formData.get('email') as string
+  const password = formData.get('password') as string
+  const fullName = formData.get('fullName') as string
+
+  const { error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: {
+      emailRedirectTo: process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL ?? 
+        `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/auth/callback`,
+      data: {
+        full_name: fullName,
+      },
+    },
+  })
+
+  if (error) {
+    return { error: error.message }
+  }
+
+  return { success: true, message: 'Check your email to confirm your account' }
+}
+
+export async function signIn(formData: FormData, redirectTo?: string) {
+  const supabase = await createClient()
+  
+  const email = formData.get('email') as string
+  const password = formData.get('password') as string
+
+  const { error } = await supabase.auth.signInWithPassword({
+    email,
+    password,
+  })
+
+  if (error) {
+    return { error: error.message }
+  }
+
+  revalidatePath('/', 'layout')
+  const safePath = redirectTo?.startsWith('/') ? redirectTo : '/dashboard'
+  redirect(safePath)
+}
+
+export async function signOut() {
+  const supabase = await createClient()
+  await supabase.auth.signOut()
+  revalidatePath('/', 'layout')
+  redirect('/')
+}
+
+export async function getUser() {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  return user
+}
+
+import { serverFetch } from '@/lib/api-client'
+
+export async function getProfile() {
+  const supabase = await createClient()
+  const { data: { session } } = await supabase.auth.getSession()
+  const token = session?.access_token || null
+  if (!token) return null
+
+  try {
+    return await serverFetch('/api/profile', token)
+  } catch (error) {
+    console.error('Error in getProfile action:', error)
+    return null
+  }
+}
+
+export async function signInWithGoogle(next?: string) {
+  const supabase = await createClient()
+  const headersList = await headers()
+  const origin = headersList.get('origin') || process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
+
+  const safePath = next?.startsWith('/') ? next : '/dashboard'
+  const callbackUrl = `${origin}/auth/callback?next=${encodeURIComponent(safePath)}`
+
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: 'google',
+    options: {
+      redirectTo: callbackUrl,
+    },
+  })
+
+  if (error) {
+    return { error: error.message }
+  }
+
+  if (data.url) {
+    redirect(data.url)
+  }
+}
