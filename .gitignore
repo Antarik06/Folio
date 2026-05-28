@@ -14,7 +14,7 @@ build/
 text.txt
 *.tsbuildinfo
 .kiro
-graphify-out/
+graphify-out/cache
 .agents/
 .github/
 public/textures
