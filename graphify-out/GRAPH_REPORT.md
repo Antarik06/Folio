@@ -1,4 +1,4 @@
-# Graph Report - Folio  (2026-05-11)
+# Graph Report - Folio  (2026-05-28)
 
 ## Corpus Check
 - 196 files · ~797,275 words
