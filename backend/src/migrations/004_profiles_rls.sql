@@ -5,6 +5,7 @@
 
 -- Drop existing restricted select policy if it exists
 DROP POLICY IF EXISTS "profiles_select_own" ON public.profiles;
+DROP POLICY IF EXISTS "profiles_public_read" ON public.profiles;
 
 -- Create an open read policy for anyone who is logged into the application
 CREATE POLICY "profiles_public_read" ON public.profiles

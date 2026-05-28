@@ -210,55 +210,73 @@ RETURNS BOOLEAN AS $$
 $$ LANGUAGE sql SECURITY DEFINER;
 
 -- Profiles policies
+DROP POLICY IF EXISTS "profiles_select_own" ON public.profiles;
 CREATE POLICY "profiles_select_own" ON public.profiles FOR SELECT USING (auth.uid() = id);
+DROP POLICY IF EXISTS "profiles_insert_own" ON public.profiles;
 CREATE POLICY "profiles_insert_own" ON public.profiles FOR INSERT WITH CHECK (auth.uid() = id);
+DROP POLICY IF EXISTS "profiles_update_own" ON public.profiles;
 CREATE POLICY "profiles_update_own" ON public.profiles FOR UPDATE USING (auth.uid() = id);
 
 -- Events policies
+DROP POLICY IF EXISTS "events_host_all" ON public.events;
 CREATE POLICY "events_host_all" ON public.events FOR ALL USING (auth.uid() = host_id);
+DROP POLICY IF EXISTS "events_guest_select" ON public.events;
 CREATE POLICY "events_guest_select" ON public.events FOR SELECT USING (
   public.is_event_guest(id)
 );
 
 -- Event guests policies
+DROP POLICY IF EXISTS "event_guests_host_all" ON public.event_guests;
 CREATE POLICY "event_guests_host_all" ON public.event_guests FOR ALL USING (
   public.is_event_host(event_id)
 );
+DROP POLICY IF EXISTS "event_guests_self_select" ON public.event_guests;
 CREATE POLICY "event_guests_self_select" ON public.event_guests FOR SELECT USING (auth.uid() = user_id);
+DROP POLICY IF EXISTS "event_guests_self_insert" ON public.event_guests;
 CREATE POLICY "event_guests_self_insert" ON public.event_guests FOR INSERT WITH CHECK (auth.uid() = user_id);
 
 -- Photos policies
+DROP POLICY IF EXISTS "photos_host_all" ON public.photos;
 CREATE POLICY "photos_host_all" ON public.photos FOR ALL USING (
   public.is_event_host(event_id)
 );
+DROP POLICY IF EXISTS "photos_uploader_all" ON public.photos;
 CREATE POLICY "photos_uploader_all" ON public.photos FOR ALL USING (auth.uid() = uploader_id);
+DROP POLICY IF EXISTS "photos_guest_select" ON public.photos;
 CREATE POLICY "photos_guest_select" ON public.photos FOR SELECT USING (
   is_shared = TRUE AND public.is_event_guest(event_id)
 );
 
 -- Templates policies (public read for authenticated users)
+DROP POLICY IF EXISTS "templates_public_read" ON public.templates;
 CREATE POLICY "templates_public_read" ON public.templates FOR SELECT TO authenticated USING (TRUE);
 
 -- Albums policies
+DROP POLICY IF EXISTS "albums_owner_all" ON public.albums;
 CREATE POLICY "albums_owner_all" ON public.albums FOR ALL USING (auth.uid() = owner_id);
+DROP POLICY IF EXISTS "albums_host_select" ON public.albums;
 CREATE POLICY "albums_host_select" ON public.albums FOR SELECT USING (
   public.is_event_host(event_id)
 );
 
 -- Album pages policies
+DROP POLICY IF EXISTS "album_pages_owner_all" ON public.album_pages;
 CREATE POLICY "album_pages_owner_all" ON public.album_pages FOR ALL USING (
   EXISTS (SELECT 1 FROM public.albums WHERE albums.id = album_pages.album_id AND albums.owner_id = auth.uid())
 );
 
 -- Album photos policies
+DROP POLICY IF EXISTS "album_photos_owner_all" ON public.album_photos;
 CREATE POLICY "album_photos_owner_all" ON public.album_photos FOR ALL USING (
   EXISTS (SELECT 1 FROM public.albums WHERE albums.id = album_photos.album_id AND albums.owner_id = auth.uid())
 );
 
 -- Orders policies
+DROP POLICY IF EXISTS "orders_owner_all" ON public.orders;
 CREATE POLICY "orders_owner_all" ON public.orders FOR ALL USING (auth.uid() = user_id);
 
 -- Notifications policies
+DROP POLICY IF EXISTS "notifications_owner_all" ON public.notifications;
 CREATE POLICY "notifications_owner_all" ON public.notifications FOR ALL USING (auth.uid() = user_id);
 
 -- ============================================

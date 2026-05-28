@@ -17,7 +17,8 @@ async function runMigrations() {
     '005_photo_approval.sql',
     '006_guest_photo_deletion.sql',
     '007_folders_and_tagging.sql',
-    '008_delivery_instructions.sql'
+    '008_delivery_instructions.sql',
+    '009_album_status.sql'
   ]
 
   try {
