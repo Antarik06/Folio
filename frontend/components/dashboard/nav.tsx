@@ -95,6 +95,14 @@ export function DashboardNav({ user, profile }: DashboardNavProps) {
               <DropdownMenuItem asChild>
                 <Link href="/join">Join Event</Link>
               </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/dashboard/orders">My Orders</Link>
+              </DropdownMenuItem>
+              {user.email === 'admin@folio.com' && (
+                <DropdownMenuItem asChild>
+                  <Link href="/dashboard/admin" className="text-primary font-semibold">Super Admin</Link>
+                </DropdownMenuItem>
+              )}
               <DropdownMenuSeparator />
               <DropdownMenuItem asChild>
                 <form action={signOut}>

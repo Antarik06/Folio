@@ -12,7 +12,7 @@ import { ShippingForm } from './shipping-form'
 import { OrderReview } from './order-review'
 import { OrderConfirmation } from './order-confirmation'
 import { OrderHistory } from './order-history'
-import { createOrder } from '@/lib/actions/orders'
+import { createOrder, verifyPayment } from '@/lib/actions/orders'
 import {
   MAX_PAGES,
   getShippingAddressErrors,
@@ -29,6 +29,25 @@ interface OrderPageClientProps {
   pages: FlipbookPageData[]
   existingOrder: Order | null
 }
+
+const loadScript = (src: string): Promise<boolean> => {
+  return new Promise((resolve) => {
+    if (typeof window === 'undefined') {
+      resolve(false)
+      return
+    }
+    if ((window as any).Razorpay) {
+      resolve(true)
+      return
+    }
+    const script = document.createElement('script')
+    script.src = src
+    script.onload = () => resolve(true)
+    script.onerror = () => resolve(false)
+    document.body.appendChild(script)
+  })
+}
+
 
 interface OrderConfig {
   productType: 'softcover' | 'hardcover'
@@ -152,15 +171,93 @@ export function OrderPageClient({
 
       if (result.error) {
         setServerError(result.error)
+        setIsSubmitting(false)
         return
       }
 
-      setPlacedOrder(result.order ?? null)
-      setIsConfirmed(true)
-      window.scrollTo({ top: 0, behavior: 'smooth' })
-    } catch {
-      setServerError('Something went wrong. Please try again.')
-    } finally {
+      const orderData = result.order
+      const keyId = orderData.razorpayKeyId || 'rzp_test_mock'
+
+      // Check if we are using the mock mode
+      if (keyId === 'rzp_test_mock' || orderData.razorpay_order_id.startsWith('order_mock_')) {
+        // Automatically verify mock payment in dev
+        const verifyRes = await verifyPayment({
+          orderId: orderData.id,
+          razorpayOrderId: orderData.razorpay_order_id,
+          razorpayPaymentId: 'pay_mock_' + Math.random().toString(36).substring(7),
+          razorpaySignature: 'mock_signature'
+        })
+
+        if (verifyRes.error) {
+          setServerError(verifyRes.error)
+          setIsSubmitting(false)
+          return
+        }
+
+        setPlacedOrder(verifyRes.order ?? null)
+        setIsConfirmed(true)
+        window.scrollTo({ top: 0, behavior: 'smooth' })
+        setIsSubmitting(false)
+        return
+      }
+
+      // Real Razorpay Integration
+      const scriptLoaded = await loadScript('https://checkout.razorpay.com/v1/checkout.js')
+      if (!scriptLoaded) {
+        setServerError('Failed to load Razorpay SDK. Please check your internet connection.')
+        setIsSubmitting(false)
+        return
+      }
+
+      const options = {
+        key: keyId,
+        amount: orderData.total_price,
+        currency: (orderData.currency || 'INR').toUpperCase(),
+        name: 'Folio Print Room',
+        description: `Album Print Order - ${albumTitle}`,
+        order_id: orderData.razorpay_order_id,
+        handler: async function (response: any) {
+          setIsSubmitting(true)
+          try {
+            const verifyRes = await verifyPayment({
+              orderId: orderData.id,
+              razorpayOrderId: response.razorpay_order_id,
+              razorpayPaymentId: response.razorpay_payment_id,
+              razorpaySignature: response.razorpay_signature,
+            })
+
+            if (verifyRes.error) {
+              setServerError(verifyRes.error)
+              setIsSubmitting(false)
+              return
+            }
+
+            setPlacedOrder(verifyRes.order ?? null)
+            setIsConfirmed(true)
+            window.scrollTo({ top: 0, behavior: 'smooth' })
+          } catch (err: any) {
+            setServerError(err.message || 'Payment verification failed.')
+          } finally {
+            setIsSubmitting(false)
+          }
+        },
+        prefill: {
+          name: shippingAddress.fullName,
+        },
+        theme: {
+          color: '#B85C38', // terracotta matching theme primary
+        },
+        modal: {
+          ondismiss: function () {
+            setIsSubmitting(false)
+          }
+        }
+      }
+
+      const rzp = new (window as any).Razorpay(options)
+      rzp.open()
+    } catch (err: any) {
+      setServerError(err.message || 'Something went wrong. Please try again.')
       setIsSubmitting(false)
     }
   }

@@ -5,6 +5,7 @@ import albumRoutes from './albumRoutes'
 import orderRoutes from './orderRoutes'
 import aiRoutes from './aiRoutes'
 import profileRoutes from './profileRoutes'
+import adminRoutes from './adminRoutes'
 
 const router = Router()
 
@@ -13,6 +14,7 @@ router.use('/photos', photoRoutes)
 router.use('/albums', albumRoutes)
 router.use('/orders', orderRoutes)
 router.use('/profile', profileRoutes)
+router.use('/admin', adminRoutes)
 
 // Map AI sub routes
 router.use('/ai', aiRoutes)
