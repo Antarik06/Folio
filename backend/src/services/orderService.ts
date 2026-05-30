@@ -16,7 +16,7 @@ export const orderService = {
   }, userId: string): Promise<any> {
     // 1. Verify album ownership
     const albumRes = await query(
-      'SELECT id, owner_id, status, theme_config, layout_data FROM public.albums WHERE id = $1',
+      'SELECT id, owner_id, status, layout_data FROM public.albums WHERE id = $1',
       [input.albumId]
     )
     const album = albumRes.rows[0]
@@ -196,9 +196,10 @@ export const orderService = {
    */
   async getUserOrders(userId: string): Promise<any[]> {
     const ordersRes = await query(
-      `SELECT o.*, a.title as album_title, a.cover_image_url
+      `SELECT o.*, a.title as album_title, ph.blob_url as cover_image_url
        FROM public.orders o
        LEFT JOIN public.albums a ON o.album_id = a.id
+       LEFT JOIN public.photos ph ON a.cover_photo_id = ph.id
        WHERE o.user_id = $1
        ORDER BY o.created_at DESC`,
       [userId]
