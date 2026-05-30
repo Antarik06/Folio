@@ -5,6 +5,8 @@ import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { signIn, signInWithGoogle } from '@/lib/actions/auth'
 
+import { AuthVisualPanel } from '@/components/auth/auth-visual-panel'
+
 function GoogleIcon() {
   return (
     <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -149,16 +151,7 @@ function LoginPageContent() {
       </div>
 
       {/* Right Panel - Visual */}
-      <div className="hidden lg:flex w-1/2 bg-card items-center justify-center p-16">
-        <div className="max-w-lg">
-          <blockquote className="font-serif text-3xl text-foreground italic leading-relaxed">
-            &ldquo;The best thing about a picture is that it never changes, even when the people in it do.&rdquo;
-          </blockquote>
-          <cite className="block mt-6 text-muted-foreground text-sm not-italic">
-            — Andy Warhol
-          </cite>
-        </div>
-      </div>
+      <AuthVisualPanel />
     </main>
   )
 }

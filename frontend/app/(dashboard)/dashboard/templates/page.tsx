@@ -8,7 +8,8 @@ export const metadata = {
   description: 'Select an artist-crafted popular album layout to organize your collective event photos.',
 }
 
-export default async function TemplatesPage() {
+export default async function TemplatesPage({ searchParams }: { searchParams: Promise<{ eventId?: string }> }) {
+  const { eventId } = await searchParams
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
@@ -16,5 +17,5 @@ export default async function TemplatesPage() {
     redirect('/auth/login')
   }
 
-  return <TemplatesShowcase templates={ALL_MAGAZINE_TEMPLATES} />
+  return <TemplatesShowcase templates={ALL_MAGAZINE_TEMPLATES} eventId={eventId} />
 }

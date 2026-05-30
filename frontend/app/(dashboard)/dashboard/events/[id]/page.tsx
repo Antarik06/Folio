@@ -9,6 +9,8 @@ import { AlbumsGrid } from '@/components/events/albums-grid'
 import { TemplateSelector } from '@/components/events/template-selector'
 import { serverFetch } from '@/lib/api-client'
 import { createAlbumAction } from '@/lib/actions/events'
+import { CreateAlbumFlow } from '@/components/events/create-album-flow'
+
 
 interface Props {
   params: Promise<{ id: string }>
@@ -115,27 +117,7 @@ export default async function EventDetailPage({ params }: Props) {
               <p className="text-muted-foreground font-light">Curate and publish your collection.</p>
             </div>
             {albums && albums.length > 0 && (
-              <div className="flex items-center gap-4">
-                {photos && photos.length > 0 && (
-                  <a
-                    href={`/dashboard/events/${id}/generate-album`}
-                    className="text-[10px] uppercase tracking-[0.2em] font-bold text-secondary border border-secondary/20 px-6 py-2.5 hover:bg-secondary/5 transition-all"
-                  >
-                    AI Curation
-                  </a>
-                )}
-                <form action={async () => {
-                  'use server'
-                  const res = await createAlbumAction(id, 'Untitled Volume')
-                  if (res && res.id) {
-                    redirect(`/editor/${res.id}`)
-                  }
-                }}>
-                  <button type="submit" className="bg-primary text-primary-foreground px-6 py-2.5 text-[10px] uppercase tracking-[0.2em] font-bold hover:bg-primary/90 transition-all shadow-lg shadow-primary/10">
-                    Blank Canvas
-                  </button>
-                </form>
-              </div>
+              <CreateAlbumFlow eventId={id} variant="header" />
             )}
           </div>
 
@@ -165,27 +147,7 @@ export default async function EventDetailPage({ params }: Props) {
                 <p className="text-muted-foreground text-lg font-light leading-relaxed mb-10 max-w-lg">
                   Transform your event photos into a stunning travel magazine. Start with AI curation for a quick results or a professional template.
                 </p>
-                <div className="flex items-center gap-6 justify-center">
-                  {photos && photos.length > 0 && (
-                    <a
-                      href={`/dashboard/events/${id}/generate-album`}
-                      className="text-[10px] uppercase tracking-[0.2em] font-bold text-secondary border border-secondary/20 px-10 py-4 hover:bg-secondary/5 transition-all"
-                    >
-                      AI Generation
-                    </a>
-                  )}
-                  <form action={async () => {
-                    'use server'
-                    const res = await createAlbumAction(id, 'Untitled Volume')
-                    if (res && res.id) {
-                      redirect(`/editor/${res.id}`)
-                    }
-                  }}>
-                    <button type="submit" className="bg-primary text-primary-foreground px-10 py-4 text-[10px] uppercase tracking-[0.2em] font-bold hover:bg-primary/90 transition-all shadow-xl shadow-primary/20">
-                      Standard Canvas
-                    </button>
-                  </form>
-                </div>
+                <CreateAlbumFlow eventId={id} variant="empty" />
               </div>
 
               <div>

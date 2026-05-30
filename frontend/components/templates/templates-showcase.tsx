@@ -135,7 +135,7 @@ function Stars({ score }: { score: number }) {
 }
 
 // ─── Preview Modal ───────────────────────────────────────────────
-function PreviewModal({ template, onClose }: { template: MagazineTemplate; onClose: () => void }) {
+function PreviewModal({ template, eventId, onClose }: { template: MagazineTemplate; eventId?: string; onClose: () => void }) {
   const meta = getMeta(template.id)
   const pages = [template.thumbnail, ...meta.innerPages]
   const [cur, setCur] = useState(0)
@@ -168,7 +168,7 @@ function PreviewModal({ template, onClose }: { template: MagazineTemplate; onClo
             {zoomed ? 'Fit View' : 'Zoom In'}
           </button>
           <Link 
-            href={`/dashboard/templates/use/${template.id}`} 
+            href={`/dashboard/templates/use/${template.id}${eventId ? `?eventId=${eventId}` : ''}`} 
             onClick={e=>e.stopPropagation()} 
             className="px-6 py-2.5 bg-primary text-primary-foreground font-sans text-[10px] uppercase tracking-[0.2em] font-bold hover:opacity-90 transition-opacity"
           >
@@ -268,7 +268,7 @@ function HeroCarousel({ templates }: { templates: MagazineTemplate[] }) {
 }
 
 // ─── Template Card ───────────────────────────────────────────────
-function Card({ template, index, featured, onPreview }: { template:MagazineTemplate;index:number;featured?:boolean;onPreview:()=>void }) {
+function Card({ template, index, eventId, featured, onPreview }: { template:MagazineTemplate;index:number;eventId?: string;featured?:boolean;onPreview:()=>void }) {
   const meta = getMeta(template.id)
   const [hov, setHov] = useState(false)
   const [pageIdx, setPageIdx] = useState(0)
@@ -358,7 +358,7 @@ function Card({ template, index, featured, onPreview }: { template:MagazineTempl
             Visual Preview
           </button>
           <Link 
-            href={`/dashboard/templates/use/${template.id}`} 
+            href={`/dashboard/templates/use/${template.id}${eventId ? `?eventId=${eventId}` : ''}`} 
             className="block w-full py-3.5 bg-primary text-primary-foreground text-center font-sans text-[10px] font-bold uppercase tracking-[0.2em] rounded-sm hover:opacity-90 transition-opacity text-decoration-none"
           >
             Start Project
@@ -386,7 +386,7 @@ function Card({ template, index, featured, onPreview }: { template:MagazineTempl
 }
 
 // ─── Main ────────────────────────────────────────────────────────
-export function TemplatesShowcase({ templates }: { templates: MagazineTemplate[] }) {
+export function TemplatesShowcase({ templates, eventId }: { templates: MagazineTemplate[]; eventId?: string }) {
   const [activeCategory, setActiveCategory] = useState('all')
   const [previewTemplate, setPreviewTemplate] = useState<MagazineTemplate | null>(null)
   const [revealed, setRevealed] = useState(false)
@@ -568,7 +568,7 @@ export function TemplatesShowcase({ templates }: { templates: MagazineTemplate[]
                 <div className="h-[1px] flex-1 bg-linen" />
               </div>
               
-              <Link href="/dashboard/templates/use/adventure-travel" className="group block relative rounded-xl overflow-hidden bg-ink min-h-[420px] shadow-2xl transition-transform duration-700 hover:scale-[1.01]">
+              <Link href={`/dashboard/templates/use/adventure-travel${eventId ? `?eventId=${eventId}` : ''}`} className="group block relative rounded-xl overflow-hidden bg-ink min-h-[420px] shadow-2xl transition-transform duration-700 hover:scale-[1.01]">
                 <div className="absolute inset-0 z-0">
                   <img src="https://images.unsplash.com/photo-1551632811-561732d1e306?q=80&w=1200&auto=format&fit=crop" alt="Adventure" className="w-full h-full object-cover opacity-60 group-hover:scale-105 transition-transform duration-[2000ms]" />
                   <div className="absolute inset-0 bg-gradient-to-r from-ink via-ink/40 to-transparent" />
@@ -621,7 +621,7 @@ export function TemplatesShowcase({ templates }: { templates: MagazineTemplate[]
                 <div className="h-[1px] flex-1 bg-linen" />
               </div>
               <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-10">
-                {featured.map((t,i) => <Card key={t.id} template={t} index={i} featured onPreview={() => setPreviewTemplate(t)} />)}
+                {featured.map((t,i) => <Card key={t.id} template={t} index={i} eventId={eventId} featured onPreview={() => setPreviewTemplate(t)} />)}
               </div>
             </motion.div>
           )}
@@ -641,7 +641,7 @@ export function TemplatesShowcase({ templates }: { templates: MagazineTemplate[]
                 <div className="h-[1px] flex-1 bg-linen" />
               </div>
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-8">
-                {rest.map((t,i) => <Card key={t.id} template={t} index={i+2} onPreview={() => setPreviewTemplate(t)} />)}
+                {rest.map((t,i) => <Card key={t.id} template={t} index={i+2} eventId={eventId} onPreview={() => setPreviewTemplate(t)} />)}
               </div>
             </motion.div>
           )}
@@ -721,6 +721,7 @@ export function TemplatesShowcase({ templates }: { templates: MagazineTemplate[]
         {previewTemplate && (
           <PreviewModal 
             template={previewTemplate} 
+            eventId={eventId}
             onClose={() => setPreviewTemplate(null)} 
           />
         )}

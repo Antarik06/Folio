@@ -113,8 +113,7 @@ const siteUrl =
   const collaborators = visibleGuests.filter(g => g.role === 'collaborator')
   const regularGuests = visibleGuests.filter(g => g.role !== 'collaborator')
   
-  const enrolledCount = regularGuests.filter((g) => g.face_enrolled).length
-  const pendingCount = regularGuests.length - enrolledCount
+  // No enrolledCount or pendingCount - showing Has Access for all joined members
 
   function renderTable(list: GuestWithEnrollment[], title: string) {
     if (list.length === 0) return null
@@ -164,23 +163,14 @@ const siteUrl =
                   </div>
                 </div>
 
-                {/* Access status (for guests mainly, optional for collaborators but good to know) */}
+                {/* Access status */}
                 <div className="flex justify-center pr-4">
-                  {enrolled ? (
-                    <div className="flex items-center gap-1.5 px-3 py-1 bg-secondary/10 border border-secondary/20 text-secondary text-xs whitespace-nowrap">
-                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-                      </svg>
-                      Has Access
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-1.5 px-3 py-1 bg-background border border-border text-muted-foreground text-xs whitespace-nowrap">
-                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                      Pending Enroll
-                    </div>
-                  )}
+                  <div className="flex items-center gap-1.5 px-3 py-1 bg-secondary/10 border border-secondary/20 text-secondary text-xs whitespace-nowrap">
+                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                    </svg>
+                    Has Access
+                  </div>
                 </div>
 
                 {/* Role promotion/demotion (owner only) */}
@@ -546,11 +536,7 @@ const siteUrl =
             <div className="flex items-center gap-4 text-xs text-muted-foreground">
               <span className="flex items-center gap-1.5">
                 <span className="w-2 h-2 rounded-full bg-secondary" />
-                {enrolledCount} enrolled
-              </span>
-              <span className="flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-border" />
-                {pendingCount} pending
+                {regularGuests.length} joined
               </span>
             </div>
           )}

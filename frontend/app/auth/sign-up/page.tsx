@@ -4,6 +4,8 @@ import { useState, useEffect, Suspense } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { signUp, signInWithGoogle } from '@/lib/actions/auth'
+import { AuthVisualPanel } from '@/components/auth/auth-visual-panel'
+
 
 function GoogleIcon() {
   return (
@@ -86,40 +88,7 @@ function SignUpPageContent() {
   return (
     <main className="min-h-screen bg-background flex">
       {/* Left Panel - Visual */}
-      <div className="hidden lg:flex w-1/2 bg-card items-center justify-center p-16">
-        <div className="max-w-lg">
-          <div className="space-y-8">
-            <div className="flex items-start gap-4">
-              <span className="text-5xl font-serif text-border">01</span>
-              <div>
-                <h3 className="font-serif text-xl text-foreground mb-1">Upload</h3>
-                <p className="text-muted-foreground text-sm">Share your photos from any device</p>
-              </div>
-            </div>
-            <div className="flex items-start gap-4">
-              <span className="text-5xl font-serif text-border">02</span>
-              <div>
-                <h3 className="font-serif text-xl text-foreground mb-1">Curate</h3>
-                <p className="text-muted-foreground text-sm">AI selects your best moments</p>
-              </div>
-            </div>
-            <div className="flex items-start gap-4">
-              <span className="text-5xl font-serif text-border">03</span>
-              <div>
-                <h3 className="font-serif text-xl text-foreground mb-1">Design</h3>
-                <p className="text-muted-foreground text-sm">Customize your album layout</p>
-              </div>
-            </div>
-            <div className="flex items-start gap-4">
-              <span className="text-5xl font-serif text-border">04</span>
-              <div>
-                <h3 className="font-serif text-xl text-foreground mb-1">Receive</h3>
-                <p className="text-muted-foreground text-sm">A book delivered to your door</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+      <AuthVisualPanel />
       
       {/* Right Panel - Form */}
       <div className="w-full lg:w-1/2 flex flex-col justify-center px-8 md:px-16 lg:px-24">

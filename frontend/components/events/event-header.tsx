@@ -84,12 +84,6 @@ export function EventHeader({ event, isHost, photoCount, guestCount }: EventHead
             >
               Settings
             </Link>
-            <Link
-              href={`/events/${event.id}/generate-album`}
-              className="px-4 py-2 bg-primary text-primary-foreground text-sm hover:bg-primary/90 transition-colors"
-            >
-              Generate Album
-            </Link>
           </div>
         )}
       </div>

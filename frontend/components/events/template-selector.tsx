@@ -30,7 +30,7 @@ export function TemplateSelector({ eventId }: TemplateSelectorProps) {
             <img 
               src={template.thumbnail} 
               alt={template.name}
-              className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-700"
+              className="w-full h-full object-cover transition-all duration-700"
             />
             <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center p-6 text-center">
               <h4 className="text-white font-serif text-lg mb-2">{template.name}</h4>
