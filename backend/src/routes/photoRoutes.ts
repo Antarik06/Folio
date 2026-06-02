@@ -8,6 +8,7 @@ const router = Router()
 router.use(authMiddleware)
 
 router.get('/event/:eventId', photoController.getPhotos)
+router.get('/proxy-google-drive', photoController.proxyGoogleDrive)
 router.post('/', photoController.registerPhoto)
 router.patch('/:id/shared', photoController.toggleShared)
 router.post('/event/:eventId/share-all', photoController.shareAll)
