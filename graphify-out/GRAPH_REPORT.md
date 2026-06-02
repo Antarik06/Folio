@@ -1,196 +1,202 @@
-# Graph Report - .  (2026-06-03)
+# Graph Report - Folio  (2026-06-03)
 
 ## Corpus Check
-- Large corpus: 232 files · ~222,975 words. Semantic extraction will be expensive (many Claude tokens). Consider running on a subfolder, or use --no-semantic to run AST-only.
+- 220 files · ~262,791 words
+- Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 625 nodes · 605 edges · 24 communities detected
-- Extraction: 81% EXTRACTED · 19% INFERRED · 0% AMBIGUOUS · INFERRED: 115 edges (avg confidence: 0.8)
+- 639 nodes · 627 edges · 25 communities detected
+- Extraction: 81% EXTRACTED · 19% INFERRED · 0% AMBIGUOUS · INFERRED: 121 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Community Hubs (Navigation)
-- [[_COMMUNITY_Page Frontend|Page Frontend]]
-- [[_COMMUNITY_Events Client|Events Client]]
-- [[_COMMUNITY_Editor Applyimagepooltospreads|Editor Applyimagepooltospreads]]
-- [[_COMMUNITY_Photo Grid|Photo Grid]]
-- [[_COMMUNITY_Workspace Frontend|Workspace Frontend]]
-- [[_COMMUNITY_Admin Dashboard|Admin Dashboard]]
-- [[_COMMUNITY_Pricing Backend|Pricing Backend]]
-- [[_COMMUNITY_Photo Editor|Photo Editor]]
-- [[_COMMUNITY_Sidebar Frontend|Sidebar Frontend]]
-- [[_COMMUNITY_Orders Order|Orders Order]]
-- [[_COMMUNITY_Toast Frontend|Toast Frontend]]
-- [[_COMMUNITY_Index Backend|Index Backend]]
-- [[_COMMUNITY_Sidebar Frontend|Sidebar Frontend]]
-- [[_COMMUNITY_Guest List|Guest List]]
-- [[_COMMUNITY_Book3D Magazine3D|Book3D Magazine3D]]
-- [[_COMMUNITY_Product Type|Product Type]]
-- [[_COMMUNITY_Event Settings|Event Settings]]
-- [[_COMMUNITY_Flipbook Clamp|Flipbook Clamp]]
-- [[_COMMUNITY_Carousel Carouselnext|Carousel Carouselnext]]
-- [[_COMMUNITY_Page Frontend|Page Frontend]]
-- [[_COMMUNITY_Dashboard Page|Dashboard Page]]
-- [[_COMMUNITY_Layers Panel|Layers Panel]]
-- [[_COMMUNITY_Mobile Frontend|Mobile Frontend]]
-- [[_COMMUNITY_Minor Flow 117|Minor Flow 117]]
+- [[_COMMUNITY_Community 0|Community 0]]
+- [[_COMMUNITY_Community 1|Community 1]]
+- [[_COMMUNITY_Community 2|Community 2]]
+- [[_COMMUNITY_Community 3|Community 3]]
+- [[_COMMUNITY_Community 4|Community 4]]
+- [[_COMMUNITY_Community 5|Community 5]]
+- [[_COMMUNITY_Community 6|Community 6]]
+- [[_COMMUNITY_Community 7|Community 7]]
+- [[_COMMUNITY_Community 11|Community 11]]
+- [[_COMMUNITY_Community 13|Community 13]]
+- [[_COMMUNITY_Community 14|Community 14]]
+- [[_COMMUNITY_Community 15|Community 15]]
+- [[_COMMUNITY_Community 16|Community 16]]
+- [[_COMMUNITY_Community 17|Community 17]]
+- [[_COMMUNITY_Community 18|Community 18]]
+- [[_COMMUNITY_Community 19|Community 19]]
+- [[_COMMUNITY_Community 22|Community 22]]
+- [[_COMMUNITY_Community 28|Community 28]]
+- [[_COMMUNITY_Community 29|Community 29]]
+- [[_COMMUNITY_Community 30|Community 30]]
+- [[_COMMUNITY_Community 34|Community 34]]
+- [[_COMMUNITY_Community 47|Community 47]]
+- [[_COMMUNITY_Community 48|Community 48]]
+- [[_COMMUNITY_Community 60|Community 60]]
+- [[_COMMUNITY_Community 118|Community 118]]
 
 ## God Nodes (most connected - your core abstractions)
 1. `serverFetch()` - 44 edges
 2. `getAuthToken()` - 28 edges
 3. `createClient()` - 21 edges
 4. `GET()` - 13 edges
-5. `getUser()` - 12 edges
-6. `handleSubmit()` - 9 edges
-7. `getAuthToken()` - 8 edges
-8. `Alert()` - 7 edges
+5. `getUser()` - 13 edges
+6. `Alert()` - 10 edges
+7. `handleSubmit()` - 9 edges
+8. `getAuthToken()` - 8 edges
 9. `getAuthToken()` - 7 edges
 10. `getProfile()` - 5 edges
 
 ## Surprising Connections (you probably didn't know these)
-- `fetchAlbums()` --calls--> `GET()`  [INFERRED]
-  C:\Users\SUBHAM NABIK\Desktop\Folio2\Folio\frontend\components\album-editor\sidebar.tsx → C:\Users\SUBHAM NABIK\Desktop\Folio2\Folio\frontend\app\auth\callback\route.ts
+- `GET()` --calls--> `fetchAlbums()`  [INFERRED]
+  frontend\app\auth\callback\route.ts → frontend\components\album-editor\sidebar.tsx
 - `AdminDashboardPage()` --calls--> `getUser()`  [INFERRED]
-  C:\Users\SUBHAM NABIK\Desktop\Folio2\Folio\frontend\app\(dashboard)\dashboard\admin\page.tsx → C:\Users\SUBHAM NABIK\Desktop\Folio2\Folio\frontend\lib\actions\auth.ts
+  frontend\app\(dashboard)\dashboard\admin\page.tsx → frontend\lib\actions\auth.ts
 - `EventSettingsPage()` --calls--> `serverFetch()`  [INFERRED]
-  C:\Users\SUBHAM NABIK\Desktop\Folio2\Folio\frontend\app\(dashboard)\events\[id]\settings\page.tsx → C:\Users\SUBHAM NABIK\Desktop\Folio2\Folio\frontend\lib\api-client.ts
+  frontend\app\(dashboard)\events\[id]\settings\page.tsx → frontend\lib\api-client.ts
 - `CheckoutPage()` --calls--> `serverFetch()`  [INFERRED]
-  C:\Users\SUBHAM NABIK\Desktop\Folio2\Folio\frontend\app\(dashboard)\dashboard\templates\checkout\[id]\page.tsx → C:\Users\SUBHAM NABIK\Desktop\Folio2\Folio\frontend\lib\api-client.ts
+  frontend\app\(dashboard)\dashboard\templates\checkout\[id]\page.tsx → frontend\lib\api-client.ts
 - `SimpleTemplateEditorPage()` --calls--> `serverFetch()`  [INFERRED]
-  C:\Users\SUBHAM NABIK\Desktop\Folio2\Folio\frontend\app\(dashboard)\dashboard\templates\editor\[id]\page.tsx → C:\Users\SUBHAM NABIK\Desktop\Folio2\Folio\frontend\lib\api-client.ts
+  frontend\app\(dashboard)\dashboard\templates\editor\[id]\page.tsx → frontend\lib\api-client.ts
 
 ## Communities
 
-### Community 0 - "Page Frontend"
-Cohesion: 0.06
-Nodes (26): createAdminClient(), getProfile(), getUser(), signIn(), signInWithGoogle(), signOut(), signUp(), DashboardLayout() (+18 more)
+### Community 0 - "Community 0"
+Cohesion: 0.07
+Nodes (25): createAdminClient(), getProfile(), getUser(), signIn(), signInWithGoogle(), signOut(), signUp(), DashboardLayout() (+17 more)
 
-### Community 1 - "Events Client"
+### Community 1 - "Community 1"
 Cohesion: 0.16
 Nodes (29): serverFetch(), approvePhoto(), createAlbumAction(), createFolderAction(), deleteAlbum(), deleteEvent(), deleteFolderAction(), deletePhoto() (+21 more)
 
-### Community 2 - "Editor Applyimagepooltospreads"
+### Community 2 - "Community 2"
+Cohesion: 0.1
+Nodes (13): Alert(), authenticateGoogleDrive(), loadGoogleScripts(), handleCreateFolder(), handleDeleteFolder(), handleMovePhoto(), handleUpdateLocation(), handleUpdateTags() (+5 more)
+
+### Community 3 - "Community 3"
 Cohesion: 0.13
 Nodes (12): colorDistance(), getDraftKey(), getSpreadSide(), inferImageLayerName(), loadImageForProcessing(), normalizeElement(), parseHexColor(), recolorLikelyMonochromeImage() (+4 more)
 
-### Community 3 - "Photo Grid"
-Cohesion: 0.13
-Nodes (7): Alert(), handleCreateFolder(), handleDeleteFolder(), handleMovePhoto(), handleUpdateLocation(), handleUpdateTags(), handleSave()
-
-### Community 4 - "Workspace Frontend"
+### Community 4 - "Community 4"
 Cohesion: 0.12
 Nodes (3): onDragEnd(), onDragMove(), snapPosition()
 
-### Community 5 - "Admin Dashboard"
+### Community 5 - "Community 5"
 Cohesion: 0.23
 Nodes (11): handleEventClick(), handleStatusChange(), handleUserClick(), getAdminEventAlbums(), getAdminEventPhotos(), getAdminOrders(), getAdminUserEvents(), getAdminUsers() (+3 more)
 
-### Community 6 - "Pricing Backend"
+### Community 6 - "Community 6"
 Cohesion: 0.31
 Nodes (7): computePriceCents(), formatPrice(), getShippingAddressErrors(), isPageCountValid(), validatePostalCode(), validateQuantity(), validateShippingAddress()
 
-### Community 7 - "Photo Editor"
+### Community 7 - "Community 7"
 Cohesion: 0.2
 Nodes (2): handleReset(), resetCrop()
 
-### Community 11 - "Sidebar Frontend"
+### Community 11 - "Community 11"
 Cohesion: 0.22
 Nodes (2): SidebarMenuButton(), useSidebar()
 
-### Community 13 - "Orders Order"
+### Community 13 - "Community 13"
 Cohesion: 0.39
 Nodes (7): handlePlaceOrder(), loadScript(), createOrder(), getAlbumOrder(), getAuthToken(), getUserOrders(), verifyPayment()
 
-### Community 14 - "Toast Frontend"
+### Community 14 - "Community 14"
+Cohesion: 0.32
+Nodes (3): handleClose(), handleDoubleClickFile(), handleImport()
+
+### Community 15 - "Community 15"
 Cohesion: 0.57
 Nodes (6): addToRemoveQueue(), dispatch(), genId(), reducer(), toast(), useToast()
 
-### Community 15 - "Index Backend"
+### Community 16 - "Community 16"
 Cohesion: 0.33
 Nodes (4): ensureAdminProfile(), getClient(), query(), runMigrations()
 
-### Community 16 - "Sidebar Frontend"
+### Community 17 - "Community 17"
 Cohesion: 0.29
 Nodes (1): fetchAlbums()
 
-### Community 17 - "Guest List"
+### Community 18 - "Community 18"
 Cohesion: 0.29
 Nodes (1): handleGenerateColCode()
 
-### Community 18 - "Book3D Magazine3D"
+### Community 19 - "Community 19"
 Cohesion: 0.33
 Nodes (3): generateTextures(), renderToCanvas(), gen()
 
-### Community 21 - "Product Type"
+### Community 22 - "Community 22"
 Cohesion: 0.38
 Nodes (4): PreviewPage(), inferAlbumProductType(), inferTemplateProductType(), isProductType()
 
-### Community 27 - "Event Settings"
+### Community 28 - "Community 28"
 Cohesion: 0.4
 Nodes (1): handleDeleteEvent()
 
-### Community 28 - "Flipbook Clamp"
+### Community 29 - "Community 29"
 Cohesion: 0.5
 Nodes (2): clamp(), initialize()
 
-### Community 29 - "Carousel Carouselnext"
+### Community 30 - "Community 30"
 Cohesion: 0.5
 Nodes (2): CarouselNext(), useCarousel()
 
-### Community 33 - "Page Frontend"
+### Community 34 - "Community 34"
 Cohesion: 0.83
 Nodes (3): mapSpreadsToPages(), normalizeSpreads(), SharedAlbumPage()
 
-### Community 46 - "Dashboard Page"
+### Community 47 - "Community 47"
 Cohesion: 0.67
 Nodes (1): PolaroidPage()
 
-### Community 47 - "Layers Panel"
+### Community 48 - "Community 48"
 Cohesion: 1.0
 Nodes (2): getDefaultName(), inferImageLayerName()
 
-### Community 59 - "Mobile Frontend"
+### Community 60 - "Community 60"
 Cohesion: 0.67
 Nodes (1): useIsMobile()
 
-### Community 117 - "Minor Flow 117"
+### Community 118 - "Community 118"
 Cohesion: 1.0
 Nodes (1): PageFlip
 
 ## Knowledge Gaps
 - **1 isolated node(s):** `PageFlip`
   These have ≤1 connection - possible missing edges or undocumented components.
-- **Thin community `Photo Editor`** (11 nodes): `photo-editor.tsx`, `applyCropAspect()`, `buildCssFilter()`, `clamp()`, `handleReset()`, `handleSave()`, `resetCrop()`, `snapRotate()`, `startResize()`, `stopResize()`, `updateSize()`
+- **Thin community `Community 7`** (11 nodes): `photo-editor.tsx`, `applyCropAspect()`, `buildCssFilter()`, `clamp()`, `handleReset()`, `handleSave()`, `resetCrop()`, `snapRotate()`, `startResize()`, `stopResize()`, `updateSize()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Sidebar Frontend`** (10 nodes): `sidebar.tsx`, `cn()`, `handleKeyDown()`, `SidebarFooter()`, `SidebarHeader()`, `SidebarMenu()`, `SidebarMenuButton()`, `SidebarMenuItem()`, `SidebarSeparator()`, `useSidebar()`
+- **Thin community `Community 11`** (10 nodes): `sidebar.tsx`, `cn()`, `handleKeyDown()`, `SidebarFooter()`, `SidebarHeader()`, `SidebarMenu()`, `SidebarMenuButton()`, `SidebarMenuItem()`, `SidebarSeparator()`, `useSidebar()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Sidebar Frontend`** (7 nodes): `sidebar.tsx`, `fetchAlbums()`, `isVisiblePreset()`, `matchesQuery()`, `readFileAsImage()`, `svgToDataUri()`, `toRemoteImageType()`
+- **Thin community `Community 17`** (7 nodes): `sidebar.tsx`, `fetchAlbums()`, `isVisiblePreset()`, `matchesQuery()`, `readFileAsImage()`, `svgToDataUri()`, `toRemoteImageType()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Guest List`** (7 nodes): `guest-list.tsx`, `copyCode()`, `copyColCode()`, `copyColLink()`, `copyLink()`, `handleGenerateColCode()`, `handleRemove()`
+- **Thin community `Community 18`** (7 nodes): `guest-list.tsx`, `copyCode()`, `copyColCode()`, `copyColLink()`, `copyLink()`, `handleGenerateColCode()`, `handleRemove()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Event Settings`** (5 nodes): `coerceSettings()`, `getPhotoUrl()`, `handleDeleteEvent()`, `saveSettings()`, `event-settings-panel.tsx`
+- **Thin community `Community 28`** (5 nodes): `coerceSettings()`, `getPhotoUrl()`, `handleDeleteEvent()`, `saveSettings()`, `event-settings-panel.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Flipbook Clamp`** (5 nodes): `clamp()`, `handleKeyDown()`, `initialize()`, `usePageScale()`, `FlipBook.tsx`
+- **Thin community `Community 29`** (5 nodes): `clamp()`, `handleKeyDown()`, `initialize()`, `usePageScale()`, `FlipBook.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Carousel Carouselnext`** (5 nodes): `Carousel()`, `CarouselNext()`, `cn()`, `useCarousel()`, `carousel.tsx`
+- **Thin community `Community 30`** (5 nodes): `Carousel()`, `CarouselNext()`, `cn()`, `useCarousel()`, `carousel.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Dashboard Page`** (3 nodes): `page.tsx`, `page.tsx`, `PolaroidPage()`
+- **Thin community `Community 47`** (3 nodes): `page.tsx`, `page.tsx`, `PolaroidPage()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Layers Panel`** (3 nodes): `layers-panel.tsx`, `getDefaultName()`, `inferImageLayerName()`
+- **Thin community `Community 48`** (3 nodes): `layers-panel.tsx`, `getDefaultName()`, `inferImageLayerName()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Mobile Frontend`** (3 nodes): `use-mobile.tsx`, `use-mobile.ts`, `useIsMobile()`
+- **Thin community `Community 60`** (3 nodes): `use-mobile.tsx`, `use-mobile.ts`, `useIsMobile()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Minor Flow 117`** (2 nodes): `page-flip.d.ts`, `PageFlip`
+- **Thin community `Community 118`** (2 nodes): `page-flip.d.ts`, `PageFlip`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `serverFetch()` connect `Events Client` to `Page Frontend`, `Page Frontend`, `Admin Dashboard`, `Orders Order`, `Product Type`?**
-  _High betweenness centrality (0.025) - this node is a cross-community bridge._
-- **Why does `getAuthToken()` connect `Events Client` to `Page Frontend`?**
-  _High betweenness centrality (0.014) - this node is a cross-community bridge._
-- **Why does `createClient()` connect `Page Frontend` to `Events Client`, `Orders Order`, `Product Type`?**
-  _High betweenness centrality (0.014) - this node is a cross-community bridge._
+- **Why does `serverFetch()` connect `Community 1` to `Community 0`, `Community 34`, `Community 5`, `Community 13`, `Community 22`?**
+  _High betweenness centrality (0.024) - this node is a cross-community bridge._
+- **Why does `createClient()` connect `Community 0` to `Community 1`, `Community 13`, `Community 22`?**
+  _High betweenness centrality (0.013) - this node is a cross-community bridge._
+- **Why does `getAuthToken()` connect `Community 1` to `Community 0`?**
+  _High betweenness centrality (0.012) - this node is a cross-community bridge._
 - **Are the 43 inferred relationships involving `serverFetch()` (e.g. with `EventSettingsPage()` and `CheckoutPage()`) actually correct?**
   _`serverFetch()` has 43 INFERRED edges - model-reasoned connections that need verification._
 - **Are the 2 inferred relationships involving `getAuthToken()` (e.g. with `GET()` and `createClient()`) actually correct?**
