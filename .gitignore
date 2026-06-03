@@ -21,5 +21,7 @@ public/textures
 inspo/
 .opencode/
 
-!graphify-out/graph_report.md
-!graphify-out/graph.html
+/graphify-out/*
+!graph.html
+!graph_report.md
+

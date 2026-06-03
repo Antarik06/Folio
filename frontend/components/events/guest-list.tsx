@@ -1,0 +1,574 @@
+'use client'
+
+import { useState, useTransition } from 'react'
+import { removeGuest, generateCollaboratorCode, updateGuestRoleAction } from '@/lib/actions/events'
+import QRCode from "react-qr-code"
+import { Printer } from "lucide-react"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
+
+interface GuestWithEnrollment {
+  id: string
+  user_id?: string | null
+  name?: string | null
+  email?: string
+  role?: string
+  face_enrolled?: boolean
+  face_reference_url?: string | null
+  joined_at?: string
+}
+
+interface GuestListProps {
+  guests: GuestWithEnrollment[]
+  eventId: string
+  inviteCode: string | null
+  collaboratorCode: string | null
+  settings: any
+  isOwner?: boolean
+  isManager?: boolean
+  view?: 'members' | 'share'
+}
+
+export function GuestList({ 
+  guests, 
+  eventId, 
+  inviteCode, 
+  collaboratorCode,
+  settings, 
+  isOwner,
+  isManager,
+  view = 'members'
+}: GuestListProps) {
+  const [codeCopied, setCodeCopied] = useState(false)
+  const [linkCopied, setLinkCopied] = useState(false)
+  const [colCodeCopied, setColCodeCopied] = useState(false)
+  const [colLinkCopied, setColLinkCopied] = useState(false)
+  const [generatingCol, setGeneratingCol] = useState(false)
+  const [confirmRemoveId, setConfirmRemoveId] = useState<string | null>(null)
+  const [removedIds, setRemovedIds] = useState<Set<string>>(new Set())
+  const [isPending, startTransition] = useTransition()
+  const [actionError, setActionError] = useState<string | null>(null)
+
+const envSiteUrl = process.env.NEXT_PUBLIC_SITE_URL
+const siteUrl =
+  envSiteUrl && envSiteUrl.length > 0
+    ? envSiteUrl
+    : window.location.origin
+  const inviteLink = inviteCode ? `${siteUrl}/join/${inviteCode}` : ''
+  const colInviteLink = collaboratorCode ? `${siteUrl}/join/${collaboratorCode}` : ''
+
+  function copyCode() {
+    if (!inviteCode) return
+    navigator.clipboard.writeText(inviteCode)
+    setCodeCopied(true)
+    setTimeout(() => setCodeCopied(false), 2000)
+  }
+
+  function copyLink() {
+    if (!inviteLink) return
+    navigator.clipboard.writeText(inviteLink)
+    setLinkCopied(true)
+    setTimeout(() => setLinkCopied(false), 2000)
+  }
+
+  function copyColCode() {
+    if (!collaboratorCode) return
+    navigator.clipboard.writeText(collaboratorCode)
+    setColCodeCopied(true)
+    setTimeout(() => setColCodeCopied(false), 2000)
+  }
+
+  function copyColLink() {
+    if (!colInviteLink) return
+    navigator.clipboard.writeText(colInviteLink)
+    setColLinkCopied(true)
+    setTimeout(() => setColLinkCopied(false), 2000)
+  }
+
+  async function handleGenerateColCode() {
+    setGeneratingCol(true)
+    await generateCollaboratorCode(eventId)
+    setGeneratingCol(false)
+  }
+
+  function handleRemove(guestId: string) {
+    setActionError(null)
+    startTransition(async () => {
+      const result = await removeGuest(guestId, eventId)
+      if (result?.error) {
+        setActionError(result.error)
+      } else {
+        setRemovedIds((prev) => new Set([...prev, guestId]))
+      }
+      setConfirmRemoveId(null)
+    })
+  }
+
+  const visibleGuests = guests.filter((g) => !removedIds.has(g.id))
+  
+  // Split into collaborators and guests
+  const collaborators = visibleGuests.filter(g => g.role === 'collaborator')
+  const regularGuests = visibleGuests.filter(g => g.role !== 'collaborator')
+  
+  // No enrolledCount or pendingCount - showing Has Access for all joined members
+
+  function renderTable(list: GuestWithEnrollment[], title: string) {
+    if (list.length === 0) return null
+
+    return (
+      <div className="mb-8 last:mb-0">
+        <h4 className="text-sm font-serif text-foreground mb-3 pl-1 border-l-2 border-primary">{title}</h4>
+        <div className="border border-border divide-y divide-border">
+          {list.map((guest) => {
+            const initials = (guest.name || guest.email || 'G')[0].toUpperCase()
+            const enrolled = guest.face_enrolled ?? false
+            const isConfirming = confirmRemoveId === guest.id
+            const isCollab = guest.role === 'collaborator'
+            
+            // Managers can remove guests. Only owner can remove collaborators.
+            const canRemove = isOwner || (isManager && !isCollab)
+
+            return (
+              <div
+                key={guest.id}
+                className={`grid items-center px-5 py-4 bg-background transition-colors ${
+                  isOwner ? 'grid-cols-[1fr_auto_auto_auto]' : (canRemove ? 'grid-cols-[1fr_auto_auto]' : 'grid-cols-[1fr_auto]')
+                } ${isConfirming ? 'bg-red-500/5' : 'hover:bg-secondary/5'}`}
+              >
+                {/* Guest info */}
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className={`w-9 h-9 flex-shrink-0 flex items-center justify-center border ${
+                    isCollab ? 'bg-secondary/10 border-secondary/20' : 'bg-primary/10 border-primary/20'
+                  }`}>
+                    <span className={`font-serif text-sm ${isCollab ? 'text-secondary' : 'text-primary'}`}>
+                      {initials}
+                    </span>
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-foreground truncate leading-none mb-1 flex items-center gap-2">
+                      {guest.name || 'Guest'}
+                      {isCollab && <span className="text-[9px] uppercase tracking-wider bg-secondary/10 text-secondary px-1.5 py-0.5">Collaborator</span>}
+                    </p>
+                    {guest.email && (
+                      <p className="text-xs text-muted-foreground truncate mb-1">
+                        {guest.email}
+                      </p>
+                    )}
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground/60 flex items-center gap-1.5">
+                      joined {guest.joined_at ? new Date(guest.joined_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'Unknown'}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Access status */}
+                <div className="flex justify-center pr-4">
+                  <div className="flex items-center gap-1.5 px-3 py-1 bg-secondary/10 border border-secondary/20 text-secondary text-xs whitespace-nowrap">
+                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                    </svg>
+                    Has Access
+                  </div>
+                </div>
+
+                {/* Role promotion/demotion (owner only) */}
+                {isOwner && (
+                  <div className="flex justify-center pr-4">
+                    <button
+                      onClick={async () => {
+                        setActionError(null)
+                        const nextRole = isCollab ? 'guest' : 'collaborator'
+                        const res = await updateGuestRoleAction(eventId, guest.id, nextRole)
+                        if (res?.error) {
+                          setActionError(res.error)
+                        } else {
+                          window.location.reload()
+                        }
+                      }}
+                      className={`text-xs px-2.5 py-1.5 bg-background border transition hover:bg-secondary/5 rounded-sm ${
+                        isCollab 
+                          ? 'border-secondary/30 text-secondary' 
+                          : 'border-border text-muted-foreground hover:text-foreground'
+                      }`}
+                    >
+                      {isCollab ? 'Demote to Guest' : 'Promote to Collaborator'}
+                    </button>
+                  </div>
+                )}
+
+                {/* Remove action */}
+                {canRemove && (
+                  <div className="flex items-center justify-end gap-2">
+                    {isConfirming ? (
+                      <>
+                        <button
+                          onClick={() => setConfirmRemoveId(null)}
+                          className="text-xs text-muted-foreground hover:text-foreground transition-colors px-2 py-1"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          onClick={() => handleRemove(guest.id)}
+                          disabled={isPending}
+                          className="text-xs bg-red-500 text-white px-3 py-1.5 hover:bg-red-600 transition-colors disabled:opacity-50"
+                        >
+                          {isPending ? 'Removing…' : 'Confirm'}
+                        </button>
+                      </>
+                    ) : (
+                      <button
+                        onClick={() => setConfirmRemoveId(guest.id)}
+                        className="p-1.5 text-muted-foreground hover:text-red-400 transition-colors"
+                        title={isCollab ? "Remove collaborator" : "Remove guest"}
+                      >
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 7a4 4 0 11-8 0 4 4 0 018 0zM9 14a6 6 0 00-6 6h7m3-10l5 5m0-5l-5 5" />
+                        </svg>
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+            )
+          })}
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-8">
+
+      {/* ── SHARE SECTION ────────────────────────────────────────── */}
+      {view === 'share' && isManager && (
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+            {/* Left: Guest Link Share */}
+            <div className="lg:col-span-3 border border-border bg-background p-6 flex flex-col justify-between">
+              <div>
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-8 h-8 rounded-full bg-primary/5 flex items-center justify-center">
+                    <svg className="w-4 h-4 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                    </svg>
+                  </div>
+                  <h3 className="font-serif text-xl text-foreground">Invite Guests</h3>
+                </div>
+                <p className="text-sm text-muted-foreground mb-8 max-w-md leading-relaxed">
+                  Guests can upload photos (pending your approval) and view photos you've shared. They cannot manage the event.
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-xs uppercase tracking-[0.15em] text-muted-foreground mb-2">
+                  Guest Invite Link
+                </label>
+                <div className="flex group relative">
+                  <div className="flex-1 px-4 py-3 bg-background border border-border border-r-0 font-mono text-sm text-foreground truncate min-w-0 transition-colors group-hover:border-primary/30">
+                    {inviteCode ? inviteLink : 'Generating link...'}
+                  </div>
+                  <button
+                    onClick={copyLink}
+                    disabled={!inviteCode}
+                    className="flex-shrink-0 px-6 py-3 bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-50"
+                  >
+                    {linkCopied ? 'Copied' : 'Copy'}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Right: Guest Code Share (VIP Ticket Style) */}
+            <div className="lg:col-span-2 relative bg-primary text-primary-foreground p-8 flex flex-col justify-between overflow-hidden">
+              <div className="absolute top-1/2 -translate-y-1/2 -left-4 w-8 h-8 rounded-full bg-background" />
+              <div className="absolute top-1/2 -translate-y-1/2 -right-4 w-8 h-8 rounded-full bg-background" />
+              <div className="absolute left-6 right-6 top-1/2 border-t border-dashed border-primary-foreground/20" />
+
+              <div className="relative z-10 text-center pb-4">
+                <p className="text-[10px] uppercase tracking-[0.2em] text-primary-foreground/60 mb-2">General Admission</p>
+                <h3 className="font-serif text-2xl">Guest Pass</h3>
+              </div>
+
+              <div className="relative z-10 text-center pt-8">
+                <div className="mb-6">
+                  {inviteCode ? (
+                    <span className="font-mono text-4xl tracking-[0.3em] font-medium ml-[0.3em]">
+                      {inviteCode}
+                    </span>
+                  ) : (
+                    <span className="text-sm text-primary-foreground/50 animate-pulse">Generating...</span>
+                  )}
+                </div>
+
+                <div className="flex flex-row gap-3">
+                  <button
+                    onClick={copyCode}
+                    disabled={!inviteCode}
+                    className="w-full py-3 bg-primary-foreground text-primary text-xs font-bold hover:bg-primary-foreground/90 transition-colors uppercase tracking-[0.15em]"
+                  >
+                    {codeCopied ? 'Copied' : 'Copy Code'}
+                  </button>
+                  {inviteCode && inviteLink && (
+                    <Dialog>
+                      <DialogTrigger asChild>
+                        <button className="w-full py-3 bg-transparent border border-primary-foreground/30 text-primary-foreground text-xs font-bold hover:bg-primary-foreground/10 transition-colors uppercase tracking-[0.15em] flex items-center justify-center gap-2" title="Print QR Code">
+                          <Printer className="w-4 h-4" />
+                          Print QR Poster
+                        </button>
+                      </DialogTrigger>
+                      <DialogContent className="sm:max-w-md flex flex-col items-center p-0 overflow-hidden border-0">
+                        <div className="w-full bg-primary p-8 text-primary-foreground text-center">
+                          <DialogTitle className="font-serif text-3xl mb-2">Event QR Code</DialogTitle>
+                          <p className="text-primary-foreground/80 text-sm">Download or print this poster for your guests.</p>
+                        </div>
+                        <div className="p-8 flex flex-col items-center bg-background w-full">
+                          <div className="bg-white p-6 rounded-2xl shadow-xl border border-border/50 mb-8 transform transition-transform hover:scale-105 duration-300">
+                            <QRCode
+                              id="qr-code-svg"
+                              value={inviteLink}
+                              size={220}
+                              level="H"
+                            />
+                          </div>
+                          <button
+                            onClick={() => {
+                              const printWindow = window.open('', '', 'width=800,height=800');
+                              if (!printWindow) return;
+                              const qrSvg = document.getElementById('qr-code-svg');
+                              if (!qrSvg) return;
+                              
+                              const svgData = new XMLSerializer().serializeToString(qrSvg);
+                              const eventName = settings?.name || 'Our Event';
+                              
+                              printWindow.document.write(`
+                                <html>
+                                  <head>
+                                    <title>Print QR Code - ${eventName}</title>
+                                    <style>
+                                      @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=Inter:wght@400;500;600&display=swap');
+                                      body { 
+                                        display: flex; 
+                                        justify-content: center; 
+                                        align-items: center; 
+                                        height: 100vh; 
+                                        margin: 0; 
+                                        font-family: 'Inter', sans-serif; 
+                                        background: #f9f9f9; 
+                                        color: #111;
+                                      }
+                                      .poster { 
+                                        text-align: center; 
+                                        padding: 60px 40px; 
+                                        background: white; 
+                                        border: 1px solid #eaeaea; 
+                                        border-radius: 24px; 
+                                        box-shadow: 0 20px 40px rgba(0,0,0,0.08); 
+                                        width: 100%;
+                                        max-width: 500px;
+                                      }
+                                      .eyebrow {
+                                        font-size: 12px;
+                                        text-transform: uppercase;
+                                        letter-spacing: 0.3em;
+                                        color: #666;
+                                        margin-bottom: 16px;
+                                        font-weight: 600;
+                                      }
+                                      .title { 
+                                        font-family: 'Playfair Display', serif;
+                                        font-size: 42px; 
+                                        margin-bottom: 12px; 
+                                        font-weight: 600; 
+                                        line-height: 1.1;
+                                      }
+                                      .subtitle { 
+                                        font-size: 16px; 
+                                        margin-bottom: 48px; 
+                                        color: #555; 
+                                        max-width: 80%;
+                                        margin-left: auto;
+                                        margin-right: auto;
+                                        line-height: 1.5;
+                                      }
+                                      .qr-wrapper { 
+                                        display: inline-block; 
+                                        padding: 24px; 
+                                        background: white; 
+                                        border-radius: 20px; 
+                                        box-shadow: 0 8px 30px rgba(0,0,0,0.06); 
+                                        margin-bottom: 48px;
+                                        border: 1px solid #f0f0f0;
+                                      }
+                                      svg { width: 280px; height: 280px; }
+                                      .code-display {
+                                        font-family: monospace;
+                                        font-size: 24px;
+                                        letter-spacing: 0.4em;
+                                        padding: 16px 32px;
+                                        background: #f5f5f5;
+                                        border-radius: 12px;
+                                        display: inline-block;
+                                        margin-bottom: 32px;
+                                      }
+                                      .footer { 
+                                        font-size: 12px; 
+                                        color: #999; 
+                                        text-transform: uppercase;
+                                        letter-spacing: 0.1em;
+                                      }
+                                      @media print {
+                                        body { background: white; }
+                                        .poster { 
+                                          border: none; 
+                                          box-shadow: none; 
+                                          max-width: none;
+                                          padding: 0;
+                                        }
+                                        .qr-wrapper { 
+                                          box-shadow: none; 
+                                          border: 2px solid #000;
+                                        }
+                                      }
+                                    </style>
+                                  </head>
+                                  <body>
+                                    <div class="poster">
+                                      <div class="eyebrow">Welcome to</div>
+                                      <div class="title">${eventName}</div>
+                                      <div class="subtitle">Open your camera and scan the QR code to join our shared gallery.</div>
+                                      
+                                      <div class="qr-wrapper">
+                                        ${svgData}
+                                      </div>
+                                      
+                                      <div class="code-display">${inviteCode}</div>
+                                      
+                                      <div class="footer">Powered by Folio</div>
+                                    </div>
+                                    <script>
+                                      setTimeout(() => {
+                                        window.print();
+                                        window.close();
+                                      }, 800);
+                                    </script>
+                                  </body>
+                                </html>
+                              `);
+                              printWindow.document.close();
+                            }}
+                            className="w-full py-4 bg-primary text-primary-foreground text-sm font-bold hover:bg-primary/90 transition-colors flex items-center justify-center gap-2 rounded-xl uppercase tracking-wider shadow-lg shadow-primary/20"
+                          >
+                            <Printer className="w-5 h-5" />
+                            Print High-Res Poster
+                          </button>
+                        </div>
+                      </DialogContent>
+                    </Dialog>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Collaborator Section (Owner sees generator/code, Collaborators just see the code) */}
+          <div className="border border-secondary/30 bg-secondary/5 p-6 border-dashed">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+              <div>
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-8 h-8 rounded-full bg-secondary/10 flex items-center justify-center">
+                    <svg className="w-4 h-4 text-secondary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                    </svg>
+                  </div>
+                  <h3 className="font-serif text-xl text-foreground">Collaborator Access</h3>
+                </div>
+                <p className="text-sm text-muted-foreground max-w-xl leading-relaxed">
+                  Collaborators have full management rights to approve, share, and curate photos. Share this restricted code only with trusted partners.
+                </p>
+              </div>
+
+              {collaboratorCode ? (
+                <div className="flex-shrink-0 flex flex-col gap-2 min-w-[240px]">
+                  <div className="flex group relative">
+                    <div className="flex-1 px-4 py-3 bg-background border border-secondary/20 border-r-0 font-mono text-sm text-foreground truncate min-w-0">
+                      {collaboratorCode}
+                    </div>
+                    <button
+                      onClick={copyColCode}
+                      className="flex-shrink-0 px-4 py-3 bg-secondary text-secondary-foreground text-xs font-bold hover:bg-secondary/90 transition-colors"
+                    >
+                      {colCodeCopied ? 'Copied' : 'Copy'}
+                    </button>
+                  </div>
+                  <button
+                    onClick={copyColLink}
+                    className="text-[10px] uppercase tracking-wider text-secondary hover:text-secondary/80 text-left"
+                  >
+                    {colLinkCopied ? 'Link Copied to Clipboard' : 'Copy Invite Link instead'}
+                  </button>
+                </div>
+              ) : (
+                isOwner && (
+                  <button
+                    onClick={handleGenerateColCode}
+                    disabled={generatingCol}
+                    className="flex-shrink-0 px-8 py-4 bg-secondary text-secondary-foreground text-sm font-sans uppercase tracking-wider hover:bg-secondary/90 transition-colors disabled:opacity-50"
+                  >
+                    {generatingCol ? 'Generating...' : 'Enable Collaborator Access'}
+                  </button>
+                )
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── GUEST ACCESS TABLE ──────────────────────────────────── */}
+      {view === 'members' && (
+        <div>
+          {/* Section header + stats */}
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-sm uppercase tracking-wider text-muted-foreground">
+              Members & Access
+            </h3>
+            {regularGuests.length > 0 && (
+              <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                <span className="flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-secondary" />
+                  {regularGuests.length} joined
+                </span>
+              </div>
+            )}
+          </div>
+
+          {actionError && (
+            <div className="mb-4 p-3 bg-red-500/10 border border-red-500/30 text-red-400 text-sm">
+              {actionError}
+            </div>
+          )}
+
+          {visibleGuests.length > 0 ? (
+            <div>
+              {renderTable(collaborators, "Collaborators")}
+              {renderTable(regularGuests, "Guests")}
+            </div>
+          ) : (
+            <div className="text-center py-16 bg-card border border-border">
+              <svg className="w-12 h-12 mx-auto text-border mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+              </svg>
+              <p className="font-serif text-xl text-foreground mb-2">No joined members yet</p>
+              <p className="text-sm text-muted-foreground max-w-xs mx-auto">
+                Share the invite link or code above. As people join, they&apos;ll appear here.
+              </p>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
