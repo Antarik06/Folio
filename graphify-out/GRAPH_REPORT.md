@@ -1,7 +1,7 @@
 # Graph Report - Folio  (2026-06-03)
 
 ## Corpus Check
-- 414 files · ~381,946 words
+- 414 files · ~399,559 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
@@ -137,8 +137,8 @@
 10. `update()` - 13 edges
 
 ## Surprising Connections (you probably didn't know these)
-- `handleCreateTemplate()` --calls--> `POST()`  [INFERRED]
-  frontend\components\artist\artist-dashboard-client.tsx → app\api\albums\[id]\share-link\route.ts
+- `POST()` --calls--> `handleCreateTemplate()`  [INFERRED]
+  app\api\albums\[id]\share-link\route.ts → frontend\components\artist\artist-dashboard-client.tsx
 - `handleSubmit()` --calls--> `createClient()`  [INFERRED]
   frontend\app\join\page.tsx → lib\supabase\server.ts
 - `handleSubmit()` --calls--> `getUser()`  [INFERRED]
