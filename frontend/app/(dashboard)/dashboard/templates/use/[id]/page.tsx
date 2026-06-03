@@ -8,6 +8,12 @@ import { apiClient } from '@/lib/api-client'
 import { ALL_MAGAZINE_TEMPLATES } from '@/lib/magazine-templates'
 import { Upload, Image as ImageIcon, Calendar, ArrowRight, Loader2, Layers } from 'lucide-react'
 
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+
+function isUuid(value: string | null | undefined): value is string {
+  return typeof value === 'string' && UUID_PATTERN.test(value)
+}
+
 export default function UseTemplatePage() {
   const router = useRouter()
   const params = useParams()
@@ -90,6 +96,12 @@ export default function UseTemplatePage() {
   ]
 
   const handleEventSelect = async (selectedEventId: string, folderId: string | null = null) => {
+    if (!isUuid(selectedEventId)) {
+      console.warn('Ignoring invalid event id for template flow:', selectedEventId)
+      setLoading(false)
+      return
+    }
+
     setLoading(true)
     try {
       // Fetch some photos from the event to auto-layout via Backend
@@ -106,7 +118,6 @@ export default function UseTemplatePage() {
       const album = await apiClient.post('/api/albums', {
         eventId: selectedEventId,
         title: `${template.name} - Volume I`,
-        templateId: template.id,
         layoutData: { 
           productType: 'magazine',
           templateId: template.id,
@@ -127,6 +138,11 @@ export default function UseTemplatePage() {
   }
 
   const handleEventClick = async (event: any) => {
+    if (!isUuid(event?.id)) {
+      console.warn('Ignoring event card with invalid id:', event?.id)
+      return
+    }
+
     setLoading(true)
     try {
       const folders = await apiClient.get(`/api/events/${event.id}/folders`)
@@ -193,7 +209,6 @@ export default function UseTemplatePage() {
       const album = await apiClient.post('/api/albums', {
         eventId: event.id,
         title: `${template.name} Volume`,
-        templateId: template.id,
         layoutData: { 
           productType: 'magazine',
           templateId: template.id,
@@ -219,19 +234,25 @@ export default function UseTemplatePage() {
   }
 
   useEffect(() => {
-    if (eventIdFromUrl) {
+    const validEventId = isUuid(eventIdFromUrl) ? eventIdFromUrl : null
+
+    if (validEventId) {
       void loadEvents().then(() => setView('event'))
+    } else if (eventIdFromUrl) {
+      console.warn('Ignoring invalid eventId query param:', eventIdFromUrl)
     }
   }, [eventIdFromUrl, loadEvents])
 
   useEffect(() => {
     const autoSelect = async () => {
-      if (!eventIdFromUrl || autoCreateTriggeredRef.current) return
+      const validEventId = isUuid(eventIdFromUrl) ? eventIdFromUrl : null
+
+      if (!validEventId || autoCreateTriggeredRef.current) return
       autoCreateTriggeredRef.current = true
       
       setLoading(true)
       try {
-        const folders = await apiClient.get(`/api/events/${eventIdFromUrl}/folders`)
+        const folders = await apiClient.get(`/api/events/${validEventId}/folders`)
         if (folders && folders.length > 0) {
           // Fetch event details to show name
           const eventsData = await apiClient.get('/api/events')
@@ -239,16 +260,16 @@ export default function UseTemplatePage() {
             ...(eventsData.hostedEvents || []),
             ...(eventsData.guestEvents || [])
           ] : []
-          const event = eventList.find((e: any) => e.id === eventIdFromUrl)
-          setSelectedEventForFolders(event || { id: eventIdFromUrl, title: 'Selected Event' })
+          const event = eventList.find((e: any) => e.id === validEventId)
+          setSelectedEventForFolders(event || { id: validEventId, title: 'Selected Event' })
           setEventFolders(folders)
           setView('folder')
         } else {
-          await handleEventSelect(eventIdFromUrl, null)
+          await handleEventSelect(validEventId, null)
         }
       } catch (err) {
         console.error('Auto select event error:', err)
-        await handleEventSelect(eventIdFromUrl, null)
+        await handleEventSelect(validEventId, null)
       } finally {
         setLoading(false)
       }
