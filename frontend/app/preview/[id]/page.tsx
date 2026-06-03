@@ -11,6 +11,7 @@ interface PreviewPageProps {
 export default async function PreviewPage({ params }: PreviewPageProps) {
   const { id } = await params
   const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
   const { data: { session } } = await supabase.auth.getSession()
   const token = session?.access_token || null
 

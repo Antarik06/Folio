@@ -12,6 +12,10 @@ async function getAuthToken() {
     return 'admin-secret-token'
   }
   const supabase = await createClient()
+  // Verify user identity with the Auth server (prevents session spoofing)
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return null
+  // Get session only for the access token
   const { data: { session } } = await supabase.auth.getSession()
   return session?.access_token || null
 }

@@ -1,9 +1,14 @@
 import { createClient } from '@/lib/supabase/server'
 import { serverFetch } from '@/lib/api-client'
+import { redirect } from 'next/navigation'
 import Link from 'next/link'
 
 export default async function EventsPage() {
   const supabase = await createClient()
+  // Verify user identity securely
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) redirect('/auth/login')
+  // Get session only for the access token
   const { data: { session } } = await supabase.auth.getSession()
   const token = session?.access_token || null
 

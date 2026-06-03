@@ -11,9 +11,9 @@ interface Props {
 export default async function JoinCodePage({ params }: Props) {
   const { code } = await params
   const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
   const { data: { session } } = await supabase.auth.getSession()
   const token = session?.access_token || null
-  const user = session?.user || null
 
   // Look up the event
   const eventResult = await getEventByInviteCode(code)

@@ -11,11 +11,10 @@ interface Props {
 export default async function MyPhotosPage({ params }: Props) {
   const { id: eventId } = await params
   const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) redirect('/auth/login')
   const { data: { session } } = await supabase.auth.getSession()
   const token = session?.access_token || null
-  const user = session?.user || null
-
-  if (!user) redirect('/auth/login')
 
   // Fetch event details from backend
   let details: any = null

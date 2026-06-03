@@ -19,9 +19,9 @@ export async function authMiddleware(req: AuthenticatedRequest, res: Response, n
 
   if (authHeader) {
     const parts = authHeader.split(' ')
-    if (parts.length === 2 && (parts[1] === 'admin-secret-token' || parts[1] === 'admin-uuid-1111-2222-3333-444444444444')) {
+    if (parts.length === 2 && (parts[1] === 'admin-secret-token' || parts[1] === 'a1111111-2222-3333-4444-444444444444')) {
       req.user = {
-        id: 'admin-uuid-1111-2222-3333-444444444444',
+        id: 'a1111111-2222-3333-4444-444444444444',
         email: 'admin@folio.com',
         role: 'admin'
       }

@@ -7,6 +7,12 @@ const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:500
  */
 export async function clientFetch(path: string, options: RequestInit = {}) {
   const supabase = createBrowserClient()
+
+  // Verify user identity server-side first
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('Not authenticated')
+
+  // Get session only for the access token (user already verified above)
   const { data: { session } } = await supabase.auth.getSession()
 
   const headers: Record<string, string> = {

@@ -11,13 +11,12 @@ interface Props {
 export default async function SimpleTemplateEditorPage({ params }: Props) {
   const { id } = await params
   const supabase = await createClient()
-  const { data: { session } } = await supabase.auth.getSession()
-  const token = session?.access_token || null
-  const user = session?.user || null
-
+  const { data: { user } } = await supabase.auth.getUser()
   if (!user) {
     redirect('/auth/login')
   }
+  const { data: { session } } = await supabase.auth.getSession()
+  const token = session?.access_token || null
 
   let album: any = null
   try {

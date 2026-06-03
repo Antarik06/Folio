@@ -80,7 +80,7 @@ export async function getUser() {
   const isAdmin = cookieStore.get('admin_session')?.value === 'admin-secret-token'
   if (isAdmin) {
     return {
-      id: 'admin-uuid-1111-2222-3333-444444444444',
+      id: 'a1111111-2222-3333-4444-444444444444',
       email: 'admin@folio.com',
       user_metadata: {
         full_name: 'Super Admin'
@@ -101,7 +101,7 @@ export async function getProfile() {
   const isAdmin = cookieStore.get('admin_session')?.value === 'admin-secret-token'
   if (isAdmin) {
     return {
-      id: 'admin-uuid-1111-2222-3333-444444444444',
+      id: 'a1111111-2222-3333-4444-444444444444',
       email: 'admin@folio.com',
       full_name: 'Super Admin',
       role: 'admin'
@@ -109,6 +109,9 @@ export async function getProfile() {
   }
 
   const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return null
+
   const { data: { session } } = await supabase.auth.getSession()
   const token = session?.access_token || null
   if (!token) return null

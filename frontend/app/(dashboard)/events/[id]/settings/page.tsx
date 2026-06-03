@@ -11,10 +11,10 @@ interface Props {
 export default async function EventSettingsPage({ params }: Props) {
   const { id } = await params
   const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) redirect('/auth/login')
   const { data: { session } } = await supabase.auth.getSession()
   const token = session?.access_token || null
-
-  if (!session?.user) redirect('/auth/login')
 
   let details: any = null
   try {
@@ -26,7 +26,7 @@ export default async function EventSettingsPage({ params }: Props) {
 
   const { event, roleInfo, photos = [] } = details
 
-  const isOwner = event.host_id === session.user.id
+  const isOwner = event.host_id === user.id
   const isCollaborator = roleInfo.isCollaborator
   const isManager = isOwner || isCollaborator
 

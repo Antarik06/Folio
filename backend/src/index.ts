@@ -9,9 +9,26 @@ dotenv.config()
 
 async function ensureAdminProfile() {
   try {
+    // Check if auth.users table exists (typical in Supabase setups where profiles has a foreign key to auth.users)
+    const checkAuthUsers = await query(`
+      SELECT EXISTS (
+        SELECT 1 FROM information_schema.tables 
+        WHERE table_schema = 'auth' AND table_name = 'users'
+      )
+    `)
+    const hasAuthUsers = checkAuthUsers.rows[0]?.exists
+
+    if (hasAuthUsers) {
+      await query(`
+        INSERT INTO auth.users (id, email, raw_user_meta_data, aud, role)
+        VALUES ('a1111111-2222-3333-4444-444444444444', 'admin@folio.com', '{"full_name": "Super Admin"}', 'authenticated', 'authenticated')
+        ON CONFLICT (id) DO NOTHING
+      `)
+    }
+
     await query(`
       INSERT INTO public.profiles (id, email, full_name, avatar_url)
-      VALUES ('admin-uuid-1111-2222-3333-444444444444', 'admin@folio.com', 'Super Admin', '')
+      VALUES ('a1111111-2222-3333-4444-444444444444', 'admin@folio.com', 'Super Admin', '')
       ON CONFLICT (id) DO NOTHING
     `)
     console.log('Super Admin profile verified/created in database.')

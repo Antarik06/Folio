@@ -15,9 +15,10 @@ export default async function AlbumOrderPage({ params }: Props) {
   const supabase = await createClient()
 
   // Auth check (layout also guards, but we need user.id for ownership)
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) redirect('/auth/login')
   const { data: { session } } = await supabase.auth.getSession()
   const token = session?.access_token || null
-  if (!session?.user) redirect('/auth/login')
 
   // Fetch album
   let album: any = null
