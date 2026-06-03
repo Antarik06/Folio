@@ -14,8 +14,21 @@ export async function clientFetch(path: string, options: RequestInit = {}) {
     ...(options.headers as Record<string, string> || {})
   }
 
-  if (session?.access_token) {
-    headers['Authorization'] = `Bearer ${session.access_token}`
+  let token = session?.access_token || null
+
+  if (!token && typeof document !== 'undefined') {
+    const cookies = document.cookie.split(';')
+    const artistCookie = cookies.find(c => c.trim().startsWith('artist_session='))
+    const adminCookie = cookies.find(c => c.trim().startsWith('admin_session='))
+    if (artistCookie) {
+      token = artistCookie.split('=')[1].trim()
+    } else if (adminCookie) {
+      token = adminCookie.split('=')[1].trim()
+    }
+  }
+
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`
   }
 
   const response = await fetch(`${BACKEND_URL}${path}`, {

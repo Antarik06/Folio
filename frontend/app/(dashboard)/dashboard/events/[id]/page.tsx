@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { cookies } from 'next/headers'
 import { notFound, redirect } from 'next/navigation'
 import { EventHeader } from '@/components/events/event-header'
 import { PhotoGrid } from '@/components/events/photo-grid'
@@ -18,10 +19,32 @@ interface Props {
 
 export default async function EventDetailPage({ params }: Props) {
   const { id } = await params
-  const supabase = await createClient()
-  const { data: { session } } = await supabase.auth.getSession()
-  const token = session?.access_token || null
-  const user = session?.user || null
+  
+  // Get authentication and token
+  const cookieStore = await cookies()
+  let token = null
+  let user: any = null
+
+  if (cookieStore.get('artist_session')?.value === 'artist-secret-token') {
+    token = 'artist-secret-token'
+    user = {
+      id: '22222222-3333-4444-5555-555555555555',
+      email: 'artist@folio.com',
+      role: 'artist'
+    }
+  } else if (cookieStore.get('admin_session')?.value === 'admin-secret-token') {
+    token = 'admin-secret-token'
+    user = {
+      id: '11111111-2222-3333-4444-444444444444',
+      email: 'admin@folio.com',
+      role: 'admin'
+    }
+  } else {
+    const supabase = await createClient()
+    const { data: { session } } = await supabase.auth.getSession()
+    token = session?.access_token || null
+    user = session?.user || null
+  }
 
   if (!user) redirect('/auth/login')
 
@@ -90,6 +113,7 @@ export default async function EventDetailPage({ params }: Props) {
         {/* Guests Tab */}
         <div data-tab="guests" className="py-8">
           <GuestList
+            view="members"
             guests={(guests || []).map((g: any) => ({
               id: g.id,
               user_id: g.user_id,
@@ -108,6 +132,22 @@ export default async function EventDetailPage({ params }: Props) {
             isManager={isManager}
           />
         </div>
+
+        {/* Share Tab */}
+        {isManager && (
+          <div data-tab="share" className="py-8">
+            <GuestList
+              view="share"
+              guests={[]}
+              eventId={id}
+              inviteCode={event.invite_code}
+              collaboratorCode={collaboratorCode}
+              settings={event.settings}
+              isOwner={isOwner}
+              isManager={isManager}
+            />
+          </div>
+        )}
 
         {/* Albums Tab */}
         <div data-tab="albums" className="space-y-12 py-8">

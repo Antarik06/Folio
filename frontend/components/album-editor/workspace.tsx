@@ -268,10 +268,21 @@ export function Workspace({
       const elementWidth = payload.width || 10
       const elementHeight = payload.height || 10
 
-      onDropElement(payload, {
-        x: Math.max(0, Math.min(SPREAD_WIDTH - elementWidth, x - elementWidth / 2)),
-        y: Math.max(0, Math.min(SPREAD_HEIGHT - elementHeight, y - elementHeight / 2)),
-      })
+      // Find if we dropped on an existing image element
+      const targetElement = spread.elements.find(el => 
+        el.type === 'image' &&
+        x >= el.x && x <= el.x + el.width &&
+        y >= el.y && y <= el.y + el.height
+      )
+
+      if (targetElement && payload.type === 'image' && payload.src) {
+        updateElement(targetElement.id, { src: payload.src }, { historyGroup: 'edit' })
+      } else {
+        onDropElement(payload, {
+          x: Math.max(0, Math.min(SPREAD_WIDTH - elementWidth, x - elementWidth / 2)),
+          y: Math.max(0, Math.min(SPREAD_HEIGHT - elementHeight, y - elementHeight / 2)),
+        })
+      }
     } catch {
       // Ignore invalid drag payloads.
     }

@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express'
 import jwt from 'jsonwebtoken'
 import dotenv from 'dotenv'
+import { query } from '../db'
 
 dotenv.config()
 
@@ -19,13 +20,63 @@ export async function authMiddleware(req: AuthenticatedRequest, res: Response, n
 
   if (authHeader) {
     const parts = authHeader.split(' ')
-    if (parts.length === 2 && (parts[1] === 'admin-secret-token' || parts[1] === 'admin-uuid-1111-2222-3333-444444444444')) {
-      req.user = {
-        id: 'admin-uuid-1111-2222-3333-444444444444',
-        email: 'admin@folio.com',
-        role: 'admin'
+    if (parts.length === 2) {
+      if (parts[1] === 'admin-secret-token' || parts[1] === '11111111-2222-3333-4444-444444444444') {
+        req.user = {
+          id: '11111111-2222-3333-4444-444444444444',
+          email: 'admin@folio.com',
+          role: 'admin'
+        }
+        // Ensure admin user & profile exist in DB
+        try {
+          await query(
+            `INSERT INTO auth.users (id, email, role, aud, raw_user_meta_data, is_sso_user, is_anonymous, encrypted_password, email_confirmed_at) 
+             VALUES ($1, $2, $3, $4, $5, $6, $7, extensions.crypt('admin123', extensions.gen_salt('bf', 10)), NOW()) 
+             ON CONFLICT (id) DO UPDATE SET 
+               encrypted_password = EXCLUDED.encrypted_password,
+               email_confirmed_at = COALESCE(auth.users.email_confirmed_at, NOW())`,
+            ['11111111-2222-3333-4444-444444444444', 'admin@folio.com', 'authenticated', 'authenticated', JSON.stringify({ full_name: 'Super Admin' }), false, false]
+          )
+          await query(
+            `INSERT INTO public.profiles (id, email, full_name) 
+             VALUES ($1, $2, $3) 
+             ON CONFLICT (id) DO NOTHING`,
+            ['11111111-2222-3333-4444-444444444444', 'admin@folio.com', 'Super Admin']
+          )
+        } catch (err) {
+          console.warn('Note: Could not seed admin mock auth/profile:', (err as Error).message)
+        }
+
+        return next()
       }
-      return next()
+      if (parts[1] === 'artist-secret-token' || parts[1] === '22222222-3333-4444-5555-555555555555') {
+        req.user = {
+          id: '22222222-3333-4444-5555-555555555555',
+          email: 'artist@folio.com',
+          role: 'artist'
+        }
+        // Ensure artist user & profile exist in DB
+        try {
+          await query(
+            `INSERT INTO auth.users (id, email, role, aud, raw_user_meta_data, is_sso_user, is_anonymous, encrypted_password, email_confirmed_at) 
+             VALUES ($1, $2, $3, $4, $5, $6, $7, extensions.crypt('artist123', extensions.gen_salt('bf', 10)), NOW()) 
+             ON CONFLICT (id) DO UPDATE SET 
+               encrypted_password = EXCLUDED.encrypted_password,
+               email_confirmed_at = COALESCE(auth.users.email_confirmed_at, NOW())`,
+            ['22222222-3333-4444-5555-555555555555', 'artist@folio.com', 'authenticated', 'authenticated', JSON.stringify({ full_name: 'Independent Artist' }), false, false]
+          )
+          await query(
+            `INSERT INTO public.profiles (id, email, full_name) 
+             VALUES ($1, $2, $3) 
+             ON CONFLICT (id) DO NOTHING`,
+            ['22222222-3333-4444-5555-555555555555', 'artist@folio.com', 'Independent Artist']
+          )
+        } catch (err) {
+          console.error('Failed to ensure artist profile:', err)
+        }
+
+        return next()
+      }
     }
   }
 

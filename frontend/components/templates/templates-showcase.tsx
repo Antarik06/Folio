@@ -17,6 +17,7 @@ const CATEGORIES = [
   { id: 'Modern', label: 'Modern', icon: '▪' },
   { id: 'Birthday', label: 'Celebrations', icon: '✧' },
   { id: 'Nostalgic', label: 'Legacy', icon: '◉' },
+  { id: 'Artist', label: 'Artist Originals', icon: '🎨' },
 ]
 
 const COLLECTIONS = [

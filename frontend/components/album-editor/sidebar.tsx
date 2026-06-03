@@ -22,6 +22,7 @@ interface SidebarProps {
   activePanel: SidebarPanel
   onChangePanel: (p: SidebarPanel) => void
   onAddElement: (el: any) => void
+  onUpdateElement?: (id: string, partial: Partial<AlbumElement>, options?: { historyGroup?: string }) => void
   photos?: any[]
   onGoBack: () => void
   spreadBackground?: string
@@ -491,6 +492,7 @@ export function Sidebar({
   activePanel,
   onChangePanel,
   onAddElement,
+  onUpdateElement,
   photos = [],
   onGoBack,
   spreadBackground = '#FFFFFF',
@@ -1261,7 +1263,11 @@ export function Sidebar({
                       startDrag(event, toImageElement(photo.blob_url, photo.width || 600, photo.height || 400))
                     }}
                     onClick={() => {
-                      onAddElement(toImageElement(photo.blob_url, photo.width || 600, photo.height || 400))
+                      if (primarySelected && primarySelected.type === 'image' && onUpdateElement) {
+                        onUpdateElement(primarySelected.id, { src: photo.blob_url })
+                      } else {
+                        onAddElement(toImageElement(photo.blob_url, photo.width || 600, photo.height || 400))
+                      }
                     }}
                   >
                     <img 
@@ -1327,7 +1333,13 @@ export function Sidebar({
                     className="aspect-square bg-gray-100 dark:bg-[#201c16] rounded-md overflow-hidden cursor-pointer hover:ring-2 hover:ring-terracotta"
                     draggable
                     onDragStart={(event) => startDrag(event, toImageElement(item.src, item.width, item.height))}
-                    onClick={() => onAddElement(toImageElement(item.src, item.width, item.height))}
+                    onClick={() => {
+                      if (primarySelected && primarySelected.type === 'image' && onUpdateElement) {
+                        onUpdateElement(primarySelected.id, { src: item.src })
+                      } else {
+                        onAddElement(toImageElement(item.src, item.width, item.height))
+                      }
+                    }}
                   >
                     <img src={item.src} alt={item.name} className="w-full h-full object-cover" />
                   </div>

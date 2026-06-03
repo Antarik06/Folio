@@ -231,5 +231,37 @@ export const albumController = {
     } catch (error: any) {
       res.status(500).json({ error: error.message })
     }
+  },
+
+  /**
+   * PATCH /api/albums/:id/publish
+   */
+  async publish(req: AuthenticatedRequest, res: Response) {
+    try {
+      const albumId = req.params.id
+      const userId = req.user?.id
+      const { isPublished } = req.body
+
+      if (!userId) {
+        return res.status(401).json({ error: 'Unauthenticated' })
+      }
+
+      const album = await albumService.updatePublishStatus(albumId, !!isPublished, userId)
+      res.json({ success: true, album })
+    } catch (error: any) {
+      res.status(500).json({ error: error.message })
+    }
+  },
+
+  /**
+   * GET /api/albums/published
+   */
+  async listPublished(req: any, res: Response) {
+    try {
+      const albums = await albumService.listPublishedAlbums()
+      res.json(albums)
+    } catch (error: any) {
+      res.status(500).json({ error: error.message })
+    }
   }
 }

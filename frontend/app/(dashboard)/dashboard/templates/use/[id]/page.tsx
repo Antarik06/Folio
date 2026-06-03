@@ -15,7 +15,7 @@ export default function UseTemplatePage() {
   const id = params.id as string
   const eventIdFromUrl = searchParams.get('eventId')
   
-  const template = ALL_MAGAZINE_TEMPLATES.find(t => t.id === id)
+  const [template, setTemplate] = useState<any>(() => ALL_MAGAZINE_TEMPLATES.find(t => t.id === id) || null)
   const [loading, setLoading] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [hostedEvents, setHostedEvents] = useState<any[]>([])
@@ -32,7 +32,35 @@ export default function UseTemplatePage() {
     }
   }, [])
 
-  if (!template) return null
+  useEffect(() => {
+    if (!template && id) {
+      apiClient.get(`/api/albums/${id}`)
+        .then(album => {
+          if (album) {
+            setTemplate({
+              id: album.id,
+              name: album.title,
+              description: album.description || 'Curated template by independent artist.',
+              thumbnail: album.cover_photo_url || 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?q=80&w=800&auto=format&fit=crop',
+              category: 'Artist',
+              spreads: album.layout_data?.spreads || []
+            })
+          }
+        })
+        .catch(err => {
+          console.error('Failed to load dynamic template:', err)
+        })
+    }
+  }, [id, template])
+
+  if (!template) {
+    return (
+      <div className="min-h-screen bg-paper flex flex-col items-center justify-center gap-4">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        <p className="font-serif italic text-sm text-pencil">Retrieving artist layout...</p>
+      </div>
+    )
+  }
   const templateSpreads = template.spreads.length > 0 ? template.spreads : [
     {
       id: `${template.id}-cover`,

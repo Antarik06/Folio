@@ -14,9 +14,12 @@ export function EventTabs({ eventId, isHost, defaultTab = 'photos', children }: 
 
   const tabs = [
     { id: 'photos', label: 'Photos' },
-    { id: 'guests', label: 'Guests' },
     { id: 'albums', label: 'Albums' },
+    { id: 'guests', label: 'Guests' },
   ]
+  if (isHost) {
+    tabs.push({ id: 'share', label: 'Share' })
+  }
 
   // Find the active tab content from children
   const tabContent = Children.toArray(children).find((child) => {
