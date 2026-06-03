@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { cookies } from 'next/headers'
 import { notFound, redirect } from 'next/navigation'
 import { EventHeader } from '@/components/events/event-header'
 import { PhotoGrid } from '@/components/events/photo-grid'
@@ -10,6 +11,7 @@ import { TemplateSelector } from '@/components/events/template-selector'
 import { serverFetch } from '@/lib/api-client'
 import { createAlbumAction } from '@/lib/actions/events'
 import { CreateAlbumFlow } from '@/components/events/create-album-flow'
+import { getUser } from '@/lib/actions/auth'
 
 
 interface Props {
@@ -18,13 +20,22 @@ interface Props {
 
 export default async function EventDetailPage({ params }: Props) {
   const { id } = await params
-  const supabase = await createClient()
-  // Verify user identity securely
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getUser()
   if (!user) redirect('/auth/login')
-  // Get session only for the access token
-  const { data: { session } } = await supabase.auth.getSession()
-  const token = session?.access_token || null
+
+  // Get authentication token (checking mock cookies first, then Supabase session)
+  const cookieStore = await cookies()
+  let token: string | null = null
+
+  if (cookieStore.get('artist_session')?.value === 'artist-secret-token') {
+    token = 'artist-secret-token'
+  } else if (cookieStore.get('admin_session')?.value === 'admin-secret-token') {
+    token = 'admin-secret-token'
+  } else {
+    const supabase = await createClient()
+    const { data: { session } } = await supabase.auth.getSession()
+    token = session?.access_token || null
+  }
 
   // Fetch event details from backend
   let details: any = null
@@ -91,6 +102,7 @@ export default async function EventDetailPage({ params }: Props) {
         {/* Guests Tab */}
         <div data-tab="guests" className="py-8">
           <GuestList
+            view="members"
             guests={(guests || []).map((g: any) => ({
               id: g.id,
               user_id: g.user_id,
@@ -109,6 +121,22 @@ export default async function EventDetailPage({ params }: Props) {
             isManager={isManager}
           />
         </div>
+
+        {/* Share Tab */}
+        {isManager && (
+          <div data-tab="share" className="py-8">
+            <GuestList
+              view="share"
+              guests={[]}
+              eventId={id}
+              inviteCode={event.invite_code}
+              collaboratorCode={collaboratorCode}
+              settings={event.settings}
+              isOwner={isOwner}
+              isManager={isManager}
+            />
+          </div>
+        )}
 
         {/* Albums Tab */}
         <div data-tab="albums" className="space-y-12 py-8">

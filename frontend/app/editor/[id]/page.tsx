@@ -1,7 +1,9 @@
+import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { AlbumEditor } from '@/components/album-editor'
 import { serverFetch } from '@/lib/api-client'
+import { getUser } from '@/lib/actions/auth'
 
 export default async function EditorPage({
   params
@@ -9,23 +11,37 @@ export default async function EditorPage({
   params: Promise<{ id: string }>
 }) {
   const { id } = await params
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getUser()
   if (!user) {
+    console.log('[EditorPage] No user found, redirecting to /auth/login')
     redirect('/auth/login')
   }
-  const { data: { session } } = await supabase.auth.getSession()
-  const token = session?.access_token || null
+
+  // Get authentication token (checking mock cookies first, then Supabase session)
+  const cookieStore = await cookies()
+  let token: string | null = null
+  if (cookieStore.get('artist_session')?.value === 'artist-secret-token') {
+    token = 'artist-secret-token'
+  } else if (cookieStore.get('admin_session')?.value === 'admin-secret-token') {
+    token = 'admin-secret-token'
+  } else {
+    const supabase = await createClient()
+    const { data: { session } } = await supabase.auth.getSession()
+    token = session?.access_token || null
+  }
+  console.log('[EditorPage] Resolved token:', token)
 
   let album: any = null
   try {
     album = await serverFetch(`/api/albums/${id}`, token)
+    console.log('[EditorPage] Successfully fetched album:', album?.title)
   } catch (err) {
-    console.error('Error fetching album for advanced editor:', err)
+    console.error('[EditorPage] Error fetching album for advanced editor:', err)
     redirect('/dashboard')
   }
 
   if (!album) {
+    console.log('[EditorPage] Album empty/null, redirecting to /dashboard')
     redirect('/dashboard')
   }
 

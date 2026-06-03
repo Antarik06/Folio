@@ -30,7 +30,7 @@ export const albumService = {
       }
     }
 
-    if (album.owner_id === userId) {
+    if (album.owner_id === userId || album.is_published) {
       return album
     }
 
@@ -211,5 +211,26 @@ export const albumService = {
       [instructions || null, albumId]
     )
     return updateRes.rows[0]
+  },
+
+  async updatePublishStatus(albumId: string, isPublished: boolean, userId: string): Promise<any> {
+    const album = await this.assertManageableAlbum(albumId, userId)
+    const updateRes = await query(
+      'UPDATE public.albums SET is_published = $1, updated_at = NOW() WHERE id = $2 RETURNING *',
+      [isPublished, albumId]
+    )
+    return updateRes.rows[0]
+  },
+
+  async listPublishedAlbums(): Promise<any[]> {
+    const res = await query(
+      `SELECT a.id, a.title, a.description, a.cover_photo_id, a.template_id, a.layout_data, a.style_data, a.is_published, a.created_at,
+              p.thumbnail_url as cover_photo_url
+       FROM public.albums a
+       LEFT JOIN public.photos p ON a.cover_photo_id = p.id
+       WHERE a.is_published = true
+       ORDER BY a.created_at DESC`
+    )
+    return res.rows
   }
 }

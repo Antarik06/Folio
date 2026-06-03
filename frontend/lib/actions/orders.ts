@@ -11,6 +11,10 @@ async function getAuthToken() {
   if (isAdmin) {
     return 'admin-secret-token'
   }
+  const isArtist = cookieStore.get('artist_session')?.value === 'artist-secret-token'
+  if (isArtist) {
+    return 'artist-secret-token'
+  }
   const supabase = await createClient()
   // Verify user identity with the Auth server (prevents session spoofing)
   const { data: { user } } = await supabase.auth.getUser()

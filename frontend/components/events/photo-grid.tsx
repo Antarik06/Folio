@@ -59,7 +59,10 @@ interface PhotoGridProps {
   isGuest?: boolean
 }
 
-function getGridClasses(index: number) {
+function getGridClasses(index: number, totalCount: number) {
+  if (totalCount <= 2) {
+    return 'col-span-1 row-span-1'
+  }
   const pattern = index % 10;
   switch (pattern) {
     case 0:
@@ -90,9 +93,64 @@ export function PhotoGrid({ photos, folders, eventId, currentUserId, isOwner, is
   const [selectedPerson, setSelectedPerson] = useState<string | null>(null)
   const [selectedLocation, setSelectedLocation] = useState<string | null>(null)
 
+  // Layout & Multi-select Drag-and-Drop States
+  const [layoutMode, setLayoutMode] = useState<'editorial' | 'grid' | 'rows' | 'masonry'>('editorial')
+  const [isSelectionMode, setIsSelectionMode] = useState(false)
+  const [selectedPhotoIds, setSelectedPhotoIds] = useState<string[]>([])
+  const [draggedOverFolderId, setDraggedOverFolderId] = useState<string | null>(null)
+
   useEffect(() => {
     setLocalPhotos(photos)
   }, [photos])
+
+  // Drag and Drop handlers
+  function handleDragStart(e: React.DragEvent, photoId: string) {
+    const ids = selectedPhotoIds.includes(photoId) ? selectedPhotoIds : [photoId]
+    e.dataTransfer.setData('text/plain', JSON.stringify(ids))
+    e.dataTransfer.effectAllowed = 'move'
+  }
+
+  function handleDragOverFolder(e: React.DragEvent, folderId: string | null) {
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'move'
+  }
+
+  function handleDragEnterFolder(e: React.DragEvent, folderId: string | null) {
+    e.preventDefault()
+    setDraggedOverFolderId(folderId)
+  }
+
+  function handleDragLeaveFolder(e: React.DragEvent) {
+    e.preventDefault()
+    setDraggedOverFolderId(null)
+  }
+
+  async function handleDropOnFolder(e: React.DragEvent, folderId: string | null) {
+    e.preventDefault()
+    setDraggedOverFolderId(null)
+    try {
+      const dataStr = e.dataTransfer.getData('text/plain')
+      if (!dataStr) return
+      const photoIds: string[] = JSON.parse(dataStr)
+      if (!Array.isArray(photoIds) || photoIds.length === 0) return
+
+      // Optimistic UI state update
+      setLocalPhotos(prev =>
+        prev.map(p => photoIds.includes(p.id) ? { ...p, folder_id: folderId } : p)
+      )
+
+      startTransition(async () => {
+        for (const id of photoIds) {
+          await movePhotoAction(eventId, id, folderId)
+        }
+        setSelectedPhotoIds([])
+        setIsSelectionMode(false)
+        window.location.reload()
+      })
+    } catch (err) {
+      console.error('Error moving photos:', err)
+    }
+  }
 
   // Extract unique people tags and locations for filter dropdowns
   const allPeople = Array.from(
@@ -267,6 +325,121 @@ export function PhotoGrid({ photos, folders, eventId, currentUserId, isOwner, is
     }
   }
 
+  const renderPhotoCard = (photo: Photo, index: number, className: string) => {
+    const isSelected = selectedPhotoIds.includes(photo.id)
+    return (
+      <div
+        key={photo.id}
+        draggable={true}
+        onDragStart={(e) => handleDragStart(e, photo.id)}
+        className={`relative group bg-card overflow-hidden transition-all duration-300 ${
+          isSelected ? 'ring-4 ring-primary ring-inset scale-[0.98]' : ''
+        } ${className}`}
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={photo.thumbnail_url || photo.blob_url}
+          alt=""
+          onClick={() => {
+            if (isSelectionMode) {
+              setSelectedPhotoIds(prev =>
+                isSelected ? prev.filter(id => id !== photo.id) : [...prev, photo.id]
+              )
+            } else {
+              setActivePhoto(photo)
+            }
+          }}
+          className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105 cursor-pointer"
+          style={layoutMode === 'masonry' ? { height: 'auto' } : undefined}
+        />
+
+        {/* Shared indicator */}
+        {photo.is_shared && (
+          <div className="absolute top-2 left-2 w-5 h-5 bg-secondary flex items-center justify-center shadow-sm">
+            <svg className="w-3 h-3 text-secondary-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+            </svg>
+          </div>
+        )}
+
+        {/* Selection checkbox overlay */}
+        {isSelectionMode && (
+          <div 
+            onClick={(e) => {
+              e.stopPropagation()
+              setSelectedPhotoIds(prev =>
+                isSelected ? prev.filter(id => id !== photo.id) : [...prev, photo.id]
+              )
+            }}
+            className="absolute top-2 right-2 w-6 h-6 bg-background/90 border border-border flex items-center justify-center z-10 rounded-sm cursor-pointer"
+          >
+            <input
+              type="checkbox"
+              checked={isSelected}
+              readOnly
+              className="w-4 h-4 accent-primary cursor-pointer"
+            />
+          </div>
+        )}
+
+        {/* Manager overlay: toggle share & move to folder */}
+        {isManager && !isSelectionMode && (
+          <div className="absolute inset-0 flex flex-col justify-end p-3 opacity-0 group-hover:opacity-100 transition-opacity bg-gradient-to-t from-black/70 via-black/10 to-transparent pointer-events-none gap-2">
+            
+            {/* Share Action */}
+            <button
+              onClick={(e) => { e.stopPropagation(); handleToggleShare(photo.id, photo.is_shared ?? false); }}
+              disabled={isPending}
+              className={`pointer-events-auto w-full py-1.5 text-[9px] font-bold uppercase tracking-widest transition-colors disabled:opacity-50 text-center rounded-sm ${
+                photo.is_shared
+                  ? 'bg-card text-foreground hover:bg-card/90'
+                  : 'bg-secondary text-secondary-foreground hover:bg-secondary/90'
+              }`}
+            >
+              {photo.is_shared ? 'Unshare' : 'Share'}
+            </button>
+
+            {/* Move Folder Dropdown selector */}
+            <div className="pointer-events-auto w-full">
+              <select
+                value={photo.folder_id || ''}
+                onClick={e => e.stopPropagation()} // avoid lightbox open
+                onChange={e => handleMovePhoto(photo.id, e.target.value || null)}
+                className="w-full bg-background/95 border border-border text-[9px] uppercase tracking-wider text-muted-foreground font-bold px-2 py-1 text-center focus:outline-none"
+                title="Move to folder"
+              >
+                <option value="">Move to Root</option>
+                {folders.map(f => (
+                  <option key={f.id} value={f.id}>{f.name}</option>
+                ))}
+              </select>
+            </div>
+
+          </div>
+        )}
+
+        {/* Guest: pending own upload label */}
+        {isGuest && photo.status === 'pending' && (
+          <div className="absolute bottom-2 left-2 px-1.5 py-0.5 bg-background/80 text-foreground text-[9px] uppercase tracking-wider font-bold">
+            Pending
+          </div>
+        )}
+
+        {/* Delete button */}
+        {!isSelectionMode && (isManager || photo.uploader_id === currentUserId) && (
+          <button
+            onClick={(e) => { e.stopPropagation(); handleDelete(photo.id); }}
+            disabled={isPending}
+            className="absolute top-2 right-2 p-1.5 bg-background/80 text-muted-foreground hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100 disabled:opacity-50"
+            title="Delete photo"
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
+        )}
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-8">
       
@@ -285,7 +458,13 @@ export function PhotoGrid({ photos, folders, eventId, currentUserId, isOwner, is
                     setSelectedPerson(null)
                     setSelectedLocation(null)
                   }}
-                  className={`hover:text-foreground transition-colors cursor-pointer ${
+                  onDragOver={(e) => handleDragOverFolder(e, crumb.id)}
+                  onDragEnter={(e) => handleDragEnterFolder(e, crumb.id || 'root')}
+                  onDragLeave={handleDragLeaveFolder}
+                  onDrop={(e) => handleDropOnFolder(e, crumb.id)}
+                  className={`hover:text-foreground transition-all cursor-pointer p-1 rounded ${
+                    draggedOverFolderId === (crumb.id || 'root') ? 'bg-primary/20 border border-primary text-foreground' : ''
+                  } ${
                     crumb.id === currentFolderId && !isFiltering
                       ? 'text-foreground font-bold underline decoration-primary underline-offset-4'
                       : ''
@@ -348,6 +527,74 @@ export function PhotoGrid({ photos, folders, eventId, currentUserId, isOwner, is
               </button>
             )}
 
+            {/* Select Mode Toggle */}
+            <button
+              type="button"
+              onClick={() => {
+                setIsSelectionMode(prev => !prev)
+                setSelectedPhotoIds([])
+              }}
+              className={`flex items-center gap-1.5 px-3 py-2 border text-xs uppercase tracking-wider font-bold transition-all cursor-pointer ${
+                isSelectionMode
+                  ? 'bg-primary border-primary text-primary-foreground'
+                  : 'bg-card border-border text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              {isSelectionMode ? 'Cancel Selection' : 'Select Photos'}
+            </button>
+
+            {/* Batch Move Selector */}
+            {isSelectionMode && selectedPhotoIds.length > 0 && isManager && (
+              <div className="flex items-center gap-2 bg-card border border-border px-3 py-1 animate-in fade-in duration-200">
+                <span className="text-[10px] text-muted-foreground font-bold uppercase font-mono">
+                  {selectedPhotoIds.length} Sel:
+                </span>
+                <select
+                  onChange={async (e) => {
+                    const targetFolderId = e.target.value === '__root__' ? null : (e.target.value || null)
+                    if (e.target.value && window.confirm(`Move ${selectedPhotoIds.length} photos?`)) {
+                      setLocalPhotos(prev =>
+                        prev.map(p => selectedPhotoIds.includes(p.id) ? { ...p, folder_id: targetFolderId } : p)
+                      )
+                      startTransition(async () => {
+                        for (const id of selectedPhotoIds) {
+                          await movePhotoAction(eventId, id, targetFolderId)
+                        }
+                        setSelectedPhotoIds([])
+                        setIsSelectionMode(false)
+                        window.location.reload()
+                      })
+                    }
+                    e.target.value = ''
+                  }}
+                  className="bg-background border border-border text-[10px] uppercase tracking-wider font-bold px-2 py-1.5 focus:outline-none focus:border-primary text-muted-foreground"
+                >
+                  <option value="">Move To...</option>
+                  <option value="__root__">Root Collection</option>
+                  {folders.map(f => (
+                    <option key={f.id} value={f.id}>{f.name}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {/* Layout Switcher */}
+            <div className="flex items-center border border-border divide-x divide-border bg-card">
+              {(['editorial', 'grid', 'rows', 'masonry'] as const).map((mode) => (
+                <button
+                  key={mode}
+                  type="button"
+                  onClick={() => setLayoutMode(mode)}
+                  className={`px-3 py-2 text-[10px] uppercase tracking-wider font-bold transition-all cursor-pointer ${
+                    layoutMode === mode ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                  title={`${mode.charAt(0).toUpperCase() + mode.slice(1)} Layout`}
+                >
+                  {mode}
+                </button>
+              ))}
+            </div>
+
             {/* Create Folder button (managers only, disabled when filtering) */}
             {isManager && !isFiltering && (
               <button
@@ -402,7 +649,13 @@ export function PhotoGrid({ photos, folders, eventId, currentUserId, isOwner, is
                 <div
                   key={folder.id}
                   onClick={() => setCurrentFolderId(folder.id)}
-                  className="group relative flex flex-col items-center justify-center p-5 bg-card border border-border hover:border-primary/45 hover:shadow-md cursor-pointer transition-all aspect-square text-center rounded-sm"
+                  onDragOver={(e) => handleDragOverFolder(e, folder.id)}
+                  onDragEnter={(e) => handleDragEnterFolder(e, folder.id)}
+                  onDragLeave={handleDragLeaveFolder}
+                  onDrop={(e) => handleDropOnFolder(e, folder.id)}
+                  className={`group relative flex flex-col items-center justify-center p-5 bg-card border hover:border-primary/45 hover:shadow-md cursor-pointer transition-all aspect-square text-center rounded-sm ${
+                    draggedOverFolderId === folder.id ? 'border-primary bg-primary/10 scale-105 shadow-lg' : 'border-border'
+                  }`}
                 >
                   <FolderIcon className="w-12 h-12 text-primary/70 mb-2 group-hover:scale-105 transition-transform" />
                   <span className="text-xs font-serif text-foreground truncate max-w-full font-bold px-1">{folder.name}</span>
@@ -443,7 +696,7 @@ export function PhotoGrid({ photos, folders, eventId, currentUserId, isOwner, is
             {pendingPhotos.map((photo, index) => (
               <div 
                 key={photo.id} 
-                className={`relative group bg-card overflow-hidden cursor-pointer ${getGridClasses(index)}`}
+                className={`relative group bg-card overflow-hidden cursor-pointer ${getGridClasses(index, pendingPhotos.length)}`}
                 onClick={() => setActivePhoto(photo)}
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -519,85 +772,38 @@ export function PhotoGrid({ photos, folders, eventId, currentUserId, isOwner, is
         </div>
 
         {displayedPhotos.length > 0 ? (
-          <div className="grid grid-cols-2 md:grid-cols-4 auto-rows-[200px] grid-flow-dense gap-[2px] bg-black/10">
-            {displayedPhotos.map((photo, index) => (
-              <div 
-                key={photo.id} 
-                className={`relative group bg-card overflow-hidden cursor-zoom-in ${getGridClasses(index)}`}
-                onClick={() => setActivePhoto(photo)}
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={photo.thumbnail_url || photo.blob_url}
-                  alt=""
-                  className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                />
-
-                {/* Shared indicator */}
-                {photo.is_shared && (
-                  <div className="absolute top-2 left-2 w-5 h-5 bg-secondary flex items-center justify-center shadow-sm">
-                    <svg className="w-3 h-3 text-secondary-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-                    </svg>
-                  </div>
-                )}
-
-                {/* Manager overlay: toggle share & move to folder */}
-                {isManager && (
-                  <div className="absolute inset-0 flex flex-col justify-end p-3 opacity-0 group-hover:opacity-100 transition-opacity bg-gradient-to-t from-black/70 via-black/10 to-transparent pointer-events-none gap-2">
-                    
-                    {/* Share Action */}
-                    <button
-                      onClick={(e) => { e.stopPropagation(); handleToggleShare(photo.id, photo.is_shared ?? false); }}
-                      disabled={isPending}
-                      className={`pointer-events-auto w-full py-1.5 text-[9px] font-bold uppercase tracking-widest transition-colors disabled:opacity-50 text-center rounded-sm ${
-                        photo.is_shared
-                          ? 'bg-card text-foreground hover:bg-card/90'
-                          : 'bg-secondary text-secondary-foreground hover:bg-secondary/90'
-                      }`}
-                    >
-                      {photo.is_shared ? 'Unshare' : 'Share'}
-                    </button>
-
-                    {/* Move Folder Dropdown selector */}
-                    <div className="pointer-events-auto w-full">
-                      <select
-                        value={photo.folder_id || ''}
-                        onClick={e => e.stopPropagation()} // avoid lightbox open
-                        onChange={e => handleMovePhoto(photo.id, e.target.value || null)}
-                        className="w-full bg-background/95 border border-border text-[9px] uppercase tracking-wider text-muted-foreground font-bold px-2 py-1 text-center focus:outline-none"
-                        title="Move to folder"
-                      >
-                        <option value="">Move to Root</option>
-                        {folders.map(f => (
-                          <option key={f.id} value={f.id}>{f.name}</option>
-                        ))}
-                      </select>
-                    </div>
-
-                  </div>
-                )}
-
-                {/* Guest: pending own upload label */}
-                {isGuest && photo.status === 'pending' && (
-                  <div className="absolute bottom-2 left-2 px-1.5 py-0.5 bg-background/80 text-foreground text-[9px] uppercase tracking-wider font-bold">
-                    Pending
-                  </div>
-                )}
-
-                {/* Delete button */}
-                {(isManager || photo.uploader_id === currentUserId) && (
-                  <button
-                    onClick={(e) => { e.stopPropagation(); handleDelete(photo.id); }}
-                    disabled={isPending}
-                    className="absolute top-2 right-2 p-1.5 bg-background/80 text-muted-foreground hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100 disabled:opacity-50"
-                    title="Delete photo"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+          <div>
+            {layoutMode === 'editorial' && (
+              <div className="grid grid-cols-2 md:grid-cols-4 auto-rows-[200px] grid-flow-dense gap-[2px] bg-black/10">
+                {displayedPhotos.map((photo, index) => 
+                  renderPhotoCard(photo, index, `cursor-zoom-in ${getGridClasses(index, displayedPhotos.length)}`)
                 )}
               </div>
-            ))}
+            )}
+
+            {layoutMode === 'grid' && (
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                {displayedPhotos.map((photo, index) => 
+                  renderPhotoCard(photo, index, 'cursor-zoom-in aspect-square border border-border')
+                )}
+              </div>
+            )}
+
+            {layoutMode === 'rows' && (
+              <div className="flex flex-wrap gap-2 bg-black/5 p-2 rounded-sm">
+                {displayedPhotos.map((photo, index) => 
+                  renderPhotoCard(photo, index, 'cursor-zoom-in h-[220px] flex-grow')
+                )}
+              </div>
+            )}
+
+            {layoutMode === 'masonry' && (
+              <div className="columns-2 sm:columns-3 md:columns-4 gap-4 space-y-4">
+                {displayedPhotos.map((photo, index) => 
+                  renderPhotoCard(photo, index, 'break-inside-avoid border border-border mb-4 cursor-zoom-in rounded-sm')
+                )}
+              </div>
+            )}
           </div>
         ) : (
           <div className="text-center py-20 bg-card border border-border">

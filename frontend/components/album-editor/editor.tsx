@@ -1589,6 +1589,7 @@ export function AlbumEditor({
           if (panel !== 'draw') setIsDrawingMode(false)
         }}
         onAddElement={addElement}
+        onUpdateElement={updateElement}
         photos={photos}
         onGoBack={handleBackToSite}
         spreadBackground={activeSpreadSide.background}

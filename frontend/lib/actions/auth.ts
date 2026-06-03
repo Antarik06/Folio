@@ -36,10 +36,19 @@ export async function signIn(formData: FormData, redirectTo?: string) {
   const password = formData.get('password') as string
 
   if (email === 'admin@folio.com' && password === 'admin123') {
+    const supabase = await createClient()
+    const { error: supabaseError } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    })
+    if (supabaseError) {
+      console.error('Failed standard Supabase login for admin:', supabaseError.message)
+    }
+
     const cookieStore = await cookies()
     cookieStore.set('admin_session', 'admin-secret-token', {
       path: '/',
-      httpOnly: true,
+      httpOnly: false,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
       maxAge: 60 * 60 * 24 * 7 // 1 week
@@ -47,6 +56,29 @@ export async function signIn(formData: FormData, redirectTo?: string) {
 
     revalidatePath('/', 'layout')
     redirect('/dashboard/admin')
+  }
+
+  if (email === 'artist@folio.com' && password === 'artist123') {
+    const supabase = await createClient()
+    const { error: supabaseError } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    })
+    if (supabaseError) {
+      console.error('Failed standard Supabase login for artist:', supabaseError.message)
+    }
+
+    const cookieStore = await cookies()
+    cookieStore.set('artist_session', 'artist-secret-token', {
+      path: '/',
+      httpOnly: false,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 60 * 60 * 24 * 7 // 1 week
+    })
+
+    revalidatePath('/', 'layout')
+    redirect('/dashboard/artist')
   }
 
   const supabase = await createClient()
@@ -68,6 +100,7 @@ export async function signIn(formData: FormData, redirectTo?: string) {
 export async function signOut() {
   const cookieStore = await cookies()
   cookieStore.delete('admin_session')
+  cookieStore.delete('artist_session')
 
   const supabase = await createClient()
   await supabase.auth.signOut()
@@ -77,15 +110,31 @@ export async function signOut() {
 
 export async function getUser() {
   const cookieStore = await cookies()
-  const isAdmin = cookieStore.get('admin_session')?.value === 'admin-secret-token'
+  const adminVal = cookieStore.get('admin_session')?.value
+  const artistVal = cookieStore.get('artist_session')?.value
+  console.log('[getUser Server Action] admin_session:', adminVal, 'artist_session:', artistVal)
+
+  const isAdmin = adminVal === 'admin-secret-token'
   if (isAdmin) {
     return {
-      id: 'a1111111-2222-3333-4444-444444444444',
+      id: '11111111-2222-3333-4444-444444444444',
       email: 'admin@folio.com',
       user_metadata: {
         full_name: 'Super Admin'
       },
       role: 'admin'
+    } as any
+  }
+
+  const isArtist = artistVal === 'artist-secret-token'
+  if (isArtist) {
+    return {
+      id: '22222222-3333-4444-5555-555555555555',
+      email: 'artist@folio.com',
+      user_metadata: {
+        full_name: 'Independent Artist'
+      },
+      role: 'artist'
     } as any
   }
 
@@ -101,10 +150,20 @@ export async function getProfile() {
   const isAdmin = cookieStore.get('admin_session')?.value === 'admin-secret-token'
   if (isAdmin) {
     return {
-      id: 'a1111111-2222-3333-4444-444444444444',
+      id: '11111111-2222-3333-4444-444444444444',
       email: 'admin@folio.com',
       full_name: 'Super Admin',
       role: 'admin'
+    }
+  }
+
+  const isArtist = cookieStore.get('artist_session')?.value === 'artist-secret-token'
+  if (isArtist) {
+    return {
+      id: '22222222-3333-4444-5555-555555555555',
+      email: 'artist@folio.com',
+      full_name: 'Independent Artist',
+      role: 'artist'
     }
   }
 
