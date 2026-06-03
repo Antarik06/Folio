@@ -1,12 +1,12 @@
 # Graph Report - Folio  (2026-06-03)
 
 ## Corpus Check
-- 226 files · ~276,951 words
+- 226 files · ~277,377 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 669 nodes · 691 edges · 24 communities detected
-- Extraction: 78% EXTRACTED · 22% INFERRED · 0% AMBIGUOUS · INFERRED: 150 edges (avg confidence: 0.8)
+- 671 nodes · 697 edges · 24 communities detected
+- Extraction: 78% EXTRACTED · 22% INFERRED · 0% AMBIGUOUS · INFERRED: 152 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Community Hubs (Navigation)
@@ -40,7 +40,7 @@
 2. `getAuthToken()` - 29 edges
 3. `getUser()` - 23 edges
 4. `createClient()` - 22 edges
-5. `GET()` - 17 edges
+5. `GET()` - 19 edges
 6. `getAuthToken()` - 14 edges
 7. `Alert()` - 10 edges
 8. `handleSubmit()` - 9 edges
@@ -63,7 +63,7 @@
 
 ### Community 0 - "Community 0"
 Cohesion: 0.06
-Nodes (30): createAdminClient(), spreadsToFlipbookPages(), clientFetch(), getProfile(), getUser(), signIn(), signInWithGoogle(), signOut() (+22 more)
+Nodes (32): createAdminClient(), spreadsToFlipbookPages(), clientFetch(), getProfile(), getUser(), signIn(), signInWithGoogle(), signOut() (+24 more)
 
 ### Community 1 - "Community 1"
 Cohesion: 0.11
@@ -191,7 +191,7 @@ _Questions this graph is uniquely positioned to answer:_
 - **Why does `getUser()` connect `Community 0` to `Community 1`, `Community 2`, `Community 3`?**
   _High betweenness centrality (0.019) - this node is a cross-community bridge._
 - **Why does `getAuthToken()` connect `Community 1` to `Community 0`?**
-  _High betweenness centrality (0.013) - this node is a cross-community bridge._
+  _High betweenness centrality (0.014) - this node is a cross-community bridge._
 - **Are the 54 inferred relationships involving `serverFetch()` (e.g. with `ArtistDashboardPage()` and `EventSettingsPage()`) actually correct?**
   _`serverFetch()` has 54 INFERRED edges - model-reasoned connections that need verification._
 - **Are the 3 inferred relationships involving `getAuthToken()` (e.g. with `GET()` and `createClient()`) actually correct?**
