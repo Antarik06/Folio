@@ -14,9 +14,12 @@ build/
 text.txt
 *.tsbuildinfo
 .kiro
-graphify-out/cache
+graphify-out
 .agents/
 .github/
 public/textures
 inspo/
 .opencode/
+
+!graphify-out/graph_report.md
+!graphify-out/graph.html

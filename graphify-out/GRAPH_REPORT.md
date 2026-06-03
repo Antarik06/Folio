@@ -1,12 +1,12 @@
-# Graph Report - Folio  (2026-05-28)
+# Graph Report - Folio  (2026-06-03)
 
 ## Corpus Check
-- 196 files · ~797,275 words
+- 188 files · ~136,340 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 573 nodes · 582 edges · 22 communities detected
-- Extraction: 75% EXTRACTED · 25% INFERRED · 0% AMBIGUOUS · INFERRED: 148 edges (avg confidence: 0.8)
+- 559 nodes · 576 edges · 22 communities detected
+- Extraction: 74% EXTRACTED · 26% INFERRED · 0% AMBIGUOUS · INFERRED: 148 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Community Hubs (Navigation)
@@ -20,18 +20,18 @@
 - [[_COMMUNITY_Community 11|Community 11]]
 - [[_COMMUNITY_Community 12|Community 12]]
 - [[_COMMUNITY_Community 13|Community 13]]
-- [[_COMMUNITY_Community 14|Community 14]]
-- [[_COMMUNITY_Community 16|Community 16]]
-- [[_COMMUNITY_Community 22|Community 22]]
+- [[_COMMUNITY_Community 15|Community 15]]
+- [[_COMMUNITY_Community 18|Community 18]]
+- [[_COMMUNITY_Community 23|Community 23]]
 - [[_COMMUNITY_Community 24|Community 24]]
-- [[_COMMUNITY_Community 25|Community 25]]
-- [[_COMMUNITY_Community 27|Community 27]]
+- [[_COMMUNITY_Community 26|Community 26]]
+- [[_COMMUNITY_Community 30|Community 30]]
 - [[_COMMUNITY_Community 31|Community 31]]
 - [[_COMMUNITY_Community 44|Community 44]]
 - [[_COMMUNITY_Community 45|Community 45]]
 - [[_COMMUNITY_Community 46|Community 46]]
 - [[_COMMUNITY_Community 58|Community 58]]
-- [[_COMMUNITY_Community 117|Community 117]]
+- [[_COMMUNITY_Community 112|Community 112]]
 
 ## God Nodes (most connected - your core abstractions)
 1. `createClient()` - 48 edges
@@ -61,7 +61,7 @@
 
 ### Community 0 - "Community 0"
 Cohesion: 0.09
-Nodes (42): update(), getProfile(), getUser(), approvePhoto(), assertManager(), assertOwner(), deleteAlbum(), deleteEvent() (+34 more)
+Nodes (43): update(), getProfile(), getUser(), approvePhoto(), assertManager(), assertOwner(), deleteAlbum(), deleteEvent() (+35 more)
 
 ### Community 1 - "Community 1"
 Cohesion: 0.13
@@ -92,36 +92,36 @@ Cohesion: 0.57
 Nodes (6): addToRemoveQueue(), dispatch(), genId(), reducer(), toast(), useToast()
 
 ### Community 12 - "Community 12"
-Cohesion: 0.38
-Nodes (4): PreviewPage(), inferAlbumProductType(), inferTemplateProductType(), isProductType()
-
-### Community 13 - "Community 13"
 Cohesion: 0.29
 Nodes (1): fetchAlbums()
 
-### Community 14 - "Community 14"
+### Community 13 - "Community 13"
 Cohesion: 0.29
 Nodes (1): handleGenerateColCode()
 
-### Community 16 - "Community 16"
+### Community 15 - "Community 15"
 Cohesion: 0.33
 Nodes (3): generateTextures(), renderToCanvas(), gen()
 
-### Community 22 - "Community 22"
+### Community 18 - "Community 18"
 Cohesion: 0.47
 Nodes (4): createAdminClient(), mapSpreadsToPages(), normalizeSpreads(), SharedAlbumPage()
 
-### Community 24 - "Community 24"
+### Community 23 - "Community 23"
 Cohesion: 0.4
 Nodes (1): handleDeleteEvent()
 
-### Community 25 - "Community 25"
+### Community 24 - "Community 24"
 Cohesion: 0.5
 Nodes (2): clamp(), initialize()
 
-### Community 27 - "Community 27"
+### Community 26 - "Community 26"
 Cohesion: 0.5
 Nodes (2): CarouselNext(), useCarousel()
+
+### Community 30 - "Community 30"
+Cohesion: 0.6
+Nodes (3): inferAlbumProductType(), inferTemplateProductType(), isProductType()
 
 ### Community 31 - "Community 31"
 Cohesion: 0.5
@@ -143,7 +143,7 @@ Nodes (2): getDefaultName(), inferImageLayerName()
 Cohesion: 0.67
 Nodes (1): useIsMobile()
 
-### Community 117 - "Community 117"
+### Community 112 - "Community 112"
 Cohesion: 1.0
 Nodes (1): PageFlip
 
@@ -154,15 +154,15 @@ Nodes (1): PageFlip
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
 - **Thin community `Community 8`** (10 nodes): `sidebar.tsx`, `cn()`, `handleKeyDown()`, `SidebarFooter()`, `SidebarHeader()`, `SidebarMenu()`, `SidebarMenuButton()`, `SidebarMenuItem()`, `SidebarSeparator()`, `useSidebar()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 13`** (7 nodes): `sidebar.tsx`, `fetchAlbums()`, `isVisiblePreset()`, `matchesQuery()`, `readFileAsImage()`, `svgToDataUri()`, `toRemoteImageType()`
+- **Thin community `Community 12`** (7 nodes): `sidebar.tsx`, `fetchAlbums()`, `isVisiblePreset()`, `matchesQuery()`, `readFileAsImage()`, `svgToDataUri()`, `toRemoteImageType()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 14`** (7 nodes): `guest-list.tsx`, `copyCode()`, `copyColCode()`, `copyColLink()`, `copyLink()`, `handleGenerateColCode()`, `handleRemove()`
+- **Thin community `Community 13`** (7 nodes): `guest-list.tsx`, `copyCode()`, `copyColCode()`, `copyColLink()`, `copyLink()`, `handleGenerateColCode()`, `handleRemove()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 24`** (5 nodes): `event-settings-panel.tsx`, `coerceSettings()`, `getPhotoUrl()`, `handleDeleteEvent()`, `saveSettings()`
+- **Thin community `Community 23`** (5 nodes): `event-settings-panel.tsx`, `coerceSettings()`, `getPhotoUrl()`, `handleDeleteEvent()`, `saveSettings()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 25`** (5 nodes): `FlipBook.tsx`, `clamp()`, `handleKeyDown()`, `initialize()`, `usePageScale()`
+- **Thin community `Community 24`** (5 nodes): `FlipBook.tsx`, `clamp()`, `handleKeyDown()`, `initialize()`, `usePageScale()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 27`** (5 nodes): `Carousel()`, `CarouselNext()`, `cn()`, `useCarousel()`, `carousel.tsx`
+- **Thin community `Community 26`** (5 nodes): `Carousel()`, `CarouselNext()`, `cn()`, `useCarousel()`, `carousel.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
 - **Thin community `Community 31`** (4 nodes): `middleware.ts`, `updateSession()`, `proxy()`, `proxy.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
@@ -174,18 +174,18 @@ Nodes (1): PageFlip
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
 - **Thin community `Community 58`** (3 nodes): `use-mobile.tsx`, `use-mobile.ts`, `useIsMobile()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 117`** (2 nodes): `PageFlip`, `page-flip.d.ts`
+- **Thin community `Community 112`** (2 nodes): `PageFlip`, `page-flip.d.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `createClient()` connect `Community 0` to `Community 3`, `Community 12`, `Community 4`, `Community 22`?**
-  _High betweenness centrality (0.025) - this node is a cross-community bridge._
-- **Why does `Select()` connect `Community 0` to `Community 3`, `Community 4`, `Community 10`, `Community 12`, `Community 13`, `Community 22`?**
-  _High betweenness centrality (0.021) - this node is a cross-community bridge._
+- **Why does `createClient()` connect `Community 0` to `Community 18`, `Community 3`, `Community 4`?**
+  _High betweenness centrality (0.027) - this node is a cross-community bridge._
+- **Why does `Select()` connect `Community 0` to `Community 3`, `Community 4`, `Community 10`, `Community 12`, `Community 18`?**
+  _High betweenness centrality (0.023) - this node is a cross-community bridge._
 - **Why does `getUser()` connect `Community 0` to `Community 3`, `Community 4`, `Community 31`?**
-  _High betweenness centrality (0.013) - this node is a cross-community bridge._
+  _High betweenness centrality (0.014) - this node is a cross-community bridge._
 - **Are the 47 inferred relationships involving `createClient()` (e.g. with `DashboardLayout()` and `handleSubmit()`) actually correct?**
   _`createClient()` has 47 INFERRED edges - model-reasoned connections that need verification._
 - **Are the 34 inferred relationships involving `getUser()` (e.g. with `DashboardLayout()` and `handleSubmit()`) actually correct?**
