@@ -1,12 +1,12 @@
 # Graph Report - Folio  (2026-06-03)
 
 ## Corpus Check
-- 220 files · ~263,577 words
+- 224 files · ~271,875 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 642 nodes · 640 edges · 25 communities detected
-- Extraction: 80% EXTRACTED · 20% INFERRED · 0% AMBIGUOUS · INFERRED: 129 edges (avg confidence: 0.8)
+- 660 nodes · 676 edges · 24 communities detected
+- Extraction: 79% EXTRACTED · 21% INFERRED · 0% AMBIGUOUS · INFERRED: 142 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Community Hubs (Navigation)
@@ -19,34 +19,33 @@
 - [[_COMMUNITY_Community 6|Community 6]]
 - [[_COMMUNITY_Community 7|Community 7]]
 - [[_COMMUNITY_Community 11|Community 11]]
-- [[_COMMUNITY_Community 12|Community 12]]
+- [[_COMMUNITY_Community 13|Community 13]]
 - [[_COMMUNITY_Community 14|Community 14]]
 - [[_COMMUNITY_Community 15|Community 15]]
 - [[_COMMUNITY_Community 16|Community 16]]
 - [[_COMMUNITY_Community 17|Community 17]]
 - [[_COMMUNITY_Community 18|Community 18]]
-- [[_COMMUNITY_Community 19|Community 19]]
+- [[_COMMUNITY_Community 25|Community 25]]
+- [[_COMMUNITY_Community 26|Community 26]]
 - [[_COMMUNITY_Community 27|Community 27]]
-- [[_COMMUNITY_Community 28|Community 28]]
-- [[_COMMUNITY_Community 29|Community 29]]
-- [[_COMMUNITY_Community 33|Community 33]]
-- [[_COMMUNITY_Community 34|Community 34]]
+- [[_COMMUNITY_Community 31|Community 31]]
+- [[_COMMUNITY_Community 32|Community 32]]
+- [[_COMMUNITY_Community 45|Community 45]]
 - [[_COMMUNITY_Community 47|Community 47]]
-- [[_COMMUNITY_Community 48|Community 48]]
-- [[_COMMUNITY_Community 60|Community 60]]
-- [[_COMMUNITY_Community 118|Community 118]]
+- [[_COMMUNITY_Community 59|Community 59]]
+- [[_COMMUNITY_Community 117|Community 117]]
 
 ## God Nodes (most connected - your core abstractions)
-1. `serverFetch()` - 44 edges
+1. `serverFetch()` - 53 edges
 2. `getAuthToken()` - 29 edges
-3. `getUser()` - 22 edges
-4. `createClient()` - 21 edges
-5. `GET()` - 13 edges
-6. `Alert()` - 10 edges
-7. `handleSubmit()` - 9 edges
-8. `getAuthToken()` - 8 edges
+3. `getUser()` - 23 edges
+4. `createClient()` - 22 edges
+5. `getAuthToken()` - 14 edges
+6. `GET()` - 13 edges
+7. `Alert()` - 10 edges
+8. `handleSubmit()` - 9 edges
 9. `getAuthToken()` - 8 edges
-10. `getProfile()` - 6 edges
+10. `UnifiedCheckoutPage()` - 7 edges
 
 ## Surprising Connections (you probably didn't know these)
 - `GET()` --calls--> `fetchAlbums()`  [INFERRED]
@@ -55,153 +54,149 @@
   frontend\app\(dashboard)\dashboard\admin\page.tsx → frontend\lib\actions\auth.ts
 - `EventSettingsPage()` --calls--> `serverFetch()`  [INFERRED]
   frontend\app\(dashboard)\events\[id]\settings\page.tsx → frontend\lib\api-client.ts
-- `CheckoutPage()` --calls--> `serverFetch()`  [INFERRED]
-  frontend\app\(dashboard)\dashboard\templates\checkout\[id]\page.tsx → frontend\lib\api-client.ts
-- `SimpleTemplateEditorPage()` --calls--> `serverFetch()`  [INFERRED]
-  frontend\app\(dashboard)\dashboard\templates\editor\[id]\page.tsx → frontend\lib\api-client.ts
+- `UnifiedCheckoutPage()` --calls--> `getSystemSettings()`  [INFERRED]
+  frontend\app\(dashboard)\dashboard\orders\checkout\page.tsx → frontend\lib\actions\settings.ts
+- `UnifiedCheckoutPage()` --calls--> `serverFetch()`  [INFERRED]
+  frontend\app\(dashboard)\dashboard\orders\checkout\page.tsx → frontend\lib\api-client.ts
 
 ## Communities
 
 ### Community 0 - "Community 0"
-Cohesion: 0.07
-Nodes (27): createAdminClient(), clientFetch(), getProfile(), getUser(), signIn(), signInWithGoogle(), signOut(), signUp() (+19 more)
+Cohesion: 0.06
+Nodes (29): createAdminClient(), spreadsToFlipbookPages(), clientFetch(), getProfile(), getUser(), signIn(), signInWithGoogle(), signOut() (+21 more)
 
 ### Community 1 - "Community 1"
-Cohesion: 0.17
-Nodes (29): serverFetch(), approvePhoto(), createAlbumAction(), createFolderAction(), deleteAlbum(), deleteEvent(), deleteFolderAction(), deletePhoto() (+21 more)
+Cohesion: 0.11
+Nodes (43): createPromoCode(), deletePromoCode(), getAdminEventAlbums(), getAdminEventPhotos(), getAdminOrders(), getAdminSettings(), getAdminUserEvents(), getAdminUsers() (+35 more)
 
 ### Community 2 - "Community 2"
 Cohesion: 0.09
-Nodes (15): Alert(), authenticateGoogleDrive(), loadGoogleScripts(), handleCreateFolder(), handleDeleteFolder(), handleMovePhoto(), handleUpdateLocation(), handleUpdateTags() (+7 more)
+Nodes (18): Alert(), authenticateGoogleDrive(), loadGoogleScripts(), handleCreateFolder(), handleDeleteFolder(), handleMovePhoto(), handleUpdateLocation(), handleUpdateTags() (+10 more)
 
 ### Community 3 - "Community 3"
+Cohesion: 0.11
+Nodes (12): handleApplyPromo(), handlePlaceOrder(), loadScript(), createOrder(), getAlbumOrder(), getAuthToken(), getUserOrders(), verifyPayment() (+4 more)
+
+### Community 4 - "Community 4"
 Cohesion: 0.13
 Nodes (12): colorDistance(), getDraftKey(), getSpreadSide(), inferImageLayerName(), loadImageForProcessing(), normalizeElement(), parseHexColor(), recolorLikelyMonochromeImage() (+4 more)
 
-### Community 4 - "Community 4"
+### Community 5 - "Community 5"
 Cohesion: 0.12
 Nodes (3): onDragEnd(), onDragMove(), snapPosition()
 
-### Community 5 - "Community 5"
-Cohesion: 0.23
-Nodes (11): handleEventClick(), handleStatusChange(), handleUserClick(), getAdminEventAlbums(), getAdminEventPhotos(), getAdminOrders(), getAdminUserEvents(), getAdminUsers() (+3 more)
-
 ### Community 6 - "Community 6"
-Cohesion: 0.2
-Nodes (2): handleReset(), resetCrop()
-
-### Community 7 - "Community 7"
 Cohesion: 0.31
 Nodes (7): computePriceCents(), formatPrice(), getShippingAddressErrors(), isPageCountValid(), validatePostalCode(), validateQuantity(), validateShippingAddress()
+
+### Community 7 - "Community 7"
+Cohesion: 0.2
+Nodes (2): handleReset(), resetCrop()
 
 ### Community 11 - "Community 11"
 Cohesion: 0.22
 Nodes (2): SidebarMenuButton(), useSidebar()
 
-### Community 12 - "Community 12"
-Cohesion: 0.39
-Nodes (7): handlePlaceOrder(), loadScript(), createOrder(), getAlbumOrder(), getAuthToken(), getUserOrders(), verifyPayment()
-
-### Community 14 - "Community 14"
+### Community 13 - "Community 13"
 Cohesion: 0.32
 Nodes (3): handleClose(), handleDoubleClickFile(), handleImport()
 
-### Community 15 - "Community 15"
+### Community 14 - "Community 14"
 Cohesion: 0.57
 Nodes (6): addToRemoveQueue(), dispatch(), genId(), reducer(), toast(), useToast()
 
-### Community 16 - "Community 16"
+### Community 15 - "Community 15"
 Cohesion: 0.33
 Nodes (4): ensureAdminProfile(), getClient(), query(), runMigrations()
 
-### Community 17 - "Community 17"
+### Community 16 - "Community 16"
 Cohesion: 0.29
 Nodes (1): fetchAlbums()
 
-### Community 18 - "Community 18"
+### Community 17 - "Community 17"
 Cohesion: 0.29
 Nodes (1): handleGenerateColCode()
 
-### Community 19 - "Community 19"
+### Community 18 - "Community 18"
 Cohesion: 0.33
 Nodes (3): generateTextures(), renderToCanvas(), gen()
 
-### Community 27 - "Community 27"
+### Community 25 - "Community 25"
 Cohesion: 0.4
 Nodes (1): handleDeleteEvent()
 
-### Community 28 - "Community 28"
+### Community 26 - "Community 26"
 Cohesion: 0.5
 Nodes (2): clamp(), initialize()
 
-### Community 29 - "Community 29"
+### Community 27 - "Community 27"
 Cohesion: 0.5
 Nodes (2): CarouselNext(), useCarousel()
 
-### Community 33 - "Community 33"
+### Community 31 - "Community 31"
 Cohesion: 0.6
 Nodes (3): inferAlbumProductType(), inferTemplateProductType(), isProductType()
 
-### Community 34 - "Community 34"
+### Community 32 - "Community 32"
 Cohesion: 0.83
 Nodes (3): mapSpreadsToPages(), normalizeSpreads(), SharedAlbumPage()
 
-### Community 47 - "Community 47"
+### Community 45 - "Community 45"
 Cohesion: 0.67
 Nodes (1): PolaroidPage()
 
-### Community 48 - "Community 48"
+### Community 47 - "Community 47"
 Cohesion: 1.0
 Nodes (2): getDefaultName(), inferImageLayerName()
 
-### Community 60 - "Community 60"
+### Community 59 - "Community 59"
 Cohesion: 0.67
 Nodes (1): useIsMobile()
 
-### Community 118 - "Community 118"
+### Community 117 - "Community 117"
 Cohesion: 1.0
 Nodes (1): PageFlip
 
 ## Knowledge Gaps
 - **1 isolated node(s):** `PageFlip`
   These have ≤1 connection - possible missing edges or undocumented components.
-- **Thin community `Community 6`** (11 nodes): `photo-editor.tsx`, `applyCropAspect()`, `buildCssFilter()`, `clamp()`, `handleReset()`, `handleSave()`, `resetCrop()`, `snapRotate()`, `startResize()`, `stopResize()`, `updateSize()`
+- **Thin community `Community 7`** (11 nodes): `photo-editor.tsx`, `applyCropAspect()`, `buildCssFilter()`, `clamp()`, `handleReset()`, `handleSave()`, `resetCrop()`, `snapRotate()`, `startResize()`, `stopResize()`, `updateSize()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
 - **Thin community `Community 11`** (10 nodes): `sidebar.tsx`, `cn()`, `handleKeyDown()`, `SidebarFooter()`, `SidebarHeader()`, `SidebarMenu()`, `SidebarMenuButton()`, `SidebarMenuItem()`, `SidebarSeparator()`, `useSidebar()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 17`** (7 nodes): `sidebar.tsx`, `fetchAlbums()`, `isVisiblePreset()`, `matchesQuery()`, `readFileAsImage()`, `svgToDataUri()`, `toRemoteImageType()`
+- **Thin community `Community 16`** (7 nodes): `sidebar.tsx`, `fetchAlbums()`, `isVisiblePreset()`, `matchesQuery()`, `readFileAsImage()`, `svgToDataUri()`, `toRemoteImageType()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 18`** (7 nodes): `guest-list.tsx`, `copyCode()`, `copyColCode()`, `copyColLink()`, `copyLink()`, `handleGenerateColCode()`, `handleRemove()`
+- **Thin community `Community 17`** (7 nodes): `guest-list.tsx`, `copyCode()`, `copyColCode()`, `copyColLink()`, `copyLink()`, `handleGenerateColCode()`, `handleRemove()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 27`** (5 nodes): `coerceSettings()`, `getPhotoUrl()`, `handleDeleteEvent()`, `saveSettings()`, `event-settings-panel.tsx`
+- **Thin community `Community 25`** (5 nodes): `coerceSettings()`, `getPhotoUrl()`, `handleDeleteEvent()`, `saveSettings()`, `event-settings-panel.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 28`** (5 nodes): `clamp()`, `handleKeyDown()`, `initialize()`, `usePageScale()`, `FlipBook.tsx`
+- **Thin community `Community 26`** (5 nodes): `clamp()`, `handleKeyDown()`, `initialize()`, `usePageScale()`, `FlipBook.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 29`** (5 nodes): `Carousel()`, `CarouselNext()`, `cn()`, `useCarousel()`, `carousel.tsx`
+- **Thin community `Community 27`** (5 nodes): `Carousel()`, `CarouselNext()`, `cn()`, `useCarousel()`, `carousel.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 47`** (3 nodes): `page.tsx`, `page.tsx`, `PolaroidPage()`
+- **Thin community `Community 45`** (3 nodes): `page.tsx`, `page.tsx`, `PolaroidPage()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 48`** (3 nodes): `layers-panel.tsx`, `getDefaultName()`, `inferImageLayerName()`
+- **Thin community `Community 47`** (3 nodes): `layers-panel.tsx`, `getDefaultName()`, `inferImageLayerName()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 60`** (3 nodes): `use-mobile.tsx`, `use-mobile.ts`, `useIsMobile()`
+- **Thin community `Community 59`** (3 nodes): `use-mobile.tsx`, `use-mobile.ts`, `useIsMobile()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 118`** (2 nodes): `page-flip.d.ts`, `PageFlip`
+- **Thin community `Community 117`** (2 nodes): `page-flip.d.ts`, `PageFlip`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `serverFetch()` connect `Community 1` to `Community 0`, `Community 34`, `Community 12`, `Community 5`?**
-  _High betweenness centrality (0.022) - this node is a cross-community bridge._
-- **Why does `getUser()` connect `Community 0` to `Community 1`, `Community 2`, `Community 12`, `Community 5`?**
-  _High betweenness centrality (0.017) - this node is a cross-community bridge._
+- **Why does `serverFetch()` connect `Community 1` to `Community 0`, `Community 32`, `Community 3`?**
+  _High betweenness centrality (0.031) - this node is a cross-community bridge._
+- **Why does `getUser()` connect `Community 0` to `Community 1`, `Community 2`, `Community 3`?**
+  _High betweenness centrality (0.020) - this node is a cross-community bridge._
 - **Why does `getAuthToken()` connect `Community 1` to `Community 0`?**
-  _High betweenness centrality (0.014) - this node is a cross-community bridge._
-- **Are the 43 inferred relationships involving `serverFetch()` (e.g. with `EventSettingsPage()` and `CheckoutPage()`) actually correct?**
-  _`serverFetch()` has 43 INFERRED edges - model-reasoned connections that need verification._
+  _High betweenness centrality (0.013) - this node is a cross-community bridge._
+- **Are the 52 inferred relationships involving `serverFetch()` (e.g. with `EventSettingsPage()` and `UnifiedCheckoutPage()`) actually correct?**
+  _`serverFetch()` has 52 INFERRED edges - model-reasoned connections that need verification._
 - **Are the 3 inferred relationships involving `getAuthToken()` (e.g. with `GET()` and `createClient()`) actually correct?**
   _`getAuthToken()` has 3 INFERRED edges - model-reasoned connections that need verification._
-- **Are the 20 inferred relationships involving `getUser()` (e.g. with `DashboardLayout()` and `AdminDashboardPage()`) actually correct?**
-  _`getUser()` has 20 INFERRED edges - model-reasoned connections that need verification._
-- **Are the 20 inferred relationships involving `createClient()` (e.g. with `handleSubmit()` and `EventSettingsPage()`) actually correct?**
-  _`createClient()` has 20 INFERRED edges - model-reasoned connections that need verification._
+- **Are the 21 inferred relationships involving `getUser()` (e.g. with `DashboardLayout()` and `AdminDashboardPage()`) actually correct?**
+  _`getUser()` has 21 INFERRED edges - model-reasoned connections that need verification._
+- **Are the 21 inferred relationships involving `createClient()` (e.g. with `handleSubmit()` and `EventSettingsPage()`) actually correct?**
+  _`createClient()` has 21 INFERRED edges - model-reasoned connections that need verification._
