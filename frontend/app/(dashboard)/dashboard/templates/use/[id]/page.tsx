@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { apiClient } from '@/lib/api-client'
 import { ALL_MAGAZINE_TEMPLATES } from '@/lib/magazine-templates'
-import { Upload, Image as ImageIcon, Calendar, ArrowRight, Loader2 } from 'lucide-react'
+import { Upload, Image as ImageIcon, Calendar, ArrowRight, Loader2, Layers } from 'lucide-react'
 
 export default function UseTemplatePage() {
   const router = useRouter()
@@ -19,14 +19,23 @@ export default function UseTemplatePage() {
   const [loading, setLoading] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [hostedEvents, setHostedEvents] = useState<any[]>([])
-  const [view, setView] = useState<'selection' | 'upload' | 'event'>('selection')
+  const [view, setView] = useState<'selection' | 'upload' | 'event' | 'folder'>('selection')
+  const [selectedEventForFolders, setSelectedEventForFolders] = useState<any | null>(null)
+  const [eventFolders, setEventFolders] = useState<any[]>([])
   const autoCreateTriggeredRef = useRef(false)
 
-  // Fetch events when needed
   const loadEvents = useCallback(async () => {
     try {
       const data = await apiClient.get('/api/events')
-      setHostedEvents(data || [])
+      if (data && (data.hostedEvents || data.guestEvents)) {
+        const allEvents = [
+          ...(data.hostedEvents || []),
+          ...(data.guestEvents || [])
+        ]
+        setHostedEvents(allEvents)
+      } else {
+        setHostedEvents(Array.isArray(data) ? data : [])
+      }
     } catch (e) {
       console.error('Failed to load hosted events:', e)
     }
@@ -80,12 +89,18 @@ export default function UseTemplatePage() {
     },
   ]
 
-  const handleEventSelect = async (selectedEventId: string) => {
+  const handleEventSelect = async (selectedEventId: string, folderId: string | null = null) => {
     setLoading(true)
     try {
       // Fetch some photos from the event to auto-layout via Backend
       const photos = await apiClient.get(`/api/photos/event/${selectedEventId}`)
-      const photoUrls = (photos || []).map((p: any) => p.blob_url || p.thumbnail_url).filter(Boolean)
+      
+      // Filter by folder if specified
+      const filteredPhotos = folderId
+        ? (photos || []).filter((p: any) => p.folder_id === folderId)
+        : (photos || [])
+
+      const photoUrls = filteredPhotos.map((p: any) => p.blob_url || p.thumbnail_url).filter(Boolean)
 
       // Create album via Backend
       const album = await apiClient.post('/api/albums', {
@@ -109,6 +124,25 @@ export default function UseTemplatePage() {
       console.error('Failed to setup templates from event:', err)
     }
     setLoading(false)
+  }
+
+  const handleEventClick = async (event: any) => {
+    setLoading(true)
+    try {
+      const folders = await apiClient.get(`/api/events/${event.id}/folders`)
+      if (folders && folders.length > 0) {
+        setSelectedEventForFolders(event)
+        setEventFolders(folders)
+        setView('folder')
+      } else {
+        await handleEventSelect(event.id, null)
+      }
+    } catch (e) {
+      console.error('Failed to load event folders:', e)
+      await handleEventSelect(event.id, null)
+    } finally {
+      setLoading(false)
+    }
   }
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -191,9 +225,36 @@ export default function UseTemplatePage() {
   }, [eventIdFromUrl, loadEvents])
 
   useEffect(() => {
-    if (!eventIdFromUrl || autoCreateTriggeredRef.current) return
-    autoCreateTriggeredRef.current = true
-    void handleEventSelect(eventIdFromUrl)
+    const autoSelect = async () => {
+      if (!eventIdFromUrl || autoCreateTriggeredRef.current) return
+      autoCreateTriggeredRef.current = true
+      
+      setLoading(true)
+      try {
+        const folders = await apiClient.get(`/api/events/${eventIdFromUrl}/folders`)
+        if (folders && folders.length > 0) {
+          // Fetch event details to show name
+          const eventsData = await apiClient.get('/api/events')
+          const eventList = eventsData ? [
+            ...(eventsData.hostedEvents || []),
+            ...(eventsData.guestEvents || [])
+          ] : []
+          const event = eventList.find((e: any) => e.id === eventIdFromUrl)
+          setSelectedEventForFolders(event || { id: eventIdFromUrl, title: 'Selected Event' })
+          setEventFolders(folders)
+          setView('folder')
+        } else {
+          await handleEventSelect(eventIdFromUrl, null)
+        }
+      } catch (err) {
+        console.error('Auto select event error:', err)
+        await handleEventSelect(eventIdFromUrl, null)
+      } finally {
+        setLoading(false)
+      }
+    }
+    
+    autoSelect()
   }, [eventIdFromUrl])
 
   return (
@@ -271,7 +332,7 @@ export default function UseTemplatePage() {
               hostedEvents.map(event => (
                 <button
                   key={event.id}
-                  onClick={() => handleEventSelect(event.id)}
+                  onClick={() => handleEventClick(event)}
                   disabled={loading}
                   className="w-full flex items-center justify-between p-6 bg-background border border-border hover:border-primary/40 transition-colors group"
                 >
@@ -288,6 +349,66 @@ export default function UseTemplatePage() {
                 <Link href="/dashboard/events/new" className="text-xs font-bold uppercase tracking-widest text-primary hover:underline">Create an event first</Link>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {view === 'folder' && selectedEventForFolders && (
+        <div className="bg-card border border-border p-8 animate-in fade-in slide-in-from-bottom-4">
+          <div className="flex justify-between items-center mb-8 pb-4 border-b border-border">
+            <div>
+              <span className="text-[9px] uppercase tracking-wider text-primary font-mono block mb-1">Curation Step 03</span>
+              <h2 className="font-serif text-2xl">Select Folder in {selectedEventForFolders.title}</h2>
+            </div>
+            <button 
+              onClick={() => {
+                if (eventIdFromUrl) {
+                  setView('selection')
+                } else {
+                  setView('event')
+                }
+              }} 
+              className="text-[10px] uppercase tracking-widest text-muted-foreground hover:text-foreground"
+            >
+              Back
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            {/* Option to use all photos in the event */}
+            <button
+              onClick={() => handleEventSelect(selectedEventForFolders.id, null)}
+              disabled={loading}
+              className="p-8 bg-[#252019]/5 border border-border hover:border-primary/45 hover:bg-primary/5 transition-all text-left flex flex-col justify-between group rounded min-h-[160px]"
+            >
+              <div>
+                <Calendar className="w-8 h-8 text-primary mb-4" />
+                <h3 className="font-serif text-xl font-bold">Use All Event Photos</h3>
+                <p className="text-xs text-muted-foreground mt-1.5 font-light leading-relaxed">Includes all photos uploaded to the event gallery.</p>
+              </div>
+              <span className="text-[10px] font-mono uppercase tracking-[0.2em] font-bold text-primary mt-6 inline-flex items-center gap-1">
+                Start Design →
+              </span>
+            </button>
+
+            {/* List folders */}
+            {eventFolders.map(folder => (
+              <button
+                key={folder.id}
+                onClick={() => handleEventSelect(selectedEventForFolders.id, folder.id)}
+                disabled={loading}
+                className="p-8 bg-background border border-border hover:border-secondary/45 hover:bg-secondary/5 transition-all text-left flex flex-col justify-between group rounded min-h-[160px]"
+              >
+                <div>
+                  <Layers className="w-8 h-8 text-secondary mb-4" />
+                  <h3 className="font-serif text-xl font-bold">{folder.name}</h3>
+                  <p className="text-xs text-muted-foreground mt-1.5 font-light leading-relaxed">Use only photos cataloged inside the "{folder.name}" folder.</p>
+                </div>
+                <span className="text-[10px] font-mono uppercase tracking-[0.2em] font-bold text-secondary mt-6 inline-flex items-center gap-1">
+                  Start Design →
+                </span>
+              </button>
+            ))}
           </div>
         </div>
       )}
