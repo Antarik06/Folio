@@ -11703,8 +11703,8 @@
       "source_file": "lib\\actions\\events.ts",
       "source_location": "L46",
       "weight": 1.0,
-      "_src": "server_createclient",
-      "_tgt": "events_assertmanager",
+      "_src": "events_assertmanager",
+      "_tgt": "server_createclient",
       "source": "events_assertmanager",
       "target": "server_createclient"
     },
@@ -11739,8 +11739,8 @@
       "source_file": "lib\\actions\\events.ts",
       "source_location": "L70",
       "weight": 1.0,
-      "_src": "server_createclient",
-      "_tgt": "events_assertowner",
+      "_src": "events_assertowner",
+      "_tgt": "server_createclient",
       "source": "events_assertowner",
       "target": "server_createclient"
     },
@@ -11943,8 +11943,8 @@
       "source_file": "lib\\actions\\events.ts",
       "source_location": "L616",
       "weight": 1.0,
-      "_src": "server_createclient",
-      "_tgt": "events_getmanageablealbum",
+      "_src": "events_getmanageablealbum",
+      "_tgt": "server_createclient",
       "source": "events_getmanageablealbum",
       "target": "server_createclient"
     },
