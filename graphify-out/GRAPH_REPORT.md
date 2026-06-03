@@ -1,12 +1,12 @@
 # Graph Report - Folio  (2026-06-03)
 
 ## Corpus Check
-- 224 files · ~273,101 words
+- 226 files · ~276,374 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 660 nodes · 676 edges · 24 communities detected
-- Extraction: 79% EXTRACTED · 21% INFERRED · 0% AMBIGUOUS · INFERRED: 142 edges (avg confidence: 0.8)
+- 669 nodes · 691 edges · 24 communities detected
+- Extraction: 78% EXTRACTED · 22% INFERRED · 0% AMBIGUOUS · INFERRED: 150 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Community Hubs (Navigation)
@@ -19,7 +19,7 @@
 - [[_COMMUNITY_Community 6|Community 6]]
 - [[_COMMUNITY_Community 7|Community 7]]
 - [[_COMMUNITY_Community 11|Community 11]]
-- [[_COMMUNITY_Community 13|Community 13]]
+- [[_COMMUNITY_Community 12|Community 12]]
 - [[_COMMUNITY_Community 14|Community 14]]
 - [[_COMMUNITY_Community 15|Community 15]]
 - [[_COMMUNITY_Community 16|Community 16]]
@@ -36,12 +36,12 @@
 - [[_COMMUNITY_Community 117|Community 117]]
 
 ## God Nodes (most connected - your core abstractions)
-1. `serverFetch()` - 53 edges
+1. `serverFetch()` - 55 edges
 2. `getAuthToken()` - 29 edges
 3. `getUser()` - 23 edges
 4. `createClient()` - 22 edges
-5. `getAuthToken()` - 14 edges
-6. `GET()` - 13 edges
+5. `GET()` - 17 edges
+6. `getAuthToken()` - 14 edges
 7. `Alert()` - 10 edges
 8. `handleSubmit()` - 9 edges
 9. `getAuthToken()` - 8 edges
@@ -52,25 +52,25 @@
   frontend\app\auth\callback\route.ts → frontend\components\album-editor\sidebar.tsx
 - `AdminDashboardPage()` --calls--> `getUser()`  [INFERRED]
   frontend\app\(dashboard)\dashboard\admin\page.tsx → frontend\lib\actions\auth.ts
+- `ArtistDashboardPage()` --calls--> `serverFetch()`  [INFERRED]
+  frontend\app\(dashboard)\dashboard\artist\page.tsx → frontend\lib\api-client.ts
 - `EventSettingsPage()` --calls--> `serverFetch()`  [INFERRED]
   frontend\app\(dashboard)\events\[id]\settings\page.tsx → frontend\lib\api-client.ts
 - `UnifiedCheckoutPage()` --calls--> `getSystemSettings()`  [INFERRED]
   frontend\app\(dashboard)\dashboard\orders\checkout\page.tsx → frontend\lib\actions\settings.ts
-- `UnifiedCheckoutPage()` --calls--> `serverFetch()`  [INFERRED]
-  frontend\app\(dashboard)\dashboard\orders\checkout\page.tsx → frontend\lib\api-client.ts
 
 ## Communities
 
 ### Community 0 - "Community 0"
 Cohesion: 0.06
-Nodes (29): createAdminClient(), spreadsToFlipbookPages(), clientFetch(), getProfile(), getUser(), signIn(), signInWithGoogle(), signOut() (+21 more)
+Nodes (30): createAdminClient(), spreadsToFlipbookPages(), clientFetch(), getProfile(), getUser(), signIn(), signInWithGoogle(), signOut() (+22 more)
 
 ### Community 1 - "Community 1"
 Cohesion: 0.11
 Nodes (43): createPromoCode(), deletePromoCode(), getAdminEventAlbums(), getAdminEventPhotos(), getAdminOrders(), getAdminSettings(), getAdminUserEvents(), getAdminUsers() (+35 more)
 
 ### Community 2 - "Community 2"
-Cohesion: 0.09
+Cohesion: 0.07
 Nodes (18): Alert(), authenticateGoogleDrive(), loadGoogleScripts(), handleCreateFolder(), handleDeleteFolder(), handleMovePhoto(), handleUpdateLocation(), handleUpdateTags() (+10 more)
 
 ### Community 3 - "Community 3"
@@ -97,17 +97,17 @@ Nodes (2): handleReset(), resetCrop()
 Cohesion: 0.22
 Nodes (2): SidebarMenuButton(), useSidebar()
 
-### Community 13 - "Community 13"
+### Community 12 - "Community 12"
+Cohesion: 0.25
+Nodes (5): authMiddleware(), ensureAdminProfile(), getClient(), query(), runMigrations()
+
+### Community 14 - "Community 14"
 Cohesion: 0.32
 Nodes (3): handleClose(), handleDoubleClickFile(), handleImport()
 
-### Community 14 - "Community 14"
+### Community 15 - "Community 15"
 Cohesion: 0.57
 Nodes (6): addToRemoveQueue(), dispatch(), genId(), reducer(), toast(), useToast()
-
-### Community 15 - "Community 15"
-Cohesion: 0.33
-Nodes (4): ensureAdminProfile(), getClient(), query(), runMigrations()
 
 ### Community 16 - "Community 16"
 Cohesion: 0.29
@@ -187,13 +187,13 @@ Nodes (1): PageFlip
 _Questions this graph is uniquely positioned to answer:_
 
 - **Why does `serverFetch()` connect `Community 1` to `Community 0`, `Community 32`, `Community 3`?**
-  _High betweenness centrality (0.031) - this node is a cross-community bridge._
+  _High betweenness centrality (0.034) - this node is a cross-community bridge._
 - **Why does `getUser()` connect `Community 0` to `Community 1`, `Community 2`, `Community 3`?**
-  _High betweenness centrality (0.020) - this node is a cross-community bridge._
+  _High betweenness centrality (0.019) - this node is a cross-community bridge._
 - **Why does `getAuthToken()` connect `Community 1` to `Community 0`?**
   _High betweenness centrality (0.013) - this node is a cross-community bridge._
-- **Are the 52 inferred relationships involving `serverFetch()` (e.g. with `EventSettingsPage()` and `UnifiedCheckoutPage()`) actually correct?**
-  _`serverFetch()` has 52 INFERRED edges - model-reasoned connections that need verification._
+- **Are the 54 inferred relationships involving `serverFetch()` (e.g. with `ArtistDashboardPage()` and `EventSettingsPage()`) actually correct?**
+  _`serverFetch()` has 54 INFERRED edges - model-reasoned connections that need verification._
 - **Are the 3 inferred relationships involving `getAuthToken()` (e.g. with `GET()` and `createClient()`) actually correct?**
   _`getAuthToken()` has 3 INFERRED edges - model-reasoned connections that need verification._
 - **Are the 21 inferred relationships involving `getUser()` (e.g. with `DashboardLayout()` and `AdminDashboardPage()`) actually correct?**
