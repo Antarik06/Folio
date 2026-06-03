@@ -40,6 +40,26 @@ export function ShippingForm({ value, onChange, errors = {}, disabled = false }:
           )}
         </div>
 
+        {/* Phone Number */}
+        <div className="space-y-2">
+          <Label htmlFor="phone" className="text-sm font-medium">
+            Phone Number <span className="text-destructive">*</span>
+          </Label>
+          <Input
+            id="phone"
+            type="tel"
+            value={value.phone || ''}
+            onChange={(e) => handleFieldChange('phone', e.target.value)}
+            disabled={disabled}
+            aria-invalid={!!errors.phone}
+            placeholder="+91 98765 43210"
+            className={errors.phone ? 'border-destructive focus-visible:ring-destructive/30' : ''}
+          />
+          {errors.phone && (
+            <p className="text-sm text-destructive step-fade-in">{errors.phone}</p>
+          )}
+        </div>
+
         {/* Address Line 1 */}
         <div className="space-y-2">
           <Label htmlFor="addressLine1" className="text-sm font-medium">

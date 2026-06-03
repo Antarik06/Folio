@@ -25,6 +25,102 @@ interface UploadQueueItem {
   error?: string
 }
 
+// Cache to store ongoing CDN script loading promises to prevent race conditions
+const scriptPromises: { [key: string]: Promise<void> | undefined } = {}
+
+// Dynamically load a script from a CDN URL (shared loader with race-condition prevention)
+function loadCdnScript(id: string, src: string): Promise<void> {
+  if (typeof window === 'undefined') return Promise.resolve()
+
+  // If there's an ongoing load request or it already completed, reuse that promise
+  if (scriptPromises[id]) {
+    return scriptPromises[id]
+  }
+
+  const promise = new Promise<void>((resolve, reject) => {
+    const existing = document.getElementById(id)
+    if (existing) {
+      resolve()
+      return
+    }
+
+    const script = document.createElement('script')
+    script.id = id
+    script.src = src
+    script.async = true
+    script.onload = () => resolve()
+    script.onerror = () => {
+      // Clean up the cache and script element on failure so subsequent calls can retry
+      delete scriptPromises[id]
+      const el = document.getElementById(id)
+      if (el) el.remove()
+      reject(new Error(`Failed to load script: ${src}`))
+    }
+    document.body.appendChild(script)
+  })
+
+  scriptPromises[id] = promise
+  return promise
+}
+
+// Dynamically load UTIF.js script for TIFF decoding
+function loadUtifScript(): Promise<void> {
+  return loadCdnScript('utif-js-cdn', 'https://cdnjs.cloudflare.com/ajax/libs/utif.js/3.1.0/UTIF.min.js')
+}
+
+// Dynamically load heic-to from CDN (bypasses Turbopack WASM/Worker bundling issues and has better compatibility with newer HEIC formats)
+function loadHeicToScript(): Promise<void> {
+  return loadCdnScript('heic-to-cdn', 'https://cdn.jsdelivr.net/npm/heic-to@1.5.2/dist/iife/heic-to.js')
+}
+
+// Convert TIFF blob to high-fidelity JPEG Blob
+async function convertTiffToJpeg(blob: Blob): Promise<Blob> {
+  await loadUtifScript()
+  const UTIF = (window as any).UTIF
+  if (!UTIF) throw new Error('TIFF library failed to initialize')
+
+  const buffer = await blob.arrayBuffer()
+  const ifds = UTIF.decode(buffer)
+  if (!ifds || ifds.length === 0) throw new Error('Invalid TIFF structure')
+  
+  UTIF.decodeImage(buffer, ifds[0])
+  const rgba = UTIF.toRGBA8(ifds[0])
+  const width = ifds[0].width || (ifds[0].t256 && ifds[0].t256[0])
+  const height = ifds[0].height || (ifds[0].t257 && ifds[0].t257[0])
+  if (!width || !height) throw new Error('Could not determine TIFF image dimensions')
+
+  const canvas = document.createElement('canvas')
+  canvas.width = width
+  canvas.height = height
+  const ctx = canvas.getContext('2d')
+  if (!ctx) throw new Error('Could not initialize canvas context')
+
+  const imageData = new ImageData(new Uint8ClampedArray(rgba), width, height)
+  ctx.putImageData(imageData, 0, 0)
+
+  return new Promise<Blob>((resolve, reject) => {
+    canvas.toBlob((convertedBlob) => {
+      if (convertedBlob) resolve(convertedBlob)
+      else reject(new Error('Failed to export TIFF to JPEG'))
+    }, 'image/jpeg', 0.98) // Highest bit rate/quality
+  })
+}
+
+// Convert HEIC blob to high-fidelity JPEG Blob
+// Loaded via CDN to bypass Turbopack WASM/Worker bundling issues with heic2any/heic-to
+async function convertHeicToJpeg(blob: Blob): Promise<Blob> {
+  await loadHeicToScript()
+  const HeicTo = (window as any).HeicTo
+  if (!HeicTo) throw new Error('HEIC conversion library failed to initialize')
+
+  const converted = await HeicTo({
+    blob,
+    type: 'image/jpeg',
+    quality: 0.98 // Highest bit rate/quality
+  })
+  return converted
+}
+
 export function PhotoUploader({
   eventId,
   isManager = false,
@@ -51,7 +147,7 @@ export function PhotoUploader({
   const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || ''
   const googleApiKey = process.env.NEXT_PUBLIC_GOOGLE_API_KEY || ''
 
-  // Common upload worker pool runner
+  // Common upload worker pool runner with format conversions
   async function runUploadBatch(
     items: { id: string; name: string; file?: File; driveFile?: GoogleDriveFile; token?: string }[]
   ) {
@@ -64,6 +160,7 @@ export function PhotoUploader({
         try {
           let fileExt = 'jpg'
           let uploadPayload: File | Blob
+          let finalName = item.name
 
           if (item.file) {
             // Local upload
@@ -84,6 +181,8 @@ export function PhotoUploader({
             )
 
             // Real picker: fetch via backend proxy to bypass CORS
+            const { data: { user: verifiedUser } } = await supabase.auth.getUser()
+            if (!verifiedUser) throw new Error('Not authenticated')
             const { data: { session } } = await supabase.auth.getSession()
             const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000'
             const response = await fetch(
@@ -101,25 +200,69 @@ export function PhotoUploader({
             uploadPayload = await response.blob()
 
             setUploadQueue(prev =>
-              prev.map(q => (q.id === item.id ? { ...q, status: 'uploading', progress: 45 } : q))
+              prev.map(q => (q.id === item.id ? { ...q, status: 'uploading', progress: 30 } : q))
             )
           } else {
             throw new Error('Invalid upload payload')
+          }
+
+          // Check formats and convert unrenderable types (HEIC & TIFF)
+          const lowerName = finalName.toLowerCase()
+          const isHeic = lowerName.endsWith('.heic') || lowerName.endsWith('.heif')
+          const isTiff = lowerName.endsWith('.tiff') || lowerName.endsWith('.tif')
+
+          if (isHeic) {
+            setUploadQueue(prev =>
+              prev.map(q => (q.id === item.id ? { ...q, status: 'downloading', progress: 35, name: `${item.name} (Converting...)` } : q))
+            )
+            try {
+              uploadPayload = await convertHeicToJpeg(uploadPayload)
+              fileExt = 'jpg'
+              finalName = finalName.replace(/\.(heic|heif)$/i, '.jpg')
+              setUploadQueue(prev =>
+                prev.map(q => (q.id === item.id ? { ...q, name: finalName } : q))
+              )
+            } catch (err: any) {
+              const errMsg = err?.message || err?.code || (typeof err === 'string' ? err : JSON.stringify(err))
+              console.error('HEIC conversion error:', errMsg, err)
+              throw new Error(`HEIC conversion failed: ${errMsg}`)
+            }
+          } else if (isTiff) {
+            setUploadQueue(prev =>
+              prev.map(q => (q.id === item.id ? { ...q, status: 'downloading', progress: 35, name: `${item.name} (Converting...)` } : q))
+            )
+            try {
+              uploadPayload = await convertTiffToJpeg(uploadPayload)
+              fileExt = 'jpg'
+              finalName = finalName.replace(/\.(tiff|tif)$/i, '.jpg')
+              setUploadQueue(prev =>
+                prev.map(q => (q.id === item.id ? { ...q, name: finalName } : q))
+              )
+            } catch (err: any) {
+              console.error('TIFF conversion error:', err)
+              throw new Error(`TIFF conversion failed: ${err.message || err}`)
+            }
           }
 
           // Generate file path
           const randomString = Math.random().toString(36).substring(2, 15)
           const filePath = `${eventId}/${randomString}.${fileExt}`
 
+          setUploadQueue(prev =>
+            prev.map(q => (q.id === item.id ? { ...q, status: 'uploading', progress: 60 } : q))
+          )
+
           // Execute Supabase Upload
           const { error: uploadError } = await supabase.storage
             .from('photos')
-            .upload(filePath, uploadPayload)
+            .upload(filePath, uploadPayload, {
+              contentType: (uploadPayload as any).type || (fileExt === 'jpg' ? 'image/jpeg' : 'application/octet-stream')
+            })
 
           if (uploadError) throw uploadError
 
           setUploadQueue(prev =>
-            prev.map(q => (q.id === item.id ? { ...q, status: 'registering', progress: 80 } : q))
+            prev.map(q => (q.id === item.id ? { ...q, status: 'registering', progress: 85 } : q))
           )
 
           // Fetch public URL
@@ -130,6 +273,7 @@ export function PhotoUploader({
             eventId,
             blobUrl: publicUrl,
             status: isManager ? 'approved' : 'pending',
+            originalFilename: finalName
           })
 
           setUploadQueue(prev =>
@@ -209,7 +353,7 @@ export function PhotoUploader({
     }
   }
 
-  // Initialize and open custom Google Drive picker
+  // Initialize and open Google Drive picker
   async function triggerGoogleDrivePicker() {
     if (!googleClientId || !googleApiKey) {
       alert('Google Drive Importer is not configured. Please define NEXT_PUBLIC_GOOGLE_CLIENT_ID and NEXT_PUBLIC_GOOGLE_API_KEY in your environment variables to use this feature.')
@@ -240,7 +384,7 @@ export function PhotoUploader({
           type="file" 
           id="file-upload" 
           multiple 
-          accept="image/*" 
+          accept="image/*,.heic,.heif,.tiff,.tif" 
           className="hidden" 
           onChange={handleFileUpload} 
           disabled={uploading || !canUpload}

@@ -286,7 +286,13 @@ export function Book3D({ album }: Book3DProps) {
         ctx.font = `${el.fontWeight || 'normal'} ${fontSize}px ${fontFamily}`
         ctx.textAlign = el.textAlign as CanvasTextAlign
         ctx.textBaseline = 'top'
-        ctx.fillText(el.text, 0, 0)
+        let tx = 0
+        if (el.textAlign === 'center') {
+          tx = (el.width * scaleX) / 2
+        } else if (el.textAlign === 'right') {
+          tx = el.width * scaleX
+        }
+        ctx.fillText(el.text, tx, 0)
       } else if (el.type === 'drawing') {
         if (el.points) {
           ctx.strokeStyle = el.stroke

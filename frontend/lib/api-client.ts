@@ -8,12 +8,29 @@ const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:500
 export async function clientFetch(path: string, options: RequestInit = {}) {
   const supabase = createBrowserClient()
 
-  // Verify user identity server-side first
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) throw new Error('Not authenticated')
+  let user = null
+  let session = null
 
-  // Get session only for the access token (user already verified above)
-  const { data: { session } } = await supabase.auth.getSession()
+  try {
+    const { data } = await supabase.auth.getUser()
+    user = data?.user
+  } catch (err) {
+    console.warn('clientFetch: supabase.auth.getUser network error, falling back to local session:', err)
+  }
+
+  try {
+    const { data } = await supabase.auth.getSession()
+    session = data?.session
+    if (!user && session) {
+      user = session.user
+    }
+  } catch (err) {
+    console.error('clientFetch: Failed to get session:', err)
+  }
+
+  if (!user) {
+    throw new Error('Not authenticated')
+  }
 
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',

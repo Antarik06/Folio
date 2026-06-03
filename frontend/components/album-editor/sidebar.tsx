@@ -771,8 +771,8 @@ export function Sidebar({
 
   const shouldFetchRemote = React.useMemo(() => {
     if (activePanel !== 'elements') return false
-    return activeElementCategory === 'all' || REMOTE_ELEMENT_CATEGORIES.includes(activeElementCategory)
-  }, [activePanel, activeElementCategory])
+    return elementQuery.trim().length > 0 && (activeElementCategory === 'all' || REMOTE_ELEMENT_CATEGORIES.includes(activeElementCategory))
+  }, [activePanel, activeElementCategory, elementQuery])
 
   const toRemoteImageElement = React.useCallback((hit: RemoteElementHit) => {
     return toImageElement(

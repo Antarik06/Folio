@@ -100,7 +100,7 @@ export function DashboardNav({ user, profile }: DashboardNavProps) {
               </DropdownMenuItem>
               {user.email === 'admin@folio.com' && (
                 <DropdownMenuItem asChild>
-                  <Link href="/dashboard/admin" className="text-primary font-semibold">Super Admin</Link>
+                  <Link href="/dashboard/admin" className="text-primary font-semibold">Admin Panel</Link>
                 </DropdownMenuItem>
               )}
               <DropdownMenuSeparator />

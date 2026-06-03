@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express'
 import jwt from 'jsonwebtoken'
 import dotenv from 'dotenv'
+import { query } from '../db'
 
 dotenv.config()
 
@@ -17,6 +18,20 @@ export interface AuthenticatedRequest extends Request {
 export async function authMiddleware(req: AuthenticatedRequest, res: Response, next: NextFunction) {
   const authHeader = req.headers.authorization
 
+  const proceed = async () => {
+    if (req.user && req.user.role !== 'admin') {
+      try {
+        const userRes = await query('SELECT is_banned FROM public.profiles WHERE id = $1', [req.user.id])
+        if (userRes.rows[0]?.is_banned) {
+          return res.status(403).json({ error: 'Access Denied: Your account has been suspended by administrators.' })
+        }
+      } catch (err) {
+        console.error('Ban check query error in authMiddleware:', err)
+      }
+    }
+    next()
+  }
+
   if (authHeader) {
     const parts = authHeader.split(' ')
     if (parts.length === 2 && (parts[1] === 'admin-secret-token' || parts[1] === 'a1111111-2222-3333-4444-444444444444')) {
@@ -25,7 +40,7 @@ export async function authMiddleware(req: AuthenticatedRequest, res: Response, n
         email: 'admin@folio.com',
         role: 'admin'
       }
-      return next()
+      return proceed()
     }
   }
 
@@ -38,7 +53,7 @@ export async function authMiddleware(req: AuthenticatedRequest, res: Response, n
         email: 'dev-user@example.com',
         role: 'authenticated'
       }
-      return next()
+      return proceed()
     }
     return res.status(401).json({ error: 'Unauthorized: No token provided' })
   }
@@ -54,7 +69,7 @@ export async function authMiddleware(req: AuthenticatedRequest, res: Response, n
         email: 'dev-user@example.com',
         role: 'authenticated'
       }
-      return next()
+      return proceed()
     } else {
       return res.status(500).json({ error: 'Internal Server Error: JWT key not configured' })
     }
@@ -67,7 +82,7 @@ export async function authMiddleware(req: AuthenticatedRequest, res: Response, n
       email: decoded.email,
       role: decoded.role
     }
-    next()
+    return proceed()
   } catch (error) {
     console.error('Local JWT verification failed:', error)
 
@@ -94,7 +109,7 @@ export async function authMiddleware(req: AuthenticatedRequest, res: Response, n
             email: userData.email,
             role: userData.role || 'authenticated'
           }
-          return next()
+          return proceed()
         } else {
           const errBody = await response.text()
           console.error('Supabase API token verification failed:', errBody)

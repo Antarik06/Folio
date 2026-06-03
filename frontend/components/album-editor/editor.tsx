@@ -924,44 +924,6 @@ export function AlbumEditor({
     return () => window.clearTimeout(timeout)
   }, [documentState, persistDraft])
 
-  const addElement = useCallback(
-    (element: Omit<AlbumElement, 'id' | 'zIndex'>) => {
-      applyDocumentChange(
-        (doc) => {
-          const spreadIndex = doc.spreads.findIndex((sp) => sp.id === doc.activeSpreadId)
-          if (spreadIndex < 0) return doc
-
-          const spread = doc.spreads[spreadIndex]
-          const side = getSpreadSide(spread, doc.activeSide)
-          const nextZ = Math.max(0, ...side.elements.map((el) => el.zIndex)) + 1
-          const inserted = normalizeElement({
-            ...element,
-            id: uuidv4(),
-            zIndex: nextZ,
-          } as AlbumElement)
-
-          const nextSpreads = [...doc.spreads]
-          nextSpreads[spreadIndex] = withSpreadSide(spread, doc.activeSide, {
-            ...side,
-            elements: normalizeZIndex([...side.elements, inserted]),
-          })
-
-          setSelection([inserted.id])
-          return { ...doc, spreads: nextSpreads }
-        },
-        { historyGroup: 'insert' }
-      )
-    },
-    [applyDocumentChange]
-  )
-
-  const addElementAt = useCallback(
-    (element: Omit<AlbumElement, 'id' | 'zIndex'>, position: { x: number; y: number }) => {
-      addElement({ ...element, x: position.x, y: position.y })
-    },
-    [addElement]
-  )
-
   const updateElement = useCallback(
     (elementId: string, changes: Partial<AlbumElement>, options?: { historyGroup?: string }) => {
       applyDocumentChange(
@@ -1005,6 +967,91 @@ export function AlbumEditor({
       )
     },
     [applyDocumentChange]
+  )
+
+  const localizeRemoteImage = useCallback(async (elementId: string, remoteSrc: string) => {
+    try {
+      const response = await fetch(remoteSrc, { mode: 'cors' })
+      if (!response.ok) throw new Error('Failed to fetch remote image')
+      const blob = await response.blob()
+
+      let fileExt = 'png'
+      if (remoteSrc.toLowerCase().includes('.jpg') || remoteSrc.toLowerCase().includes('.jpeg')) {
+        fileExt = 'jpg'
+      } else if (remoteSrc.toLowerCase().includes('.svg')) {
+        fileExt = 'svg'
+      } else if (remoteSrc.toLowerCase().includes('.webp')) {
+        fileExt = 'webp'
+      }
+
+      const randomString = Math.random().toString(36).substring(2, 15)
+      const filePath = `albums/${albumId}/${randomString}.${fileExt}`
+
+      const { error: uploadError } = await supabase.storage
+        .from('photos')
+        .upload(filePath, blob, {
+          contentType: blob.type || `image/${fileExt}`
+        })
+
+      if (uploadError) throw uploadError
+
+      const { data: { publicUrl } } = supabase.storage.from('photos').getPublicUrl(filePath)
+      
+      updateElement(elementId, { src: publicUrl })
+    } catch (error) {
+      console.error('Failed to localize remote image:', error)
+    }
+  }, [albumId, supabase, updateElement])
+
+  const addElement = useCallback(
+    (element: Omit<AlbumElement, 'id' | 'zIndex'>) => {
+      const generatedId = uuidv4()
+      
+      applyDocumentChange(
+        (doc) => {
+          const spreadIndex = doc.spreads.findIndex((sp) => sp.id === doc.activeSpreadId)
+          if (spreadIndex < 0) return doc
+
+          const spread = doc.spreads[spreadIndex]
+          const side = getSpreadSide(spread, doc.activeSide)
+          const nextZ = Math.max(0, ...side.elements.map((el) => el.zIndex)) + 1
+          const inserted = normalizeElement({
+            ...element,
+            id: generatedId,
+            zIndex: nextZ,
+          } as AlbumElement)
+
+          const nextSpreads = [...doc.spreads]
+          nextSpreads[spreadIndex] = withSpreadSide(spread, doc.activeSide, {
+            ...side,
+            elements: normalizeZIndex([...side.elements, inserted]),
+          })
+
+          setSelection([inserted.id])
+          return { ...doc, spreads: nextSpreads }
+        },
+        { historyGroup: 'insert' }
+      )
+
+      if (element.type === 'image') {
+        const imgEl = element as any
+        if (imgEl.src && imgEl.src.startsWith('http')) {
+          const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
+          const isRemote = !imgEl.src.includes(supabaseUrl) && !imgEl.src.startsWith('data:')
+          if (isRemote) {
+            void localizeRemoteImage(generatedId, imgEl.src)
+          }
+        }
+      }
+    },
+    [applyDocumentChange, localizeRemoteImage]
+  )
+
+  const addElementAt = useCallback(
+    (element: Omit<AlbumElement, 'id' | 'zIndex'>, position: { x: number; y: number }) => {
+      addElement({ ...element, x: position.x, y: position.y })
+    },
+    [addElement]
   )
 
   const deleteElements = useCallback(

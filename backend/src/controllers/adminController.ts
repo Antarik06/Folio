@@ -98,5 +98,23 @@ export const adminController = {
     } catch (error: any) {
       res.status(400).json({ error: error.message })
     }
+  },
+
+  /**
+   * PATCH /api/admin/users/:userId/status
+   */
+  async toggleUserBan(req: AuthenticatedRequest, res: Response) {
+    if (!adminController.assertAdmin(req, res)) return
+    try {
+      const userId = req.params.userId
+      const { isBanned } = req.body
+      if (isBanned === undefined) {
+        return res.status(400).json({ error: 'Missing isBanned in request body.' })
+      }
+      const updatedProfile = await adminService.toggleUserBan(userId, isBanned)
+      res.json({ success: true, user: updatedProfile })
+    } catch (error: any) {
+      res.status(400).json({ error: error.message })
+    }
   }
 }

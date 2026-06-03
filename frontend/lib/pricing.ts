@@ -60,6 +60,7 @@ export interface ShippingAddress {
   state: string
   postalCode: string
   country: string
+  phone: string
 }
 
 export function validateShippingAddress(addr: ShippingAddress): boolean {
@@ -69,24 +70,30 @@ export function validateShippingAddress(addr: ShippingAddress): boolean {
     addr.city,
     addr.postalCode,
     addr.country,
+    addr.phone,
   ]
-  return required.every((f) => f.trim().length > 0)
+  return required.every((f) => f && f.trim().length > 0)
 }
 
 export function getShippingAddressErrors(
   addr: ShippingAddress,
 ): Partial<Record<keyof ShippingAddress, string>> {
   const errors: Partial<Record<keyof ShippingAddress, string>> = {}
-  if (!addr.fullName.trim()) errors.fullName = 'Full name is required.'
-  if (!addr.addressLine1.trim()) errors.addressLine1 = 'Address is required.'
-  if (!addr.city.trim()) errors.city = 'City is required.'
-  if (!addr.state.trim()) errors.state = 'State is required.'
-  if (!addr.postalCode.trim()) {
+  if (!addr.fullName || !addr.fullName.trim()) errors.fullName = 'Full name is required.'
+  if (!addr.addressLine1 || !addr.addressLine1.trim()) errors.addressLine1 = 'Address is required.'
+  if (!addr.city || !addr.city.trim()) errors.city = 'City is required.'
+  if (!addr.state || !addr.state.trim()) errors.state = 'State is required.'
+  if (!addr.phone || !addr.phone.trim()) {
+    errors.phone = 'Phone number is required.'
+  } else if (!/^[+]?[0-9\s-]{10,15}$/.test(addr.phone.trim())) {
+    errors.phone = 'Please enter a valid phone number (10-15 digits).'
+  }
+  if (!addr.postalCode || !addr.postalCode.trim()) {
     errors.postalCode = 'Postal code is required.'
   } else if (!validatePostalCode(addr.postalCode)) {
     errors.postalCode = 'Enter a valid postal code (4–10 alphanumeric characters).'
   }
-  if (!addr.country.trim()) errors.country = 'Country is required.'
+  if (!addr.country || !addr.country.trim()) errors.country = 'Country is required.'
   return errors
 }
 

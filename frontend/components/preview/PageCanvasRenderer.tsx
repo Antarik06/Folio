@@ -98,8 +98,13 @@ function renderText(ctx: CanvasRenderingContext2D, el: any) {
   ctx.textAlign = el.textAlign as CanvasTextAlign
   ctx.textBaseline = 'top'
   
-  // Basic multi-line handling if needed, or just single line for now
-  ctx.fillText(el.text, 0, 0)
+  let tx = 0
+  if (el.textAlign === 'center') {
+    tx = el.width / 2
+  } else if (el.textAlign === 'right') {
+    tx = el.width
+  }
+  ctx.fillText(el.text, tx, 0)
 }
 
 function renderDrawing(ctx: CanvasRenderingContext2D, el: any) {

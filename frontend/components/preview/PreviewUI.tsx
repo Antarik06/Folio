@@ -26,7 +26,7 @@ export function PreviewUI({ album }: PreviewUIProps) {
       <nav className="pointer-events-none fixed inset-0 z-10 flex flex-col justify-between p-8">
         <div className="flex items-center justify-between pointer-events-auto">
           <Link 
-            href="/dashboard/albums"
+            href="/dashboard"
             className="flex items-center gap-2 text-white/60 hover:text-white transition-colors bg-black/20 backdrop-blur-md px-4 py-2 rounded-full border border-white/10"
           >
             <Home className="w-4 h-4" />
@@ -69,10 +69,13 @@ export function PreviewUI({ album }: PreviewUIProps) {
         </div>
 
         <div className="flex justify-center pointer-events-auto">
-          <button className="flex items-center gap-3 bg-primary text-primary-foreground px-10 py-4 rounded-full font-bold uppercase tracking-widest hover:bg-primary/90 transition-all transform hover:scale-105 shadow-2xl shadow-primary/20">
+          <Link
+            href={`/dashboard/albums/${album.id}/order`}
+            className="flex items-center gap-3 bg-primary text-primary-foreground px-10 py-4 rounded-full font-bold uppercase tracking-widest hover:bg-primary/90 transition-all transform hover:scale-105 shadow-2xl shadow-primary/20"
+          >
             <CreditCard className="w-5 h-5" />
             Proceed to Payment
-          </button>
+          </Link>
         </div>
       </nav>
 

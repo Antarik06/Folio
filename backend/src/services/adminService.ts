@@ -12,6 +12,7 @@ export const adminService = {
         p.full_name, 
         p.avatar_url,
         p.created_at,
+        p.is_banned,
         COALESCE((SELECT COUNT(*)::int FROM public.events e WHERE e.host_id = p.id), 0) as event_count,
         COALESCE((SELECT COUNT(*)::int FROM public.albums a WHERE a.owner_id = p.id), 0) as album_count,
         COALESCE((SELECT COUNT(*)::int FROM public.orders o WHERE o.user_id = p.id), 0) as order_count
@@ -19,6 +20,23 @@ export const adminService = {
       ORDER BY p.created_at DESC`
     )
     return res.rows
+  },
+
+  /**
+   * Toggle a user's ban status (active vs banned)
+   */
+  async toggleUserBan(userId: string, isBanned: boolean): Promise<any> {
+    const res = await query(
+      `UPDATE public.profiles
+       SET is_banned = $2, updated_at = NOW()
+       WHERE id = $1
+       RETURNING *`,
+      [userId, isBanned]
+    )
+    if (res.rowCount === 0) {
+      throw new Error('User not found.')
+    }
+    return res.rows[0]
   },
 
   /**
@@ -71,7 +89,7 @@ export const adminService = {
     const res = await query(
       `SELECT 
         o.*,
-        a.title as album_title,
+        COALESCE(a.title, 'Polaroid Prints') as album_title,
         p.email as user_email,
         p.full_name as user_full_name
       FROM public.orders o
@@ -79,7 +97,20 @@ export const adminService = {
       LEFT JOIN public.profiles p ON o.user_id = p.id
       ORDER BY o.created_at DESC`
     )
-    return res.rows
+    return res.rows.map(order => {
+      if (order.product_type === 'polaroid' && order.metadata) {
+        try {
+          const meta = typeof order.metadata === 'string' ? JSON.parse(order.metadata) : order.metadata
+          const images = meta?.polaroidDetails?.images
+          if (Array.isArray(images) && images.length > 0) {
+            return { ...order, cover_image_url: images[0] }
+          }
+        } catch (e) {
+          console.error('Error parsing admin order metadata cover:', e)
+        }
+      }
+      return order
+    })
   },
 
   /**

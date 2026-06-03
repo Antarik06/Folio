@@ -86,3 +86,94 @@ export async function updateAdminOrderStatus(orderId: string, status: string) {
     return { success: false, error: error.message }
   }
 }
+
+export async function getAdminSettings() {
+  try {
+    const token = await getAuthToken()
+    if (!token) throw new Error('Unauthorized')
+    return await serverFetch('/api/admin/settings', token)
+  } catch (error: any) {
+    console.error('Error fetching admin settings:', error)
+    return {}
+  }
+}
+
+export async function updateSystemSettings(settings: Record<string, any>) {
+  try {
+    const token = await getAuthToken()
+    if (!token) throw new Error('Unauthorized')
+    const res = await serverFetch('/api/admin/settings', token, {
+      method: 'PUT',
+      body: JSON.stringify({ settings })
+    })
+    revalidatePath('/dashboard/admin')
+    return { success: true, message: res.message }
+  } catch (error: any) {
+    console.error('Error updating system settings:', error)
+    return { success: false, error: error.message }
+  }
+}
+
+export async function getPromoCodes() {
+  try {
+    const token = await getAuthToken()
+    if (!token) throw new Error('Unauthorized')
+    return await serverFetch('/api/admin/promo-codes', token)
+  } catch (error: any) {
+    console.error('Error fetching promo codes:', error)
+    return []
+  }
+}
+
+export async function createPromoCode(data: {
+  code: string
+  discount_type: 'percentage' | 'fixed'
+  discount_value: number
+  min_order_value?: number
+  expires_at?: string | null
+}) {
+  try {
+    const token = await getAuthToken()
+    if (!token) throw new Error('Unauthorized')
+    const res = await serverFetch('/api/admin/promo-codes', token, {
+      method: 'POST',
+      body: JSON.stringify(data)
+    })
+    revalidatePath('/dashboard/admin')
+    return { success: true, promoCode: res }
+  } catch (error: any) {
+    console.error('Error creating promo code:', error)
+    return { success: false, error: error.message }
+  }
+}
+
+export async function deletePromoCode(code: string) {
+  try {
+    const token = await getAuthToken()
+    if (!token) throw new Error('Unauthorized')
+    const res = await serverFetch(`/api/admin/promo-codes/${encodeURIComponent(code)}`, token, {
+      method: 'DELETE'
+    })
+    revalidatePath('/dashboard/admin')
+    return { success: true, message: res.message }
+  } catch (error: any) {
+    console.error(`Error deleting promo code ${code}:`, error)
+    return { success: false, error: error.message }
+  }
+}
+
+export async function updateUserStatus(userId: string, isBanned: boolean) {
+  try {
+    const token = await getAuthToken()
+    if (!token) throw new Error('Unauthorized')
+    const res = await serverFetch(`/api/admin/users/${userId}/status`, token, {
+      method: 'PATCH',
+      body: JSON.stringify({ isBanned })
+    })
+    revalidatePath('/dashboard/admin')
+    return { success: true, user: res.user }
+  } catch (error: any) {
+    console.error(`Error toggling user ban for ${userId}:`, error)
+    return { success: false, error: error.message }
+  }
+}

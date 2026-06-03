@@ -6,6 +6,7 @@ import orderRoutes from './orderRoutes'
 import aiRoutes from './aiRoutes'
 import profileRoutes from './profileRoutes'
 import adminRoutes from './adminRoutes'
+import { settingsController } from '../controllers/settingsController'
 
 const router = Router()
 
@@ -15,6 +16,10 @@ router.use('/albums', albumRoutes)
 router.use('/orders', orderRoutes)
 router.use('/profile', profileRoutes)
 router.use('/admin', adminRoutes)
+
+// Public System Settings & Promo Codes Validation
+router.get('/settings', settingsController.getPublicSettings)
+router.get('/promo-codes/validate', settingsController.validatePromoCode)
 
 // Map AI sub routes
 router.use('/ai', aiRoutes)

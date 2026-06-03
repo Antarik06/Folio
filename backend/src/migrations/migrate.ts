@@ -19,7 +19,8 @@ async function runMigrations() {
     '007_folders_and_tagging.sql',
     '008_delivery_instructions.sql',
     '009_album_status.sql',
-    '010_payment_tracking.sql'
+    '010_payment_tracking.sql',
+    '011_admin_settings.sql'
   ]
 
   try {

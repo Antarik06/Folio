@@ -1,6 +1,6 @@
 'use client'
 
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import { atom, useAtom } from 'jotai'
 import Link from 'next/link'
 import { ChevronLeft, ChevronRight, Home, CreditCard } from 'lucide-react'
@@ -13,8 +13,26 @@ interface PolaroidPreviewUIProps {
   totalPrice?: number
 }
 
-export function PolaroidPreviewUI({ imageCount, frameLabel, totalPrice }: PolaroidPreviewUIProps) {
+export function PolaroidPreviewUI({ imageCount, frameLabel }: PolaroidPreviewUIProps) {
   const [focused, setFocused] = useAtom(polaroidFocusAtom)
+  const [pricePerPrint, setPricePerPrint] = useState(199)
+
+  useEffect(() => {
+    async function loadSettings() {
+      try {
+        const { getSystemSettings } = await import('@/lib/actions/settings')
+        const settings = await getSystemSettings()
+        if (settings?.pricing?.polaroid) {
+          setPricePerPrint(Math.round(settings.pricing.polaroid / 100))
+        }
+      } catch (e) {
+        console.error('Error fetching preview polaroid price:', e)
+      }
+    }
+    loadSettings()
+  }, [])
+
+  const computedTotal = imageCount * pricePerPrint
 
   return (
     <>
@@ -74,10 +92,13 @@ export function PolaroidPreviewUI({ imageCount, frameLabel, totalPrice }: Polaro
           <p className="text-white/30 text-xs uppercase tracking-widest font-mono">
             Drag to rotate · Click a print to focus
           </p>
-          <button className="flex items-center gap-3 bg-primary text-primary-foreground px-10 py-4 rounded-full font-bold uppercase tracking-widest hover:bg-primary/90 transition-all transform hover:scale-105 shadow-2xl shadow-primary/20">
+          <Link
+            href="/dashboard/orders/checkout?type=polaroid"
+            className="flex items-center gap-3 bg-primary text-primary-foreground px-10 py-4 rounded-full font-bold uppercase tracking-widest hover:bg-primary/90 transition-all transform hover:scale-105 shadow-2xl shadow-primary/20"
+          >
             <CreditCard className="w-5 h-5" />
-            Proceed to Checkout{totalPrice ? ` — ₹${totalPrice}` : ''}
-          </button>
+            Proceed to Checkout{computedTotal ? ` — ₹${computedTotal}` : ''}
+          </Link>
         </div>
       </nav>
 

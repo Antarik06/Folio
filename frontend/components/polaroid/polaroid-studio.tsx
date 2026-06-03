@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   Upload, ChevronRight, Check, Camera, Frame,
@@ -50,13 +50,48 @@ const MAX_IMAGES = 10
 
 export function PolaroidStudio() {
   const router = useRouter()
-  const [step, setStep] = useState<Step>('upload')
+  const [pricePerPrint, setPricePerPrint] = useState(PRICE_PER_PRINT)
+  const [step, setStep] = useState<Step>(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search)
+      const s = params.get('step') as Step
+      if (s === 'order' || s === 'template' || s === 'preview') {
+        return s
+      }
+    }
+    return 'upload'
+  })
   const [images, setImages] = useState<string[]>([])           // object URLs
   const [quantities, setQuantities] = useState<number[]>([])   // qty per print
   const [activeIdx, setActiveIdx] = useState(0)                // thumbnail focus
   const [selectedTemplate, setSelectedTemplate] = useState<Template>(TEMPLATES[0])
   const fileInputRef = useRef<HTMLInputElement>(null)
   const addMoreRef   = useRef<HTMLInputElement>(null)
+
+  // Fetch dynamic polaroid pricing on mount
+  useEffect(() => {
+    async function loadSettings() {
+      try {
+        const { getSystemSettings } = await import('@/lib/actions/settings')
+        const settings = await getSystemSettings()
+        if (settings?.pricing?.polaroid) {
+          setPricePerPrint(Math.round(settings.pricing.polaroid / 100))
+        }
+      } catch (e) {
+        console.error('Error fetching dynamic polaroid price:', e)
+      }
+    }
+    loadSettings()
+
+    // Redirect to unified checkout if user navigated to step=order
+    if (step === 'order') {
+      sessionStorage.setItem(
+        'polaroid-preview-state',
+        JSON.stringify({ images, frame: selectedTemplate.id, quantities })
+      )
+      router.push('/dashboard/orders/checkout?type=polaroid')
+    }
+  }, [step, images, selectedTemplate.id, quantities, router])
 
   // --- helpers ---
   const addFiles = useCallback((files: FileList | null) => {
@@ -82,7 +117,7 @@ export function PolaroidStudio() {
     setQuantities((prev) => prev.map((q, i) => i === idx ? Math.max(1, Math.min(20, q + delta)) : q))
 
   const totalPrints = quantities.reduce((s, q) => s + q, 0)
-  const totalPrice  = totalPrints * PRICE_PER_PRINT
+  const totalPrice  = totalPrints * pricePerPrint
 
   const goTo3DPreview = () => {
     if (images.length === 0) return

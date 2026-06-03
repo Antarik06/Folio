@@ -42,10 +42,10 @@ function normalizeSpreads(raw: unknown): AlbumSpread[] {
 function mapSpreadsToPages(spreads: AlbumSpread[]): FlipbookPageData[] {
   const pages: FlipbookPageData[] = []
 
-  const orderedSpreads = [...spreads].sort((a, b) => {
-    if (a.isCover === b.isCover) return 0
-    return a.isCover ? -1 : 1
-  })
+  // Ensure covers are at the front, while maintaining the canvas-defined relative order for all other spreads
+  const covers = spreads.filter(s => s.isCover)
+  const nonCovers = spreads.filter(s => !s.isCover)
+  const orderedSpreads = [...covers, ...nonCovers]
 
   const normalizePageElements = (elements: AlbumElement[], side: 'front' | 'back') =>
     elements.map((el) => ({
@@ -54,32 +54,27 @@ function mapSpreadsToPages(spreads: AlbumSpread[]): FlipbookPageData[] {
     }))
 
   orderedSpreads.forEach((spread, spreadIndex) => {
-    const isFirst = spreadIndex === 0
-    const isLast = spreadIndex === orderedSpreads.length - 1
-    
     const front = spread.front ?? { background: spread.background, elements: spread.elements }
     const back = spread.back ?? { background: '#ffffff', elements: [] }
 
-    if (isFirst && spread.isCover) {
-      // Just the cover page
+    if (spread.isCover) {
+      // Pushing the cover front page (standalone right side)
       pages.push({
         id: `${spread.id}-front-${spreadIndex}`,
         background: front.background || '#ffffff',
         elements: normalizePageElements(front.elements, 'front'),
       })
-    } else if (isLast && orderedSpreads.length > 1) {
-      // Just the back cover
-      // If the spread has content in 'back', use that as back cover, 
-      // otherwise use 'front' if it's the only thing there.
-      // Typically back cover is the last page.
-      const backCover = back.elements.length > 0 ? back : front
-      pages.push({
-        id: `${spread.id}-back-${spreadIndex}`,
-        background: backCover.background || '#ffffff',
-        elements: normalizePageElements(backCover.elements, 'back'),
-      })
+
+      // If the cover spread has elements on the back side, push it as the inside cover (Page 2, left side)
+      if (back.elements.length > 0 || back.background !== '#ffffff') {
+        pages.push({
+          id: `${spread.id}-back-${spreadIndex}`,
+          background: back.background || '#ffffff',
+          elements: normalizePageElements(back.elements, 'back'),
+        })
+      }
     } else {
-      // Regular spread - both pages
+      // For all regular spreads, push both front and back pages in sequence
       pages.push({
         id: `${spread.id}-front-${spreadIndex}`,
         background: front.background || '#ffffff',
@@ -93,6 +88,16 @@ function mapSpreadsToPages(spreads: AlbumSpread[]): FlipbookPageData[] {
       })
     }
   })
+
+  // To make sure the flipbook opens and closes correctly (even page count is best for double-page spreads),
+  // we append a blank page if the total page count is odd.
+  if (pages.length > 0 && pages.length % 2 !== 0) {
+    pages.push({
+      id: 'final-blank-back-cover',
+      background: '#ffffff',
+      elements: [],
+    })
+  }
 
   if (pages.length === 0) {
     pages.push({ id: 'fallback-front', background: '#ffffff', elements: [] })

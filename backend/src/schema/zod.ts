@@ -20,6 +20,7 @@ export const shippingAddressSchema = z.object({
   state: z.string().min(1, 'State is required.'),
   postalCode: z.string().regex(/^[a-zA-Z0-9]{4,10}$/, 'Enter a valid postal code (4–10 alphanumeric characters).'),
   country: z.string().min(1, 'Country is required.'),
+  phone: z.string().min(1, 'Phone number is required.').regex(/^[+]?[0-9\s-]{10,15}$/, 'Please enter a valid phone number (10-15 digits).'),
 })
 
 export const createOrderSchema = z.object({

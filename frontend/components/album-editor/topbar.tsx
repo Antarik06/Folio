@@ -29,6 +29,7 @@ import {
 } from 'lucide-react'
 import { AlbumElement } from './types'
 import { ThemeToggle } from '@/components/theme-toggle'
+import { apiClient } from '@/lib/api-client'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -102,9 +103,8 @@ export function Topbar({
 
   React.useEffect(() => {
     if (sharePanelOpen) {
-      fetch(`/api/albums/${albumId}`)
-        .then(res => res.json())
-        .then(data => {
+      apiClient.get(`/api/albums/${albumId}`)
+        .then((data: any) => {
           if (data && data.delivery_instructions) {
             setDeliveryInstructions(data.delivery_instructions)
           } else {
@@ -140,12 +140,8 @@ export function Topbar({
 
   const handleSaveInstructions = React.useCallback(async () => {
     try {
-      await fetch(`/api/albums/${albumId}/delivery-instructions`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ deliveryInstructions }),
+      await apiClient.patch(`/api/albums/${albumId}/delivery-instructions`, {
+        deliveryInstructions
       })
     } catch (err) {
       console.error('Failed to save delivery instructions:', err)
@@ -156,26 +152,14 @@ export function Topbar({
     // Save delivery/gifting instructions
     await handleSaveInstructions()
 
-    const response = await fetch(`/api/albums/${albumId}/share-link`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
+    const data = await apiClient.post(`/api/albums/${albumId}/share-link`, {
+      protections: {
+        watermark: useWatermark,
+        noRightClick: disableRightClick,
+        noDownload: hideDownloadActions,
       },
-      body: JSON.stringify({
-        protections: {
-          watermark: useWatermark,
-          noRightClick: disableRightClick,
-          noDownload: hideDownloadActions,
-        },
-      }),
-    })
+    }) as { shareUrl: string }
 
-    if (!response.ok) {
-      const data = (await response.json().catch(() => null)) as { error?: string } | null
-      throw new Error(data?.error || 'Unable to create share link')
-    }
-
-    const data = (await response.json()) as { shareUrl: string }
     return data.shareUrl
   }, [albumId, disableRightClick, hideDownloadActions, useWatermark])
 

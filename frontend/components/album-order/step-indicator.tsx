@@ -3,7 +3,7 @@
 import React from 'react'
 import { Check } from 'lucide-react'
 
-export type WizardStep = 'preview' | 'configure' | 'shipping' | 'review'
+export type WizardStep = 'configure' | 'shipping' | 'review'
 
 interface StepIndicatorProps {
   currentStep: WizardStep
@@ -11,7 +11,6 @@ interface StepIndicatorProps {
 }
 
 const STEPS: { key: WizardStep; label: string; shortLabel: string }[] = [
-  { key: 'preview', label: 'Preview', shortLabel: 'Preview' },
   { key: 'configure', label: 'Configure', shortLabel: 'Config' },
   { key: 'shipping', label: 'Shipping', shortLabel: 'Ship' },
   { key: 'review', label: 'Review & Order', shortLabel: 'Order' },

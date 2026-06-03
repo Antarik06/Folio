@@ -54,6 +54,7 @@ export interface ShippingAddress {
   state: string
   postalCode: string
   country: string
+  phone: string
 }
 
 export function validateShippingAddress(addr: ShippingAddress): boolean {
@@ -63,6 +64,7 @@ export function validateShippingAddress(addr: ShippingAddress): boolean {
     addr.city,
     addr.postalCode,
     addr.country,
+    addr.phone,
   ]
   return required.every((f) => f && f.trim().length > 0)
 }
@@ -75,6 +77,11 @@ export function getShippingAddressErrors(
   if (!addr.addressLine1 || !addr.addressLine1.trim()) errors.addressLine1 = 'Address is required.'
   if (!addr.city || !addr.city.trim()) errors.city = 'City is required.'
   if (!addr.state || !addr.state.trim()) errors.state = 'State is required.'
+  if (!addr.phone || !addr.phone.trim()) {
+    errors.phone = 'Phone number is required.'
+  } else if (!/^[+]?[0-9\s-]{10,15}$/.test(addr.phone.trim())) {
+    errors.phone = 'Please enter a valid phone number (10-15 digits).'
+  }
   if (!addr.postalCode || !addr.postalCode.trim()) {
     errors.postalCode = 'Postal code is required.'
   } else if (!validatePostalCode(addr.postalCode)) {

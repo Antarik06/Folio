@@ -70,10 +70,13 @@ export function MagazinePreviewUI({ album }: MagazinePreviewUIProps) {
           <p className="text-white/30 text-xs uppercase tracking-widest font-mono">
             Drag to rotate · Click arrows to flip pages
           </p>
-          <button className="flex items-center gap-3 bg-primary text-primary-foreground px-10 py-4 rounded-full font-bold uppercase tracking-widest hover:bg-primary/90 transition-all transform hover:scale-105 shadow-2xl shadow-primary/20">
+          <Link
+            href={`/dashboard/templates/checkout/${album.id}`}
+            className="flex items-center gap-3 bg-primary text-primary-foreground px-10 py-4 rounded-full font-bold uppercase tracking-widest hover:bg-primary/90 transition-all transform hover:scale-105 shadow-2xl shadow-primary/20"
+          >
             <CreditCard className="w-5 h-5" />
             Proceed to Payment
-          </button>
+          </Link>
         </div>
       </nav>
 

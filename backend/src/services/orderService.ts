@@ -1,36 +1,80 @@
 import { query } from '../db'
-import { computePriceCents, isPageCountValid, validateQuantity, validatePostalCode, validateShippingAddress } from '../utils/pricing'
+import { isPageCountValid, validatePostalCode, validateShippingAddress } from '../utils/pricing'
 import { razorpay } from '../utils/razorpay'
 import { v4 as uuidv4 } from 'uuid'
+import { settingsService } from './settingsService'
 
 export const orderService = {
   /**
    * Validates details and creates a print book order row.
    */
   async createOrder(input: {
-    albumId: string
-    productType: 'softcover' | 'hardcover'
+    albumId?: string
+    productType: 'softcover' | 'hardcover' | 'polaroid'
     size: 'small' | 'large'
     quantity: number
     shippingAddress: any
+    promoCode?: string
+    metadata?: any
   }, userId: string): Promise<any> {
-    // 1. Verify album ownership
-    const albumRes = await query(
-      'SELECT id, owner_id, status, layout_data FROM public.albums WHERE id = $1',
-      [input.albumId]
-    )
-    const album = albumRes.rows[0]
+    // 1. Verify album ownership if it's a book
+    let albumTitle = 'Polaroid Prints'
+    let pageCount = 0
 
-    if (!album) {
-      throw new Error('Album not found.')
-    }
-    if (album.owner_id !== userId) {
-      throw new Error('You do not own this album.')
+    if (input.productType !== 'polaroid') {
+      if (!input.albumId) {
+        throw new Error('Album ID is required.')
+      }
+
+      const albumRes = await query(
+        'SELECT id, owner_id, status, layout_data FROM public.albums WHERE id = $1',
+        [input.albumId]
+      )
+      const album = albumRes.rows[0]
+
+      if (!album) {
+        throw new Error('Album not found.')
+      }
+      if (album.owner_id !== userId) {
+        throw new Error('You do not own this album.')
+      }
+
+      // Fetch page count for Book
+      const pagesCountRes = await query(
+        'SELECT COUNT(*)::int as count FROM public.album_pages WHERE album_id = $1',
+        [input.albumId]
+      )
+      const albumPagesCount = pagesCountRes.rows[0]?.count
+
+      if (albumPagesCount && albumPagesCount > 0) {
+        pageCount = albumPagesCount
+      } else {
+        const layoutData = album.layout_data
+        if (layoutData && typeof layoutData === 'object' && Array.isArray(layoutData.spreads)) {
+          pageCount = layoutData.spreads.length
+        }
+      }
+
+      // Validate page count limits dynamically
+      const limitsRes = await query("SELECT value FROM public.system_settings WHERE key = 'page_limits'")
+      let pageLimits = { softcover: 80, hardcover: 120 }
+      if (limitsRes.rows.length > 0) {
+        pageLimits = limitsRes.rows[0].value
+      }
+      const maxPages = pageLimits[input.productType] || (input.productType === 'softcover' ? 80 : 120)
+      if (pageCount > maxPages) {
+        throw new Error(`This album has ${pageCount} pages, which exceeds the limit of ${maxPages} pages.`)
+      }
     }
 
-    // 2. Validate quantity
-    if (!validateQuantity(input.quantity)) {
-      throw new Error('Quantity must be between 1 and 10.')
+    // 2. Validate quantity boundaries dynamically
+    const copyLimitsRes = await query("SELECT value FROM public.system_settings WHERE key = 'min_max_copies'")
+    let copyLimits = { min: 1, max: 10 }
+    if (copyLimitsRes.rows.length > 0) {
+      copyLimits = copyLimitsRes.rows[0].value
+    }
+    if (input.quantity < copyLimits.min || input.quantity > copyLimits.max) {
+      throw new Error(`Quantity must be between ${copyLimits.min} and ${copyLimits.max}.`)
     }
 
     // 3. Validate shipping details
@@ -42,43 +86,57 @@ export const orderService = {
       throw new Error('Enter a valid postal code (4–10 alphanumeric characters).')
     }
 
-    // 4. Fetch page count
-    let pageCount = 0
-    
-    // First try album_pages
-    const pagesCountRes = await query(
-      'SELECT COUNT(*)::int as count FROM public.album_pages WHERE album_id = $1',
-      [input.albumId]
-    )
-    const albumPagesCount = pagesCountRes.rows[0]?.count
+    // 4. Compute server-side price dynamically
+    const pricingRes = await query("SELECT value FROM public.system_settings WHERE key = 'pricing'")
+    let pricing = { softcover: 89900, hardcover: 149900, polaroid: 19900 }
+    if (pricingRes.rows.length > 0) {
+      pricing = pricingRes.rows[0].value
+    }
+    const unitPrice = pricing[input.productType] || (input.productType === 'softcover' ? 89900 : input.productType === 'hardcover' ? 149900 : 19900)
+    const subtotal = unitPrice * input.quantity
 
-    if (albumPagesCount && albumPagesCount > 0) {
-      pageCount = albumPagesCount
-    } else {
-      // Fallback 1: check theme_config spreads
-      const themeConfig = album.theme_config
-      if (themeConfig && typeof themeConfig === 'object' && Array.isArray(themeConfig.spreads)) {
-        pageCount = themeConfig.spreads.length
-      } else {
-        // Fallback 2: check layout_data spreads
-        const layoutData = album.layout_data
-        if (layoutData && typeof layoutData === 'object' && Array.isArray(layoutData.spreads)) {
-          pageCount = layoutData.spreads.length
+    // 5. Fetch tax and shipping configurations
+    const taxShipRes = await query("SELECT value FROM public.system_settings WHERE key = 'shipping_and_tax'")
+    let taxShip = { tax_rate: 18, shipping_fee: 15000, free_shipping_threshold: 150000 }
+    if (taxShipRes.rows.length > 0) {
+      taxShip = taxShipRes.rows[0].value
+    }
+
+    // 6. Handle Promo Codes
+    let discount = 0
+    if (input.promoCode) {
+      const promoCheck = await settingsService.validatePromoCode(input.promoCode, subtotal)
+      if (promoCheck.valid) {
+        if (promoCheck.discountType === 'percentage') {
+          discount = Math.round(subtotal * (promoCheck.discountValue || 0) / 100)
+        } else if (promoCheck.discountType === 'fixed') {
+          discount = promoCheck.discountValue || 0
         }
+      } else {
+        throw new Error(promoCheck.message)
       }
     }
 
-    // Validate page count limits
-    if (!isPageCountValid(input.productType, pageCount)) {
-      throw new Error(`This album has ${pageCount} pages, which exceeds the ${input.productType} limit.`)
+    const discountedSubtotal = Math.max(0, subtotal - discount)
+    const shippingFee = discountedSubtotal >= taxShip.free_shipping_threshold ? 0 : taxShip.shipping_fee
+    
+    // grandTotal = discounted subtotal + shipping + tax
+    const taxableAmount = discountedSubtotal + shippingFee
+    const taxAmount = Math.round(taxableAmount * (taxShip.tax_rate / 100))
+    const grandTotal = taxableAmount + taxAmount
+
+    // Store calculations and details in metadata column
+    const orderMetadata = {
+      subtotal,
+      discount,
+      shippingFee,
+      taxRate: taxShip.tax_rate,
+      taxAmount,
+      promoCode: input.promoCode || null,
+      polaroidDetails: input.productType === 'polaroid' ? (input.metadata || {}) : null
     }
 
-    // 5. Compute server-side price
-    const priceCents = computePriceCents(input.productType, input.quantity)
-
-    // Match productType enum in DB schema:
-    // Schema expects 'softcover_small', 'softcover_large', 'hardcover_small', 'hardcover_large', etc.
-    const dbProductType = `${input.productType}_${input.size}`
+    const dbProductType = input.productType === 'polaroid' ? 'polaroid' : `${input.productType}_${input.size}`
 
     // Create Razorpay Order
     let razorpayOrderId = `order_mock_${uuidv4().substring(0, 8)}`
@@ -88,7 +146,7 @@ export const orderService = {
     if (keyId !== 'rzp_test_mock' && keySecret) {
       try {
         const rpOrder = await razorpay.orders.create({
-          amount: priceCents, // Price is already in paise/cents
+          amount: grandTotal, // Grand total in paise
           currency: 'INR',
           receipt: `rcpt_${uuidv4().substring(0, 8)}`
         })
@@ -99,34 +157,38 @@ export const orderService = {
       }
     }
 
-    // 6. Insert order
+    // 7. Insert order
     const insertRes = await query(
       `INSERT INTO public.orders 
-       (user_id, album_id, product_type, quantity, unit_price, total_price, currency, payment_status, shipping_address, shipping_status, razorpay_order_id, tracking_status)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+       (user_id, album_id, product_type, quantity, unit_price, total_price, currency, payment_status, shipping_address, shipping_status, razorpay_order_id, tracking_status, metadata, promo_code)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
        RETURNING *`,
       [
         userId,
-        input.albumId,
+        input.albumId || null,
         dbProductType,
         input.quantity,
-        computePriceCents(input.productType, 1),
-        priceCents,
+        unitPrice,
+        grandTotal,
         'inr',
         'pending',
         JSON.stringify(input.shippingAddress),
         'pending',
         razorpayOrderId,
-        'order placed'
+        'order placed',
+        JSON.stringify(orderMetadata),
+        input.promoCode || null
       ]
     )
     const order = insertRes.rows[0]
 
-    // 7. Update album status to 'ordered'
-    await query(
-      "UPDATE public.albums SET status = 'ordered', updated_at = NOW() WHERE id = $1",
-      [input.albumId]
-    )
+    // 8. Update album status to 'ordered' for Books
+    if (input.albumId) {
+      await query(
+        "UPDATE public.albums SET status = 'ordered', updated_at = NOW() WHERE id = $1",
+        [input.albumId]
+      )
+    }
 
     return {
       ...order,
@@ -196,7 +258,7 @@ export const orderService = {
    */
   async getUserOrders(userId: string): Promise<any[]> {
     const ordersRes = await query(
-      `SELECT o.*, a.title as album_title, ph.blob_url as cover_image_url
+      `SELECT o.*, COALESCE(a.title, 'Polaroid Prints') as album_title, ph.blob_url as cover_image_url
        FROM public.orders o
        LEFT JOIN public.albums a ON o.album_id = a.id
        LEFT JOIN public.photos ph ON a.cover_photo_id = ph.id
@@ -204,6 +266,19 @@ export const orderService = {
        ORDER BY o.created_at DESC`,
       [userId]
     )
-    return ordersRes.rows
+    return ordersRes.rows.map(order => {
+      if (!order.cover_image_url && order.product_type === 'polaroid' && order.metadata) {
+        try {
+          const meta = typeof order.metadata === 'string' ? JSON.parse(order.metadata) : order.metadata
+          const images = meta?.polaroidDetails?.images
+          if (Array.isArray(images) && images.length > 0) {
+            return { ...order, cover_image_url: images[0] }
+          }
+        } catch (e) {
+          console.error('Error parsing order metadata cover fallback:', e)
+        }
+      }
+      return order
+    })
   }
 }

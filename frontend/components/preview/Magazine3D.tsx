@@ -243,7 +243,13 @@ export function Magazine3D({ album }: Magazine3DProps) {
         ctx.font       = `${el.fontWeight || 'normal'} ${fs}px ${el.fontFamily || 'Georgia, serif'}`
         ctx.textAlign  = el.textAlign as CanvasTextAlign
         ctx.textBaseline = 'top'
-        ctx.fillText(el.text, 0, 0)
+        let tx = 0
+        if (el.textAlign === 'center') {
+          tx = (el.width * scaleX) / 2
+        } else if (el.textAlign === 'right') {
+          tx = el.width * scaleX
+        }
+        ctx.fillText(el.text, tx, 0)
       }
       ctx.restore()
     }
