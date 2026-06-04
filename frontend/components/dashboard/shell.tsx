@@ -14,7 +14,7 @@ interface DashboardShellProps {
 
 export function DashboardShell({ user, profile, children }: DashboardShellProps) {
   const pathname = usePathname()
-  const hideDashboardHeader = pathname.startsWith('/dashboard/templates/editor/') || pathname.startsWith('/dashboard/admin')
+  const hideDashboardHeader = pathname.startsWith('/dashboard/templates/editor/') || pathname.startsWith('/dashboard/admin') || pathname.startsWith('/dashboard/artist')
 
   return (
     <div className="min-h-screen bg-background">

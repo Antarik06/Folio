@@ -177,3 +177,57 @@ export async function updateUserStatus(userId: string, isBanned: boolean) {
     return { success: false, error: error.message }
   }
 }
+
+export async function getAdminArtists() {
+  try {
+    const token = await getAuthToken()
+    if (!token) throw new Error('Unauthorized')
+    return await serverFetch('/api/admin/artists', token)
+  } catch (error: any) {
+    console.error('Error fetching admin artists:', error)
+    return []
+  }
+}
+
+export async function assignArtistToOrder(orderId: string, artistId: string | null) {
+  try {
+    const token = await getAuthToken()
+    if (!token) throw new Error('Unauthorized')
+    const result = await serverFetch(`/api/admin/orders/${orderId}/assign-artist`, token, {
+      method: 'PATCH',
+      body: JSON.stringify({ artistId })
+    })
+    revalidatePath('/dashboard/admin')
+    return { success: true, order: result.order }
+  } catch (error: any) {
+    console.error(`Error assigning artist to order ${orderId}:`, error)
+    return { success: false, error: error.message }
+  }
+}
+
+export async function getAdminPremiumProjects() {
+  try {
+    const token = await getAuthToken()
+    if (!token) throw new Error('Unauthorized')
+    return await serverFetch('/api/premium/projects', token)
+  } catch (error: any) {
+    console.error('Error fetching premium projects for admin:', error)
+    return []
+  }
+}
+
+export async function assignArtistToPremiumProject(projectId: string, artistId: string | null) {
+  try {
+    const token = await getAuthToken()
+    if (!token) throw new Error('Unauthorized')
+    const result = await serverFetch(`/api/admin/premium/projects/${projectId}/assign-artist`, token, {
+      method: 'PATCH',
+      body: JSON.stringify({ artistId })
+    })
+    revalidatePath('/dashboard/admin')
+    return { success: true, project: result.project }
+  } catch (error: any) {
+    console.error(`Error assigning artist to premium project ${projectId}:`, error)
+    return { success: false, error: error.message }
+  }
+}

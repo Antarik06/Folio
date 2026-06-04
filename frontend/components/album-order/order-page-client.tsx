@@ -284,7 +284,7 @@ export function OrderPageClient({
         return
       }
 
-      const orderData = result
+      const orderData = result.order || result
       const keyId = orderData.razorpayKeyId || 'rzp_test_mock'
 
       // Mock Gateway flow

@@ -27,6 +27,7 @@ export function DashboardNav({ user, profile }: DashboardNavProps) {
     { href: '/dashboard/events', label: 'Events' },
     { href: '/dashboard/templates', label: 'Popular Albums' },
     { href: '/dashboard/polaroid', label: 'Polaroid' },
+    { href: '/dashboard/premium', label: 'Concierge' },
   ]
 
   return (
@@ -97,6 +98,9 @@ export function DashboardNav({ user, profile }: DashboardNavProps) {
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
                 <Link href="/dashboard/orders">My Orders</Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/dashboard/premium">Premium Concierge</Link>
               </DropdownMenuItem>
               {user.email === 'admin@folio.com' && (
                 <DropdownMenuItem asChild>

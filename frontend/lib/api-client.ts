@@ -28,15 +28,6 @@ export async function clientFetch(path: string, options: RequestInit = {}) {
     console.error('clientFetch: Failed to get session:', err)
   }
 
-  if (!user) {
-    throw new Error('Not authenticated')
-  }
-
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-    ...(options.headers as Record<string, string> || {})
-  }
-
   let token = session?.access_token || null
 
   if (!token && typeof document !== 'undefined') {
@@ -48,6 +39,15 @@ export async function clientFetch(path: string, options: RequestInit = {}) {
     } else if (adminCookie) {
       token = adminCookie.split('=')[1].trim()
     }
+  }
+
+  if (!user && !token) {
+    throw new Error('Not authenticated')
+  }
+
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    ...(options.headers as Record<string, string> || {})
   }
 
   if (token) {

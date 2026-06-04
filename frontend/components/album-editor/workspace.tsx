@@ -1,10 +1,12 @@
 'use client'
 
 import React, { useRef, useEffect, useState } from 'react'
-import { Stage, Layer, Image as KonvaImage, Text, Transformer, Rect, Circle, Line } from 'react-konva'
+import { Stage, Layer, Image as KonvaImage, Text, Transformer, Rect, Circle, Line, Group } from 'react-konva'
 import useImage from 'use-image'
 import { AlbumSpread, AlbumElement, DrawingElement } from './types'
 import Konva from 'konva'
+import { ReframeModal } from './reframe-modal'
+import { checkResolution } from '@/lib/template-engine-utils'
 
 interface URLImageProps {
   imageSrc: string
@@ -59,6 +61,8 @@ interface WorkspaceProps {
   isDrawingMode?: boolean
   brushColor?: string
   brushSize?: number
+  simpleMode?: boolean
+  photos?: any[]
 }
 
 const DRAG_MIME = 'application/x-folio-album-element'
@@ -113,6 +117,8 @@ export function Workspace({
   isDrawingMode = false,
   brushColor = '#1C1814',
   brushSize = 5,
+  simpleMode = false,
+  photos = []
 }: WorkspaceProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const contextMenuRef = useRef<HTMLDivElement>(null)
@@ -122,6 +128,7 @@ export function Workspace({
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; targetId: string | null } | null>(null)
 
   const [editingTextId, setEditingTextId] = useState<string | null>(null)
+  const [reframingElementId, setReframingElementId] = useState<string | null>(null)
   const [currentLine, setCurrentLine] = useState<{ points: number[] } | null>(null)
   const isDrawing = useRef(false)
 
@@ -275,8 +282,8 @@ export function Workspace({
         y >= el.y && y <= el.y + el.height
       )
 
-      if (targetElement && payload.type === 'image' && payload.src) {
-        updateElement(targetElement.id, { src: payload.src }, { historyGroup: 'edit' })
+      if (targetElement && payload.type === 'image' && (payload as any).src) {
+        updateElement(targetElement.id, { src: (payload as any).src }, { historyGroup: 'edit' })
       } else {
         onDropElement(payload, {
           x: Math.max(0, Math.min(SPREAD_WIDTH - elementWidth, x - elementWidth / 2)),
@@ -297,7 +304,7 @@ export function Workspace({
       return Boolean(element && !element.hidden && !element.locked)
     })
 
-    const selectedNodes = selectable.map((id) => stage.findOne(`#${id}`)).filter(Boolean) as Konva.Node[]
+    const selectedNodes = simpleMode ? [] : (selectable.map((id) => stage.findOne(`#${id}`)).filter(Boolean) as Konva.Node[])
     setNodes(selectedNodes)
   }, [selection, spread.elements])
 
@@ -628,35 +635,80 @@ export function Workspace({
               }
 
               if (el.type === 'image') {
+                const photo = photos.find(p => p.blob_url === el.src || p.thumbnail_url === el.src)
+                let resolutionWarning: 'warning' | 'error' | null = null
+                let warningText = ''
+                
+                if (photo && photo.width && photo.height) {
+                  const widthMm = (el.width / SPREAD_WIDTH) * 210
+                  const heightMm = (el.height / SPREAD_HEIGHT) * 297
+                  const resCheck = checkResolution(photo.width, photo.height, widthMm, heightMm)
+                  if (resCheck.status !== 'ok') {
+                    resolutionWarning = resCheck.status as any
+                    warningText = resCheck.status === 'error' ? '!' : '?'
+                  }
+                }
+
                 return (
-                  <RemoteImage
-                    key={el.id}
-                    id={el.id}
-                    imageSrc={el.src}
-                    fitMode={el.fitMode}
-                    x={el.x}
-                    y={el.y}
-                    width={el.width}
-                    height={el.height}
-                    rotation={el.rotation}
-                    draggable={!locked}
-                    onClick={() => setSelection([el.id])}
-                    onTap={() => setSelection([el.id])}
-                    onDragMove={onDragMove}
-                    onDragEnd={onDragEnd}
-                    onTransformEnd={onTransformEnd}
-                    opacity={el.opacity ?? 1}
-                    scaleX={el.flipX ? -1 : 1}
-                    scaleY={el.flipY ? -1 : 1}
-                    offsetX={el.flipX ? el.width : 0}
-                    offsetY={el.flipY ? el.height : 0}
-                    cornerRadius={el.cornerRadius ?? 0}
-                    shadowColor={el.shadowColor || '#000000'}
-                    shadowBlur={el.shadowBlur ?? 0}
-                    shadowOpacity={el.shadowOpacity ?? 0}
-                    shadowEnabled={(el.shadowBlur ?? 0) > 0}
-                    listening
-                  />
+                  <Group key={el.id}>
+                    <RemoteImage
+                      id={el.id}
+                      imageSrc={el.src}
+                      fitMode={el.fitMode}
+                      x={el.x}
+                      y={el.y}
+                      width={el.width}
+                      height={el.height}
+                      rotation={el.rotation}
+                      draggable={!simpleMode && !locked}
+                      onClick={() => setSelection([el.id])}
+                      onTap={() => setSelection([el.id])}
+                      onDblClick={() => {
+                        if (simpleMode) {
+                          setReframingElementId(el.id)
+                        }
+                      }}
+                      onDblTap={() => {
+                        if (simpleMode) {
+                          setReframingElementId(el.id)
+                        }
+                      }}
+                      onDragMove={onDragMove}
+                      onDragEnd={onDragEnd}
+                      onTransformEnd={onTransformEnd}
+                      opacity={el.opacity ?? 1}
+                      scaleX={el.flipX ? -1 : 1}
+                      scaleY={el.flipY ? -1 : 1}
+                      offsetX={el.flipX ? el.width : 0}
+                      offsetY={el.flipY ? el.height : 0}
+                      cornerRadius={el.cornerRadius ?? 0}
+                      shadowColor={el.shadowColor || '#000000'}
+                      shadowBlur={el.shadowBlur ?? 0}
+                      shadowOpacity={el.shadowOpacity ?? 0}
+                      shadowEnabled={(el.shadowBlur ?? 0) > 0}
+                      listening
+                    />
+                    {resolutionWarning && (
+                      <Group
+                        x={el.x + el.width - 24}
+                        y={el.y + 8}
+                        onClick={() => alert(`DPI Check: ${warningText === '!' ? 'DPI is below 200. High risk of blurry print.' : 'DPI is sub-optimal (between 200-300). Print quality may be reduced.'}`)}
+                      >
+                        <Circle
+                          radius={10}
+                          fill={resolutionWarning === 'error' ? '#EF4444' : '#F59E0B'}
+                        />
+                        <Text
+                          text={warningText}
+                          fontSize={12}
+                          fontStyle="bold"
+                          fill="#FFFFFF"
+                          x={-3}
+                          y={-6}
+                        />
+                      </Group>
+                    )}
+                  </Group>
                 )
               }
 
@@ -799,6 +851,23 @@ export function Workspace({
             </>
           )}
         </div>
+      )}
+      {reframingElementId && (
+        (() => {
+          const el = spread.elements.find(e => e.id === reframingElementId)
+          if (!el || el.type !== 'image') return null
+          return (
+            <ReframeModal
+              imageSrc={el.src}
+              aspectRatio={el.width / el.height}
+              onSave={(newCrop) => {
+                updateElement(el.id, { crop: newCrop })
+                setReframingElementId(null)
+              }}
+              onClose={() => setReframingElementId(null)}
+            />
+          )
+        })()
       )}
     </div>
   )
