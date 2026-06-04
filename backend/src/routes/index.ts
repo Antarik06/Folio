@@ -6,6 +6,8 @@ import orderRoutes from './orderRoutes'
 import aiRoutes from './aiRoutes'
 import profileRoutes from './profileRoutes'
 import adminRoutes from './adminRoutes'
+import artistRoutes from './artistRoutes'
+import premiumRoutes from './premiumRoutes'
 import { settingsController } from '../controllers/settingsController'
 
 const router = Router()
@@ -16,6 +18,8 @@ router.use('/albums', albumRoutes)
 router.use('/orders', orderRoutes)
 router.use('/profile', profileRoutes)
 router.use('/admin', adminRoutes)
+router.use('/artists', artistRoutes)
+router.use('/premium', premiumRoutes)
 
 // Public System Settings & Promo Codes Validation
 router.get('/settings', settingsController.getPublicSettings)

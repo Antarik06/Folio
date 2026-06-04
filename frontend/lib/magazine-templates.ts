@@ -8,6 +8,9 @@ export interface MagazineTemplate {
   category: string
   productType?: 'magazine' | 'photo_book'
   spreads: AlbumSpread[]
+  layout_schema?: any
+  isDynamic?: boolean
+  pageCount?: number
 }
 
 export const MAGAZINE_TEMPLATES: MagazineTemplate[] = [

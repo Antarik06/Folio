@@ -95,8 +95,11 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization']
 }))
 
+import path from 'path'
+
 app.use(express.json({ limit: '10mb' }))
 app.use(express.urlencoded({ extended: true, limit: '10mb' }))
+app.use('/scratch', express.static(path.join(process.cwd(), 'backend', 'scratch')))
 
 // Mount the modular routes
 app.use('/api', apiRoutes)
@@ -105,6 +108,8 @@ app.use('/api', apiRoutes)
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date() })
 })
+
+import { startPrintQueueDaemon } from './services/printQueue'
 
 // Centralized error handling middleware
 app.use(errorMiddleware)
@@ -115,4 +120,7 @@ app.listen(PORT, () => {
   console.log(`Folio Modular Backend running on port ${PORT}`)
   console.log(`Active CORS origin: ${origin}`)
   console.log(`==========================================`)
+  
+  // Start background print queue worker daemon
+  startPrintQueueDaemon()
 })

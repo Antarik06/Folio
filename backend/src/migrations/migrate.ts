@@ -21,7 +21,8 @@ async function runMigrations() {
     '009_album_status.sql',
     '010_payment_tracking.sql',
     '011_admin_settings.sql',
-    '012_enable_rls.sql'
+    '012_enable_rls.sql',
+    '013_template_system_extensions.sql'
   ]
 
   try {

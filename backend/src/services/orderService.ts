@@ -4,6 +4,8 @@ import { razorpay } from '../utils/razorpay'
 import { v4 as uuidv4 } from 'uuid'
 import { settingsService } from './settingsService'
 
+import { notificationService } from './notificationService'
+
 export const orderService = {
   /**
    * Validates details and creates a print book order row.
@@ -157,11 +159,71 @@ export const orderService = {
       }
     }
 
+    // Resolve artist assignment
+    let artistId = null
+    let albumLayout = null
+    const imageReferences: string[] = []
+
+    if (input.albumId) {
+      // Find if template is associated with an artist
+      const albumRes = await query('SELECT template_id, layout_data FROM public.albums WHERE id = $1', [input.albumId])
+      const album = albumRes.rows[0]
+      if (album) {
+        albumLayout = album.layout_data
+        
+        // Extract image references
+        if (albumLayout) {
+          const spreads = albumLayout.spreads || []
+          spreads.forEach((spread: any) => {
+            const checkElement = (el: any) => {
+              if (el.type === 'image' && el.src) {
+                imageReferences.push(el.src)
+              }
+            }
+            if (spread.elements) spread.elements.forEach(checkElement)
+            if (spread.front?.elements) spread.front.elements.forEach(checkElement)
+            if (spread.back?.elements) spread.back.elements.forEach(checkElement)
+          })
+        }
+
+        if (album.template_id) {
+          const templateRes = await query('SELECT artist_id FROM public.templates WHERE id = $1', [album.template_id])
+          artistId = templateRes.rows[0]?.artist_id || null
+        }
+      }
+    }
+
+    // If template has no specific artist, select available round-robin artist
+    if (!artistId) {
+      const artistRes = await query(
+        `SELECT user_id FROM public.artists 
+         WHERE is_available = TRUE 
+         ORDER BY current_order_count ASC, id ASC LIMIT 1`
+      )
+      artistId = artistRes.rows[0]?.user_id || null
+    }
+
+    if (artistId) {
+      // Increment artist count
+      await query(
+        'UPDATE public.artists SET current_order_count = current_order_count + 1 WHERE user_id = $1',
+        [artistId]
+      )
+    }
+
+    // Extrapolate contact details
+    const contactDetails = {
+      name: input.shippingAddress?.fullName || 'Valued Customer',
+      email: input.shippingAddress?.email || 'customer@example.com',
+      phone: input.shippingAddress?.phone || '000-000-0000'
+    }
+    const specialInstructions = input.shippingAddress?.specialInstructions || ''
+
     // 7. Insert order
     const insertRes = await query(
       `INSERT INTO public.orders 
-       (user_id, album_id, product_type, quantity, unit_price, total_price, currency, payment_status, shipping_address, shipping_status, razorpay_order_id, tracking_status, metadata, promo_code)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+       (user_id, album_id, product_type, quantity, unit_price, total_price, currency, payment_status, shipping_address, shipping_status, razorpay_order_id, tracking_status, metadata, promo_code, artist_id, order_type, status, album_layout_json, image_references, contact_details_json, special_instructions)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)
        RETURNING *`,
       [
         userId,
@@ -177,7 +239,14 @@ export const orderService = {
         razorpayOrderId,
         'order placed',
         JSON.stringify(orderMetadata),
-        input.promoCode || null
+        input.promoCode || null,
+        artistId,
+        'standard',
+        'pending-review',
+        JSON.stringify(albumLayout || {}),
+        JSON.stringify(imageReferences),
+        JSON.stringify(contactDetails),
+        specialInstructions
       ]
     )
     const order = insertRes.rows[0]
@@ -188,6 +257,15 @@ export const orderService = {
         "UPDATE public.albums SET status = 'ordered', updated_at = NOW() WHERE id = $1",
         [input.albumId]
       )
+    }
+
+    if (artistId) {
+      await notificationService.sendNotification(
+        artistId,
+        'artist_assigned',
+        'New Order Assigned',
+        `You have been assigned to review the layout for order #${order.id}.`
+      ).catch(e => console.error('Failed to send notification to artist:', e))
     }
 
     return {
@@ -250,7 +328,17 @@ export const orderService = {
        RETURNING *`,
       [orderId, razorpayPaymentId, razorpaySignature]
     )
-    return updateRes.rows[0]
+    const updatedOrder = updateRes.rows[0]
+
+    // Notify User: Order Placed
+    await notificationService.sendNotification(
+      updatedOrder.user_id,
+      'system',
+      'Order Placed Successfully',
+      `Your print order #${orderId} has been placed successfully. It is now awaiting artist review.`
+    ).catch(e => console.error('Failed to send order placed notification:', e))
+
+    return updatedOrder
   },
 
   /**

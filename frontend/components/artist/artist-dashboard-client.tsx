@@ -39,6 +39,9 @@ interface Album {
   created_at: string
   cover_photo_id?: string
   layout_data?: any
+  thumbnail_url?: string
+  background_pdf_path?: string
+  page_count?: number
 }
 
 interface ReviewOrder {
@@ -514,7 +517,10 @@ export function ArtistDashboardClient({
         is_published: t.status === 'published',
         created_at: t.created_at,
         cover_photo_id: undefined,
-        layout_data: t.layout_schema
+        layout_data: t.layout_schema,
+        thumbnail_url: t.thumbnail_url,
+        background_pdf_path: t.background_pdf_path,
+        page_count: t.page_count
       }))
       setAlbums(mapped)
     } catch (e) {
@@ -755,7 +761,10 @@ export function ArtistDashboardClient({
           is_published: res.status === 'published',
           created_at: res.created_at,
           cover_photo_id: undefined,
-          layout_data: res.layout_schema
+          layout_data: res.layout_schema,
+          thumbnail_url: res.thumbnail_url,
+          background_pdf_path: res.background_pdf_path,
+          page_count: res.page_count
         }
         setAlbums(prev => [mappedRes, ...prev])
         setWizardStep(1)
@@ -993,55 +1002,66 @@ export function ArtistDashboardClient({
                     const isPublished = album.is_published
                     const isUpdating = updatingId === album.id
                     const isDeleting = deletingId === album.id
-                    const pageCount = Array.isArray(album.layout_data?.spreads) ? album.layout_data.spreads.length * 2 : 2
-                    const gradient = CARD_GRADIENTS[idx % CARD_GRADIENTS.length]
+                     const pageCount = album.page_count || album.layout_data?.pages?.length || (Array.isArray(album.layout_data?.spreads) ? album.layout_data.spreads.length * 2 : 2)
+                     const gradient = CARD_GRADIENTS[idx % CARD_GRADIENTS.length]
 
-                    return (
-                      <div
-                        key={album.id}
-                        className="group relative bg-white dark:bg-[#1A1613] border border-[#EBE6DD] dark:border-white/10 rounded-xl overflow-hidden hover:shadow-2xl hover:shadow-black/[0.06] dark:hover:shadow-black/30 transition-all duration-500 hover:-translate-y-0.5"
-                      >
-                        {/* Thumbnail Area */}
-                        <div className={`aspect-[16/10] bg-gradient-to-br ${gradient} relative overflow-hidden`}>
-                          {/* Decorative pattern */}
-                          <div className="absolute inset-0 opacity-[0.03]" style={{
-                            backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23000000' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`
-                          }} />
-                          {/* Center icon */}
-                          <div className="absolute inset-0 flex items-center justify-center">
-                            <BookOpen className="w-10 h-10 text-[#1C1814]/[0.06] dark:text-white/[0.06]" />
-                          </div>
+                     return (
+                       <div
+                         key={album.id}
+                         className="group relative bg-white dark:bg-[#1A1613] border border-[#EBE6DD] dark:border-white/10 rounded-xl overflow-hidden hover:shadow-2xl hover:shadow-black/[0.06] dark:hover:shadow-black/30 transition-all duration-500 hover:-translate-y-0.5"
+                       >
+                         {/* Thumbnail Area */}
+                         <div className="aspect-[16/10] relative overflow-hidden bg-gradient-to-br bg-white dark:bg-[#1A1613]">
+                           {album.thumbnail_url ? (
+                             <img
+                               src={album.thumbnail_url}
+                               alt={album.title}
+                               className="w-full h-full object-cover"
+                             />
+                           ) : (
+                             <>
+                               <div className={`absolute inset-0 bg-gradient-to-br ${gradient}`} />
+                               {/* Decorative pattern */}
+                               <div className="absolute inset-0 opacity-[0.03]" style={{
+                                 backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23000000' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`
+                               }} />
+                               {/* Center icon */}
+                               <div className="absolute inset-0 flex items-center justify-center">
+                                 <BookOpen className="w-10 h-10 text-[#1C1814]/[0.06] dark:text-white/[0.06]" />
+                               </div>
+                             </>
+                           )}
 
-                          {/* Status badge */}
-                          <div className="absolute top-3 right-3 z-10">
-                            <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[9px] font-bold uppercase tracking-wider backdrop-blur-md border ${
-                              isPublished
-                                ? 'bg-emerald-500/15 text-emerald-700 border-emerald-500/25'
-                                : 'bg-white/50 text-[#7A6F64] border-white/30 dark:bg-black/20 dark:text-[#B7AA9C] dark:border-white/10'
-                            }`}>
-                              <div className={`w-1.5 h-1.5 rounded-full ${isPublished ? 'bg-emerald-500 shadow-sm shadow-emerald-500/50' : 'bg-[#7A6F64]/30'}`} />
-                              {isPublished ? 'Live' : 'Draft'}
-                            </div>
-                          </div>
+                           {/* Status badge */}
+                           <div className="absolute top-3 right-3 z-10">
+                             <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[9px] font-bold uppercase tracking-wider backdrop-blur-md border ${
+                               isPublished
+                                 ? 'bg-emerald-500/15 text-emerald-700 border-emerald-500/25'
+                                 : 'bg-white/50 text-[#7A6F64] border-white/30 dark:bg-black/20 dark:text-[#B7AA9C] dark:border-white/10'
+                             }`}>
+                               <div className={`w-1.5 h-1.5 rounded-full ${isPublished ? 'bg-emerald-500 shadow-sm shadow-emerald-500/50' : 'bg-[#7A6F64]/30'}`} />
+                               {isPublished ? 'Live' : 'Draft'}
+                             </div>
+                           </div>
 
-                          {/* Hover overlay */}
-                          <div className="absolute inset-0 bg-gradient-to-t from-[#1C1814]/70 via-[#1C1814]/25 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-400 flex items-end justify-center pb-4 gap-2">
-                            <Link
-                              href={`/editor/${album.id}`}
-                              className="flex items-center gap-1.5 px-3.5 py-2 bg-white/95 text-[#1C1814] text-[10px] font-bold uppercase tracking-wider rounded-lg hover:bg-white transition-colors shadow-lg"
-                            >
-                              <Eye className="w-3 h-3" /> Edit
-                            </Link>
-                            <button
-                              onClick={() => handleTogglePublish(album.id, isPublished)}
-                              disabled={isUpdating}
-                              className="flex items-center gap-1.5 px-3.5 py-2 bg-white/20 text-white text-[10px] font-bold uppercase tracking-wider rounded-lg hover:bg-white/30 transition-colors backdrop-blur-sm border border-white/20"
-                            >
-                              {isUpdating ? <Loader2 className="w-3 h-3 animate-spin" /> : <Globe className="w-3 h-3" />}
-                              {isPublished ? 'Unpublish' : 'Publish'}
-                            </button>
-                          </div>
-                        </div>
+                           {/* Hover overlay */}
+                           <div className="absolute inset-0 bg-gradient-to-t from-[#1C1814]/70 via-[#1C1814]/25 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-400 flex items-end justify-center pb-4 gap-2">
+                             <Link
+                               href={`/dashboard/templates/editor/${album.id}`}
+                               className="flex items-center gap-1.5 px-3.5 py-2 bg-white/95 text-[#1C1814] text-[10px] font-bold uppercase tracking-wider rounded-lg hover:bg-white transition-colors shadow-lg"
+                             >
+                               <Eye className="w-3 h-3" /> Edit
+                             </Link>
+                             <button
+                               onClick={() => handleTogglePublish(album.id, isPublished)}
+                               disabled={isUpdating}
+                               className="flex items-center gap-1.5 px-3.5 py-2 bg-white/20 text-white text-[10px] font-bold uppercase tracking-wider rounded-lg hover:bg-white/30 transition-colors backdrop-blur-sm border border-white/20"
+                             >
+                               {isUpdating ? <Loader2 className="w-3 h-3 animate-spin" /> : <Globe className="w-3 h-3" />}
+                               {isPublished ? 'Unpublish' : 'Publish'}
+                             </button>
+                           </div>
+                         </div>
 
                         {/* Card Info */}
                         <div className="p-4 pb-3">

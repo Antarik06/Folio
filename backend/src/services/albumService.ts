@@ -9,7 +9,28 @@ export const albumService = {
     const albumRes = await query('SELECT * FROM public.albums WHERE id = $1', [albumId])
     const album = albumRes.rows[0]
     if (!album) {
-      throw new Error('Album not found.')
+      // Look in public.templates instead
+      const templateRes = await query('SELECT * FROM public.templates WHERE id = $1', [albumId])
+      const template = templateRes.rows[0]
+      if (!template) {
+        throw new Error('Album not found.')
+      }
+
+      return {
+        id: template.id,
+        title: template.name,
+        description: template.description,
+        is_published: template.status === 'published',
+        layout_data: {
+          spreads: template.layout_schema?.spreads || [],
+          layout_schema: template.layout_schema || null
+        },
+        cover_photo_url: template.thumbnail_url,
+        category: template.category,
+        thumbnail_url: template.thumbnail_url,
+        background_pdf_path: template.background_pdf_path,
+        page_count: template.page_count
+      }
     }
 
     // Resolve cover photo URL if cover_photo_id is present
@@ -223,7 +244,7 @@ export const albumService = {
   },
 
   async listPublishedAlbums(): Promise<any[]> {
-    const res = await query(
+    const albumsRes = await query(
       `SELECT a.id, a.title, a.description, a.cover_photo_id, a.template_id, a.layout_data, a.style_data, a.is_published, a.created_at,
               p.thumbnail_url as cover_photo_url
        FROM public.albums a
@@ -231,6 +252,15 @@ export const albumService = {
        WHERE a.is_published = true
        ORDER BY a.created_at DESC`
     )
-    return res.rows
+
+    const templatesRes = await query(
+      `SELECT id, name as title, description, NULL as cover_photo_id, NULL as template_id, layout_schema as layout_data, '{}'::jsonb as style_data, TRUE as is_published, created_at,
+              thumbnail_url as cover_photo_url, category, background_pdf_path, page_count
+       FROM public.templates
+       WHERE status = 'published'
+       ORDER BY created_at DESC`
+    )
+
+    return [...albumsRes.rows, ...templatesRes.rows]
   }
 }

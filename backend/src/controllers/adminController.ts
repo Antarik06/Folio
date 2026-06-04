@@ -116,5 +116,48 @@ export const adminController = {
     } catch (error: any) {
       res.status(400).json({ error: error.message })
     }
+  },
+
+  /**
+   * GET /api/admin/artists
+   */
+  async listArtists(req: AuthenticatedRequest, res: Response) {
+    if (!adminController.assertAdmin(req, res)) return
+    try {
+      const artists = await adminService.listArtists()
+      res.json(artists)
+    } catch (error: any) {
+      res.status(500).json({ error: error.message })
+    }
+  },
+
+  /**
+   * PATCH /api/admin/orders/:orderId/assign-artist
+   */
+  async assignArtistToOrder(req: AuthenticatedRequest, res: Response) {
+    if (!adminController.assertAdmin(req, res)) return
+    try {
+      const orderId = req.params.orderId
+      const { artistId } = req.body
+      const updatedOrder = await adminService.assignArtistToOrder(orderId, artistId || null)
+      res.json({ success: true, order: updatedOrder })
+    } catch (error: any) {
+      res.status(400).json({ error: error.message })
+    }
+  },
+
+  /**
+   * PATCH /api/admin/premium/projects/:projectId/assign-artist
+   */
+  async assignArtistToPremiumProject(req: AuthenticatedRequest, res: Response) {
+    if (!adminController.assertAdmin(req, res)) return
+    try {
+      const projectId = req.params.projectId
+      const { artistId } = req.body
+      const updatedProject = await adminService.assignArtistToPremiumProject(projectId, artistId || null)
+      res.json({ success: true, project: updatedProject })
+    } catch (error: any) {
+      res.status(400).json({ error: error.message })
+    }
   }
 }

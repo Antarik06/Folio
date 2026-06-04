@@ -1,4 +1,5 @@
 import { query } from '../db'
+import { notificationService } from './notificationService'
 
 export const adminService = {
   /**
@@ -140,6 +141,116 @@ export const adminService = {
 
     if (res.rowCount === 0) {
       throw new Error('Order not found.')
+    }
+
+    return res.rows[0]
+  },
+
+  /**
+   * List all registered artists
+   */
+  async listArtists(): Promise<any[]> {
+    const res = await query(
+      `SELECT a.*, p.email, p.full_name 
+       FROM public.artists a
+       JOIN public.profiles p ON a.user_id = p.id
+       ORDER BY p.full_name ASC`
+    )
+    return res.rows
+  },
+
+  /**
+   * Assign/Reassign an artist to an order
+   */
+  async assignArtistToOrder(orderId: string, artistId: string | null): Promise<any> {
+    // 1. Fetch current artist_id
+    const currentRes = await query('SELECT artist_id FROM public.orders WHERE id = $1', [orderId])
+    if (currentRes.rowCount === 0) {
+      throw new Error('Order not found.')
+    }
+    const oldArtistId = currentRes.rows[0].artist_id
+
+    // 2. Perform update
+    const res = await query(
+      `UPDATE public.orders
+       SET artist_id = $2, updated_at = NOW()
+       WHERE id = $1
+       RETURNING *`,
+      [orderId, artistId]
+    )
+
+    // 3. Update workload counts if artist changed
+    if (oldArtistId !== artistId) {
+      if (oldArtistId) {
+        await query(
+          'UPDATE public.artists SET current_order_count = GREATEST(0, current_order_count - 1) WHERE user_id = $1',
+          [oldArtistId]
+        )
+      }
+      if (artistId) {
+        await query(
+          'UPDATE public.artists SET current_order_count = current_order_count + 1 WHERE user_id = $1',
+          [artistId]
+        )
+        // Send notification to the new artist
+        await notificationService.sendNotification(
+          artistId,
+          'artist_assigned',
+          'New Order Assigned',
+          `You have been assigned to review the layout for order #${orderId}.`
+        ).catch(e => console.error('Failed to send assignment notification:', e))
+      }
+    }
+
+    return res.rows[0]
+  },
+
+  /**
+   * Assign/Reassign an artist to a premium concierge project
+   */
+  async assignArtistToPremiumProject(projectId: string, artistId: string | null): Promise<any> {
+    // 1. Fetch current editor_id
+    const currentRes = await query('SELECT editor_id FROM public.premium_projects WHERE id = $1', [projectId])
+    if (currentRes.rowCount === 0) {
+      throw new Error('Premium project not found.')
+    }
+    const oldEditorId = currentRes.rows[0].editor_id
+
+    // 2. Perform update
+    const res = await query(
+      `UPDATE public.premium_projects
+       SET editor_id = $2, 
+           status = COALESCE(
+             CASE WHEN $2 IS NOT NULL AND status = 'briefing-received' THEN 'editor-assigned'::text ELSE status END,
+             status
+           ),
+           updated_at = NOW()
+       WHERE id = $1
+       RETURNING *`,
+      [projectId, artistId]
+    )
+
+    // 3. Update workload counts if editor changed
+    if (oldEditorId !== artistId) {
+      if (oldEditorId) {
+        await query(
+          'UPDATE public.artists SET current_order_count = GREATEST(0, current_order_count - 1) WHERE user_id = $1',
+          [oldEditorId]
+        )
+      }
+      if (artistId) {
+        await query(
+          'UPDATE public.artists SET current_order_count = current_order_count + 1 WHERE user_id = $1',
+          [artistId]
+        )
+        // Send notification to the new artist
+        await notificationService.sendNotification(
+          artistId,
+          'artist_assigned',
+          'Concierge Project Assigned',
+          `You have been assigned to Concierge design project #${projectId}.`
+        ).catch(e => console.error('Failed to send concierge assignment notification:', e))
+      }
     }
 
     return res.rows[0]

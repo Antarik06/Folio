@@ -159,7 +159,7 @@ function PreviewModal({ template, eventId, onClose }: { template: MagazineTempla
       <div onClick={e => e.stopPropagation()} className="absolute top-0 left-0 right-0 flex items-center justify-between px-8 py-6 bg-darkroom/40 backdrop-blur-xl border-b border-white/5 z-20">
         <div>
           <p className="font-serif italic text-2xl text-paper leading-none">{template.name}</p>
-          <p className="font-sans uppercase tracking-[0.25em] text-[9px] text-pencil mt-2">{meta.useCase} · {meta.pages} Pages · {meta.style}</p>
+          <p className="font-sans uppercase tracking-[0.25em] text-[9px] text-pencil mt-2">{meta.useCase} · {template.pageCount || meta.pages} Pages · {meta.style}</p>
         </div>
         <div className="flex items-center gap-4">
           <button 
@@ -371,7 +371,7 @@ function Card({ template, index, eventId, featured, onPreview }: { template:Maga
       <div className="py-6 px-1">
         <div className="flex items-center gap-3 mb-3">
           <span className="px-2.5 py-1 bg-ink/5 dark:bg-paper/5 border border-ink/10 dark:border-paper/10 rounded-sm text-[8px] font-bold uppercase tracking-[0.25em] text-ink dark:text-paper">{meta.style}</span>
-          <span className="text-[9px] font-sans text-pencil uppercase tracking-[0.2em]">{meta.pages} pages · {meta.useCase}</span>
+          <span className="text-[9px] font-sans text-pencil uppercase tracking-[0.2em]">{(template.pageCount || meta.pages)} pages · {meta.useCase}</span>
         </div>
         <h3 className="font-serif text-2xl text-ink leading-tight mb-2.5 tracking-tight group-hover:text-primary transition-colors duration-500">{template.name}</h3>
         <p className="font-serif italic text-sm text-pencil line-clamp-2 leading-relaxed mb-5 opacity-80">{template.description}</p>
@@ -404,7 +404,10 @@ export function TemplatesShowcase({ templates, eventId }: { templates: MagazineT
 
   const filtered = activeCategory === 'all' 
     ? templates 
-    : templates.filter(t => t.category === activeCategory)
+    : templates.filter(t => 
+        t.category === activeCategory || 
+        (activeCategory === 'Artist' && t.isDynamic)
+      )
 
   const featured = filtered.slice(0, 3)
   const rest = filtered.slice(3)

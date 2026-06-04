@@ -15,6 +15,9 @@ router.get('/events/:eventId/photos', adminController.getEventPhotos)
 router.get('/events/:eventId/albums', adminController.getEventAlbums)
 router.get('/orders', adminController.getAllOrders)
 router.patch('/orders/:orderId/status', adminController.updateOrderStatus)
+router.get('/artists', adminController.listArtists)
+router.patch('/orders/:orderId/assign-artist', adminController.assignArtistToOrder)
+router.patch('/premium/projects/:projectId/assign-artist', adminController.assignArtistToPremiumProject)
 
 // Dynamic Settings and Promo code management
 router.get('/settings', settingsController.getAdminSettings)
