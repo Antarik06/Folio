@@ -9,7 +9,8 @@ import {
 } from 'lucide-react'
 import {
   getAdminUserEvents, getAdminEventPhotos, getAdminEventAlbums, updateAdminOrderStatus,
-  getAdminSettings, updateSystemSettings, getPromoCodes, createPromoCode, deletePromoCode, updateUserStatus
+  getAdminSettings, updateSystemSettings, getPromoCodes, createPromoCode, deletePromoCode, updateUserStatus,
+  getAdminArtists, assignArtistToOrder, getAdminPremiumProjects, assignArtistToPremiumProject
 } from '@/lib/actions/admin'
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts'
 import { formatPrice } from '@/lib/pricing'
@@ -47,6 +48,29 @@ interface OrderItem {
   album_title: string | null
   user_email: string | null
   user_full_name: string | null
+  artist_id?: string | null
+}
+
+interface PremiumProject {
+  id: string
+  user_id: string
+  status: string
+  brief_json: any
+  package_id: string
+  advance_payment_amount: number
+  balance_amount: number
+  photo_uploads: any
+  proofs: any
+  messages: any
+  editor_id: string | null
+  user_name: string
+  user_email: string
+  package_name: string | null
+  created_at: string
+  updated_at: string
+  approved_at: string | null
+  advance_paid_at: string | null
+  balance_paid_at: string | null
 }
 
 interface AdminDashboardClientProps {
@@ -56,7 +80,7 @@ interface AdminDashboardClientProps {
 
 const STATUS_OPTIONS = [
   { value: 'order placed', label: 'Order Placed', color: 'text-zinc-400 bg-zinc-950/60 border-zinc-800' },
-  { value: 'reviewed by humans', label: 'Reviewed by Humans', color: 'text-blue-400 bg-blue-950/60 border-blue-900/50' },
+  { value: 'reviewed by humans', label: 'Approved by Designer', color: 'text-blue-400 bg-blue-950/60 border-blue-900/50' },
   { value: 'finalize design', label: 'Finalize Design', color: 'text-purple-400 bg-purple-950/60 border-purple-900/50' },
   { value: 'printed', label: 'Printed', color: 'text-cyan-400 bg-cyan-950/60 border-cyan-900/50' },
   { value: 'out for delivery', label: 'Out for Delivery', color: 'text-amber-400 bg-amber-950/60 border-amber-900/50' },
@@ -64,9 +88,17 @@ const STATUS_OPTIONS = [
 ]
 
 export function AdminDashboardClient({ initialUsers, initialOrders }: AdminDashboardClientProps) {
-  const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'orders' | 'settings' | 'coupons'>('overview')
+  const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'orders' | 'settings' | 'coupons' | 'concierge'>('overview')
   const [users, setUsers] = useState<UserProfile[]>(initialUsers)
   const [orders, setOrders] = useState<OrderItem[]>(initialOrders)
+
+  // Artists & Premium Projects
+  const [artists, setArtists] = useState<any[]>([])
+  const [premiumProjects, setPremiumProjects] = useState<PremiumProject[]>([])
+  const [loadingArtists, setLoadingArtists] = useState(false)
+  const [loadingPremium, setLoadingPremium] = useState(false)
+  const [updatingArtistOrderId, setUpdatingArtistOrderId] = useState<string | null>(null)
+  const [updatingArtistProjectId, setUpdatingArtistProjectId] = useState<string | null>(null)
 
   // Search & filter states
   const [userSearch, setUserSearch] = useState('')
@@ -119,6 +151,8 @@ export function AdminDashboardClient({ initialUsers, initialOrders }: AdminDashb
     setMounted(true)
     loadSystemConfig()
     loadCouponsList()
+    loadArtists()
+    loadPremiumProjects()
   }, [])
 
   // Close dropdown on click outside
@@ -129,6 +163,72 @@ export function AdminDashboardClient({ initialUsers, initialOrders }: AdminDashb
   }, [])
 
   // ── API Fetchers ────────────────────────────────────────────────────────────
+
+  const loadArtists = async () => {
+    setLoadingArtists(true)
+    try {
+      const list = await getAdminArtists()
+      setArtists(list || [])
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setLoadingArtists(false)
+    }
+  }
+
+  const loadPremiumProjects = async () => {
+    setLoadingPremium(true)
+    try {
+      const list = await getAdminPremiumProjects()
+      setPremiumProjects(list || [])
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setLoadingPremium(false)
+    }
+  }
+
+  const handleArtistChangeForOrder = async (orderId: string, artistId: string | null) => {
+    setUpdatingArtistOrderId(orderId)
+    setNotification(null)
+    try {
+      const res = await assignArtistToOrder(orderId, artistId)
+      if (res.success && res.order) {
+        setOrders((prev: OrderItem[]) =>
+          prev.map(o => (o.id === orderId ? { ...o, artist_id: res.order.artist_id } : o))
+        )
+        setNotification({ message: 'Artist reassigned successfully!', type: 'success' })
+      } else {
+        setNotification({ message: res.error || 'Failed to reassign artist.', type: 'error' })
+      }
+    } catch (err: any) {
+      setNotification({ message: err.message || 'Error occurred.', type: 'error' })
+    } finally {
+      setUpdatingArtistOrderId(null)
+      setTimeout(() => setNotification(null), 3000)
+    }
+  }
+
+  const handleArtistChangeForPremiumProject = async (projectId: string, artistId: string | null) => {
+    setUpdatingArtistProjectId(projectId)
+    setNotification(null)
+    try {
+      const res = await assignArtistToPremiumProject(projectId, artistId)
+      if (res.success && res.project) {
+        setPremiumProjects((prev: PremiumProject[]) =>
+          prev.map(p => (p.id === projectId ? { ...p, editor_id: res.project.editor_id, status: res.project.status } : p))
+        )
+        setNotification({ message: 'Artist reassigned successfully!', type: 'success' })
+      } else {
+        setNotification({ message: res.error || 'Failed to reassign artist.', type: 'error' })
+      }
+    } catch (err: any) {
+      setNotification({ message: err.message || 'Error occurred.', type: 'error' })
+    } finally {
+      setUpdatingArtistProjectId(null)
+      setTimeout(() => setNotification(null), 3000)
+    }
+  }
 
   const loadSystemConfig = async () => {
     setLoadingSettings(true)
@@ -517,6 +617,7 @@ export function AdminDashboardClient({ initialUsers, initialOrders }: AdminDashb
             { id: 'overview', label: 'Overview', icon: BarChart3 },
             { id: 'users', label: 'Users Directory', icon: Users },
             { id: 'orders', label: 'Orders Manager', icon: Package },
+            { id: 'concierge', label: 'Concierge Projects', icon: Layers },
             { id: 'coupons', label: 'Coupons Manager', icon: Percent },
             { id: 'settings', label: 'System Configuration', icon: Settings },
           ].map(tab => {
@@ -995,7 +1096,7 @@ export function AdminDashboardClient({ initialUsers, initialOrders }: AdminDashb
                   <option value="paid">Paid Transactions</option>
                   <option value="pending">Pending Payments</option>
                   <option value="order placed">Order Placed</option>
-                  <option value="reviewed by humans">Reviewed by Humans</option>
+                  <option value="reviewed by humans">Approved by Designer</option>
                   <option value="finalize design">Finalize Design</option>
                   <option value="printed">Printed</option>
                   <option value="out for delivery">Out for Delivery</option>
@@ -1015,13 +1116,14 @@ export function AdminDashboardClient({ initialUsers, initialOrders }: AdminDashb
                       <th className="py-4 px-6 text-center">Qty</th>
                       <th className="py-4 px-6 text-right">Price Summary</th>
                       <th className="py-4 px-6 text-center">Payment Status</th>
+                      <th className="py-4 px-6">Assigned Artist</th>
                       <th className="py-4 px-6">Tracking status</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border/10 text-sm">
                     {filteredOrders.length === 0 ? (
                       <tr>
-                        <td colSpan={6} className="py-12 text-center text-muted-foreground font-mono text-xs uppercase">
+                        <td colSpan={7} className="py-12 text-center text-muted-foreground font-mono text-xs uppercase">
                           No print orders found matching query.
                         </td>
                       </tr>
@@ -1091,6 +1193,23 @@ export function AdminDashboardClient({ initialUsers, initialOrders }: AdminDashb
                               </span>
                             </td>
 
+                            {/* Assigned Artist Dropdown */}
+                            <td className="py-4 px-6">
+                              <select
+                                value={order.artist_id || ''}
+                                disabled={updatingArtistOrderId === order.id}
+                                onChange={(e) => handleArtistChangeForOrder(order.id, e.target.value || null)}
+                                className="bg-[#1C1814] border border-border/10 focus:border-primary/50 text-xs font-mono text-[#F5F0E8] px-2 py-1.5 rounded focus:outline-none w-44"
+                              >
+                                <option value="">Unassigned (Auto)</option>
+                                {artists.map(art => (
+                                  <option key={art.user_id} value={art.user_id}>
+                                    {art.full_name || art.name} ({art.current_order_count} active)
+                                  </option>
+                                ))}
+                              </select>
+                            </td>
+
                             {/* Status picker select dropdown */}
                             <td className="py-4 px-6">
                               <div className="relative inline-block text-left" onClick={(e) => e.stopPropagation()}>
@@ -1128,6 +1247,152 @@ export function AdminDashboardClient({ initialUsers, initialOrders }: AdminDashb
                                   </div>
                                 )}
                               </div>
+                            </td>
+
+                          </tr>
+                        )
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── TAB: CONCIERGE PROJECTS ── */}
+        {activeTab === 'concierge' && (
+          <div className="space-y-6 animate-in fade-in duration-500">
+            
+            {/* Search Filter Tooling */}
+            <div className="flex flex-col md:flex-row gap-4 items-center justify-between bg-[#252019] border border-border/10 p-4 rounded-lg">
+              <div className="relative w-full">
+                <Search className="w-4.5 h-4.5 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  placeholder="Search concierge projects by ID, user email, package..."
+                  value={orderSearch}
+                  onChange={e => setOrderSearch(e.target.value)}
+                  className="w-full bg-[#1C1814] border border-border/10 focus:border-primary/50 text-sm font-mono text-[#F5F0E8] pl-10 pr-4 py-2 focus:outline-none rounded"
+                />
+              </div>
+            </div>
+
+            {/* Concierge projects table */}
+            <div className="bg-[#252019] border border-border/10 rounded-lg overflow-hidden shadow-2xl">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="border-b border-border/10 bg-[#1C1814]/40 text-muted-foreground text-[10px] uppercase tracking-wider font-mono">
+                      <th className="py-4 px-6">Project ID / Date</th>
+                      <th className="py-4 px-6">Package / Client</th>
+                      <th className="py-4 px-6 text-right">Budget Details</th>
+                      <th className="py-4 px-6 text-center">Status</th>
+                      <th className="py-4 px-6">Assigned Designer</th>
+                      <th className="py-4 px-6 text-center">Uploads / Proofs</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border/10 text-sm">
+                    {premiumProjects.filter(p => {
+                      const matchesSearch = 
+                        p.id.toLowerCase().includes(orderSearch.toLowerCase()) ||
+                        p.user_email?.toLowerCase().includes(orderSearch.toLowerCase()) ||
+                        p.user_name?.toLowerCase().includes(orderSearch.toLowerCase()) ||
+                        (p.package_name && p.package_name.toLowerCase().includes(orderSearch.toLowerCase()))
+                      return matchesSearch
+                    }).length === 0 ? (
+                      <tr>
+                        <td colSpan={6} className="py-12 text-center text-muted-foreground font-mono text-xs uppercase">
+                          No premium concierge projects found.
+                        </td>
+                      </tr>
+                    ) : (
+                      premiumProjects.filter(p => {
+                        const matchesSearch = 
+                          p.id.toLowerCase().includes(orderSearch.toLowerCase()) ||
+                          p.user_email?.toLowerCase().includes(orderSearch.toLowerCase()) ||
+                          p.user_name?.toLowerCase().includes(orderSearch.toLowerCase()) ||
+                          (p.package_name && p.package_name.toLowerCase().includes(orderSearch.toLowerCase()))
+                        return matchesSearch
+                      }).map(project => {
+                        const statusColors: Record<string, string> = {
+                          'briefing-received': 'text-zinc-400 bg-zinc-950/60 border-zinc-800',
+                          'editor-assigned': 'text-blue-400 bg-blue-950/60 border-blue-900/50',
+                          'first-draft': 'text-purple-400 bg-purple-950/60 border-purple-900/50',
+                          'revisions-requested': 'text-rose-400 bg-rose-950/60 border-rose-900/50',
+                          'final-approval': 'text-emerald-400 bg-emerald-950/60 border-emerald-900/50',
+                          'printing': 'text-cyan-400 bg-cyan-950/60 border-cyan-900/50',
+                        }
+                        const statusColor = statusColors[project.status] || 'text-zinc-400 bg-zinc-950/60 border-zinc-800'
+                        
+                        const uploadsCount = Array.isArray(project.photo_uploads) ? project.photo_uploads.length : 0
+                        const proofsCount = Array.isArray(project.proofs) ? project.proofs.length : 0
+
+                        return (
+                          <tr key={project.id} className="hover:bg-[#1C1814]/30 transition-colors">
+                            
+                            {/* Project ID & Date */}
+                            <td className="py-4 px-6">
+                              <div className="font-mono text-xs font-bold text-[#F5F0E8] truncate max-w-[100px]" title={project.id}>
+                                {project.id.substring(0, 8).toUpperCase()}...
+                              </div>
+                              <div className="text-[10px] text-muted-foreground font-mono mt-1">
+                                {new Date(project.created_at).toLocaleDateString('en-IN', {
+                                  month: 'short',
+                                  day: 'numeric',
+                                  hour: '2-digit',
+                                  minute: '2-digit'
+                                })}
+                              </div>
+                            </td>
+
+                            {/* Package & User */}
+                            <td className="py-4 px-6">
+                              <div className="font-serif font-bold text-sm text-[#F5F0E8]">{project.package_name || 'Premium Package'}</div>
+                              <div className="text-xs text-muted-foreground mt-0.5 font-mono">
+                                {project.user_name} ({project.user_email})
+                              </div>
+                            </td>
+
+                            {/* Budget Details */}
+                            <td className="py-4 px-6 text-right">
+                              <div className="font-mono font-semibold text-primary">
+                                Total: {formatPrice(project.advance_payment_amount + project.balance_amount)}
+                              </div>
+                              <div className="text-[10px] text-muted-foreground font-mono mt-1 space-y-0.5">
+                                <div>Adv: {formatPrice(project.advance_payment_amount)} {project.advance_paid_at ? '✅ Paid' : '⏳ Pending'}</div>
+                                <div>Bal: {formatPrice(project.balance_amount)} {project.balance_paid_at ? '✅ Paid' : '⏳ Pending'}</div>
+                              </div>
+                            </td>
+
+                            {/* Status */}
+                            <td className="py-4 px-6 text-center">
+                              <span className={`px-2 py-0.5 text-[9px] uppercase font-bold font-mono tracking-wider border rounded-full ${statusColor}`}>
+                                {project.status.replace('-', ' ')}
+                              </span>
+                            </td>
+
+                            {/* Assigned Designer */}
+                            <td className="py-4 px-6">
+                              <select
+                                value={project.editor_id || ''}
+                                disabled={updatingArtistProjectId === project.id}
+                                onChange={(e) => handleArtistChangeForPremiumProject(project.id, e.target.value || null)}
+                                className="bg-[#1C1814] border border-border/10 focus:border-primary/50 text-xs font-mono text-[#F5F0E8] px-2 py-1.5 rounded focus:outline-none w-44"
+                              >
+                                <option value="">Unassigned (Auto on Deposit)</option>
+                                {artists.map(art => (
+                                  <option key={art.user_id} value={art.user_id}>
+                                    {art.full_name || art.name} ({art.current_order_count} active)
+                                  </option>
+                                ))}
+                              </select>
+                            </td>
+
+                            {/* Uploads / Proofs count */}
+                            <td className="py-4 px-6 text-center font-mono text-xs">
+                              <div>Photos: <span className="font-bold text-[#F5F0E8]">{uploadsCount}</span></div>
+                              <div className="text-[10px] text-muted-foreground mt-0.5">Proofs: <span className="font-bold text-secondary">{proofsCount}</span></div>
                             </td>
 
                           </tr>

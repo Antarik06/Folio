@@ -46,7 +46,7 @@ export default async function TemplatesPage({ searchParams }: { searchParams: Pr
     description: album.description || 'Curated design template created by an independent artist.',
     thumbnail: album.cover_photo_url || 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?q=80&w=800&auto=format&fit=crop',
     category: 'Artist',
-    productType: 'magazine',
+    productType: 'magazine' as const,
     spreads: album.layout_data?.spreads || []
   }))
 

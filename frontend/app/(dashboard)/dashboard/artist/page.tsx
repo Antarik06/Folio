@@ -77,6 +77,15 @@ export default async function ArtistDashboardPage() {
   const photos = details?.photos || []
   const folders = details?.folders || []
   const albums = details?.albums || []
+  let conciergeProjects: any[] = []
+  let conciergePackages: any[] = []
+
+  try {
+    conciergeProjects = await serverFetch('/api/premium/projects', token)
+    conciergePackages = await serverFetch('/api/premium/packages', token)
+  } catch (err) {
+    console.error('Failed to load concierge workspace data for artist dashboard:', err)
+  }
 
   return (
     <ArtistDashboardClient
@@ -85,6 +94,8 @@ export default async function ArtistDashboardPage() {
       initialFolders={folders}
       initialAlbums={albums}
       currentUserId={profile.id}
+      initialConciergeProjects={conciergeProjects}
+      conciergePackages={conciergePackages}
     />
   )
 }

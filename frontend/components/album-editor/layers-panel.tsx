@@ -15,7 +15,8 @@ interface LayersPanelProps {
   onMoveDown: (id: string) => void
 }
 
-function inferImageLayerName(src: string) {
+function inferImageLayerName(src: string | null | undefined) {
+  if (!src) return 'Empty Photo Slot'
   const normalized = src.toLowerCase()
 
   if (normalized.startsWith('data:image/svg+xml') || normalized.includes('svg+xml')) {

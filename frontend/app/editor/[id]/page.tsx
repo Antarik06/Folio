@@ -5,12 +5,23 @@ import { AlbumEditor } from '@/components/album-editor'
 import { serverFetch } from '@/lib/api-client'
 import { getUser } from '@/lib/actions/auth'
 
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+
+function isUuid(value: unknown): value is string {
+  return typeof value === 'string' && UUID_PATTERN.test(value)
+}
+
 export default async function EditorPage({
   params
 }: {
   params: Promise<{ id: string }>
 }) {
   const { id } = await params
+  if (!isUuid(id)) {
+    console.warn('[EditorPage] Invalid album id received:', id)
+    redirect('/dashboard')
+  }
+
   const user = await getUser()
   if (!user) {
     console.log('[EditorPage] No user found, redirecting to /auth/login')
@@ -45,11 +56,22 @@ export default async function EditorPage({
     redirect('/dashboard')
   }
 
+  const albumEventId =
+    isUuid(album?.event_id) ? album.event_id : isUuid(album?.eventId) ? album.eventId : null
+
   let photos: any[] = []
-  try {
-    photos = await serverFetch(`/api/photos/event/${album.event_id}`, token)
-  } catch (err) {
-    console.error('Error fetching event photos for advanced editor:', err)
+  if (albumEventId) {
+    try {
+      photos = await serverFetch(`/api/photos/event/${albumEventId}`, token)
+    } catch (err) {
+      console.error('Error fetching event photos for advanced editor:', err)
+    }
+  } else {
+    console.warn('[EditorPage] Album is missing a valid event id, skipping photo fetch:', {
+      albumId: id,
+      event_id: album?.event_id,
+      eventId: album?.eventId,
+    })
   }
 
   const rawLayout = (album as any).layout_data ?? (album as any).theme_config ?? null

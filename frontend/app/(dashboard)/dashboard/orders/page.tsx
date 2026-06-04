@@ -8,7 +8,7 @@ import { Clock, CheckCircle2, ChevronRight, Package, Truck, Compass, UserCheck, 
 // Define the steps in order
 const PROGRESS_STEPS = [
   { id: 'order placed', label: 'Order Placed', icon: Clock, desc: 'We have received your print configurations' },
-  { id: 'reviewed by humans', label: 'Reviewed by Humans', icon: UserCheck, desc: 'Our editorial experts are verifying layouts' },
+  { id: 'reviewed by humans', label: 'Approved by Designer', icon: UserCheck, desc: 'Our editorial experts have approved the layout' },
   { id: 'finalize design', label: 'Finalize Design', icon: Compass, desc: 'Preparing final print-ready plates' },
   { id: 'printed', label: 'Printed', icon: CheckCircle2, desc: 'Your pages are pressed onto premium cartridge paper' },
   { id: 'out for delivery', label: 'Out for Delivery', icon: Truck, desc: 'En route with our shipping partners' },
@@ -120,9 +120,24 @@ export default async function MyOrdersPage() {
                     </div>
                     
                     <div className="space-y-2">
-                      <span className="text-[9px] uppercase tracking-[0.2em] bg-primary/10 text-primary px-2.5 py-1">
-                        Paid & Confirmed
-                      </span>
+                      <div className="flex gap-2 flex-wrap">
+                        <span className="text-[9px] uppercase tracking-[0.2em] bg-primary/10 text-primary px-2.5 py-1">
+                          Paid & Confirmed
+                        </span>
+                        <span className={`text-[9px] uppercase tracking-[0.2em] px-2.5 py-1 border ${
+                          order.status === 'approved' || order.status === 'sent-to-print' || order.status === 'printing' || order.status === 'completed'
+                            ? 'bg-green-50 text-green-700 border-green-200'
+                            : order.status === 'changes-requested'
+                            ? 'bg-rose-50 text-rose-700 border-rose-200'
+                            : 'bg-amber-50 text-amber-700 border-amber-200'
+                        }`}>
+                          {order.status === 'approved' || order.status === 'sent-to-print' || order.status === 'printing' || order.status === 'completed'
+                            ? 'Approved by Designer'
+                            : order.status === 'changes-requested'
+                            ? 'Revision Requested'
+                            : 'Pending Designer Review'}
+                        </span>
+                      </div>
                       <h3 className="font-serif text-2xl text-foreground mt-2">{order.album_title || 'Untitled Volume'}</h3>
                       <p className="text-xs text-muted-foreground font-light">
                         Specification: <strong className="text-foreground">{formatName} ({sizeName})</strong>

@@ -2,27 +2,20 @@
 
 import * as React from 'react'
 import { ThemeProvider as NextThemeProvider } from 'next-themes'
+import { type ThemeProviderProps } from 'next-themes'
 
-type Theme = 'light' | 'dark' | 'system'
-
-// Suppress React 19 script tag rendering warning in next-themes
+// Suppress React 19 console warnings regarding next-themes script tag injections
 if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
-  const origError = console.error
+  const originalError = console.error
   console.error = (...args: any[]) => {
-    if (typeof args[0] === 'string' && args[0].includes('Encountered a script tag')) {
+    if (
+      typeof args[0] === 'string' &&
+      (args[0].includes('Encountered a script tag') || args[0].includes('suppressHydrationWarning'))
+    ) {
       return
     }
-    origError.apply(console, args)
+    originalError.apply(console, args)
   }
-}
-
-type ThemeProviderProps = {
-  children: React.ReactNode
-  defaultTheme?: Theme
-  enableSystem?: boolean
-  disableTransitionOnChange?: boolean
-  storageKey?: string
-  attribute?: string
 }
 
 export function ThemeProvider({

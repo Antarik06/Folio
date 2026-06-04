@@ -155,7 +155,8 @@ function normalizeZIndex(elements: AlbumElement[]) {
     .map((el, index) => ({ ...el, zIndex: index + 1 }))
 }
 
-function inferImageLayerName(src: string) {
+function inferImageLayerName(src: string | null | undefined) {
+  if (!src) return 'Empty Photo Slot'
   const normalized = src.toLowerCase()
 
   if (normalized.startsWith('data:image/svg+xml') || normalized.includes('svg+xml')) {
@@ -1658,6 +1659,8 @@ export function AlbumEditor({
               isDrawingMode={isDrawingMode}
               brushColor={brushColor}
               brushSize={brushSize}
+              simpleMode={isSimpleMode}
+              photos={photos}
             />
           </div>
 
