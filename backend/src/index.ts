@@ -57,6 +57,7 @@ async function ensureAdminProfile() {
         VALUES ($1, $2, $3, '')
         ON CONFLICT (id) DO NOTHING
       `, [adminId, 'admin@folio.com', 'Super Admin'])
+      await query(`UPDATE public.profiles SET role = 'admin' WHERE id = $1`, [adminId])
       console.log('Super Admin profile verified/created in database.')
     } catch (err) {
       console.warn('Note: Could not seed admin profile:', (err as Error).message)
@@ -68,6 +69,7 @@ async function ensureAdminProfile() {
         VALUES ($1, $2, $3, '')
         ON CONFLICT (id) DO NOTHING
       `, [artistId, 'artist@folio.com', 'Independent Artist'])
+      await query(`UPDATE public.profiles SET role = 'artist' WHERE id = $1`, [artistId])
       console.log('Independent Artist profile verified/created in database.')
     } catch (err) {
       console.warn('Note: Could not seed artist profile:', (err as Error).message)
