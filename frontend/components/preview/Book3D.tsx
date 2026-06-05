@@ -2,61 +2,17 @@
 
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { useFrame } from '@react-three/fiber'
-import { useCursor, useTexture } from '@react-three/drei'
+import { useCursor } from '@react-three/drei'
 import { useAtom } from 'jotai'
 import { easing } from 'maath'
 import * as THREE from 'three'
 import { previewPageAtom } from './PreviewUI'
+import { getAlbumAspectRatio } from '@/lib/template-engine-utils'
 
 // Animation constants
-const easingFactor = 0.5
-const easingFactorFold = 0.3
 const insideCurveStrength = 0.18
 const outsideCurveStrength = 0.05
 const turningCurveStrength = 0.09
-
-const PAGE_WIDTH = 1.28
-const PAGE_HEIGHT = 1.71
-const PAGE_DEPTH = 0.004
-const PAGE_GAP = 0.0015
-const PAGE_SEGMENTS = 30
-const SEGMENT_WIDTH = PAGE_WIDTH / PAGE_SEGMENTS
-
-const WATERMARK_POINTS = (() => {
-  const points: Array<{ x: number; y: number }> = []
-  for (let y = 120; y <= 1000 + 120; y += 220) {
-    for (let x = -220; x <= 700 + 220; x += 360) {
-      points.push({ x, y })
-    }
-  }
-  return points
-})()
-
-const pageGeometry = new THREE.BoxGeometry(
-  PAGE_WIDTH,
-  PAGE_HEIGHT,
-  PAGE_DEPTH,
-  PAGE_SEGMENTS,
-  2
-)
-pageGeometry.translate(PAGE_WIDTH / 2, 0, 0)
-
-const position = pageGeometry.attributes.position
-const vertex = new THREE.Vector3()
-const skinIndexes = []
-const skinWeights = []
-
-for (let i = 0; i < position.count; i++) {
-  vertex.fromBufferAttribute(position, i)
-  const x = vertex.x
-  const skinIndex = Math.max(0, Math.floor(x / SEGMENT_WIDTH))
-  let skinWeight = (x % SEGMENT_WIDTH) / SEGMENT_WIDTH
-  skinIndexes.push(skinIndex, skinIndex + 1, 0, 0)
-  skinWeights.push(1 - skinWeight, skinWeight, 0, 0)
-}
-
-pageGeometry.setAttribute('skinIndex', new THREE.Uint16BufferAttribute(skinIndexes, 4))
-pageGeometry.setAttribute('skinWeight', new THREE.Float32BufferAttribute(skinWeights, 4))
 
 interface PageProps {
   number: number
@@ -66,9 +22,25 @@ interface PageProps {
   opened: boolean
   bookClosed: boolean
   currentPage: number
+  pageGeometry: THREE.BufferGeometry
+  segmentWidth: number
+  pageDepth: number
+  pageGap: number
 }
 
-const Page = ({ number, frontTexture, backTexture, totalPageCount, opened, bookClosed, currentPage }: PageProps) => {
+const Page = ({
+  number,
+  frontTexture,
+  backTexture,
+  totalPageCount,
+  opened,
+  bookClosed,
+  currentPage,
+  pageGeometry,
+  segmentWidth,
+  pageDepth,
+  pageGap
+}: PageProps) => {
   const group = useRef<THREE.Group>(null!)
   const turnedAt = useRef(0)
   const lastOpened = useRef(opened)
@@ -76,11 +48,12 @@ const Page = ({ number, frontTexture, backTexture, totalPageCount, opened, bookC
 
   const manualSkinnedMesh = useMemo(() => {
     const bones = []
+    const PAGE_SEGMENTS = 30
     for (let i = 0; i <= PAGE_SEGMENTS; i++) {
       let bone = new THREE.Bone()
       bones.push(bone)
       if (i === 0) bone.position.x = 0
-      else bone.position.x = SEGMENT_WIDTH
+      else bone.position.x = segmentWidth
       if (i > 0) bones[i - 1].add(bone)
     }
     const skeleton = new THREE.Skeleton(bones)
@@ -101,7 +74,7 @@ const Page = ({ number, frontTexture, backTexture, totalPageCount, opened, bookC
     mesh.add(skeleton.bones[0])
     mesh.bind(skeleton)
     return mesh
-  }, [frontTexture, backTexture])
+  }, [frontTexture, backTexture, pageGeometry, segmentWidth])
 
   useFrame((state, delta) => {
     if (!skinnedMeshRef.current) return
@@ -123,6 +96,9 @@ const Page = ({ number, frontTexture, backTexture, totalPageCount, opened, bookC
     }
 
     const bones = skinnedMeshRef.current.skeleton.bones
+    const easingFactor = 0.5
+    const easingFactorFold = 0.3
+
     for (let i = 0; i < bones.length; i++) {
       const target = i === 0 ? group.current : bones[i]
 
@@ -155,7 +131,7 @@ const Page = ({ number, frontTexture, backTexture, totalPageCount, opened, bookC
   })
 
   return (
-    <group ref={group} position-z={-number * (PAGE_DEPTH + PAGE_GAP) + currentPage * (PAGE_DEPTH + PAGE_GAP)}>
+    <group ref={group} position-z={-number * (pageDepth + pageGap) + currentPage * (pageDepth + pageGap)}>
       <primitive object={manualSkinnedMesh} ref={skinnedMeshRef} />
     </group>
   )
@@ -173,11 +149,49 @@ export function Book3D({ album }: Book3DProps) {
   // Textures state
   const [textures, setTextures] = useState<THREE.Texture[]>([])
 
+  const aspectRatio = useMemo(() => getAlbumAspectRatio(album), [album])
+
+  const PAGE_HEIGHT = 1.71
+  const PAGE_WIDTH = PAGE_HEIGHT * aspectRatio
+  const PAGE_DEPTH = 0.004
+  const PAGE_GAP = 0.0015
+  const PAGE_SEGMENTS = 30
+  const segmentWidth = PAGE_WIDTH / PAGE_SEGMENTS
+
+  const pageGeometry = useMemo(() => {
+    const geo = new THREE.BoxGeometry(
+      PAGE_WIDTH,
+      PAGE_HEIGHT,
+      PAGE_DEPTH,
+      PAGE_SEGMENTS,
+      2
+    )
+    geo.translate(PAGE_WIDTH / 2, 0, 0)
+
+    const position = geo.attributes.position
+    const vertex = new THREE.Vector3()
+    const skinIndexes = []
+    const skinWeights = []
+
+    for (let i = 0; i < position.count; i++) {
+      vertex.fromBufferAttribute(position, i)
+      const x = vertex.x
+      const skinIndex = Math.min(PAGE_SEGMENTS - 1, Math.max(0, Math.floor(x / segmentWidth)))
+      let skinWeight = (x % segmentWidth) / segmentWidth
+      skinIndexes.push(skinIndex, skinIndex + 1, 0, 0)
+      skinWeights.push(1 - skinWeight, skinWeight, 0, 0)
+    }
+
+    geo.setAttribute('skinIndex', new THREE.Uint16BufferAttribute(skinIndexes, 4))
+    geo.setAttribute('skinWeight', new THREE.Float32BufferAttribute(skinWeights, 4))
+    return geo
+  }, [PAGE_WIDTH, PAGE_HEIGHT, PAGE_DEPTH, PAGE_SEGMENTS, segmentWidth])
+
   useEffect(() => {
     const generateTextures = async () => {
       const results: THREE.Texture[] = []
-      const W = 1050 // 700 * 1.5
-      const H = 1500 // 1000 * 1.5
+      const H = 1500
+      const W = Math.round(H * aspectRatio)
 
       // Loop through all spreads (Spread 0 is the cover)
       for (const spread of spreads) {
@@ -190,14 +204,13 @@ export function Book3D({ album }: Book3DProps) {
       // Final Back Cover (Exterior)
       const finalBackTex = new THREE.CanvasTexture(await renderToCanvas({}, W, H))
       finalBackTex.colorSpace = THREE.SRGBColorSpace
-      // We push twice to fill both sides of the last leaf if needed
       results.push(finalBackTex, finalBackTex)
 
       setTextures(results)
     }
 
     generateTextures()
-  }, [spreads, album])
+  }, [spreads, album, aspectRatio])
 
   async function renderToCanvas(pageData: any, width: number, height: number, coverImg?: string) {
     const canvas = document.createElement('canvas')
@@ -221,15 +234,12 @@ export function Book3D({ album }: Book3DProps) {
           let sx = 0, sy = 0, sWidth = img.width, sHeight = img.height
           // Always fill the canvas, cropping excess
           if (imgRatio > frameRatio) {
-            // Image is wider than frame, crop sides
             sWidth = img.height * frameRatio
             sx = (img.width - sWidth) / 2
           } else {
-            // Image is taller than frame, crop top/bottom
             sHeight = img.width / frameRatio
             sy = (img.height - sHeight) / 2
           }
-          // Ensure no negative or out-of-bounds values
           sx = Math.max(0, sx)
           sy = Math.max(0, sy)
           sWidth = Math.max(1, sWidth)
@@ -242,7 +252,8 @@ export function Book3D({ album }: Book3DProps) {
       })
     }
 
-    const scaleX = width / 700
+    const albumWidth = Math.round(1000 * aspectRatio)
+    const scaleX = width / albumWidth
     const scaleY = height / 1000
 
     const elements = pageData.elements || []
@@ -319,7 +330,14 @@ export function Book3D({ album }: Book3DProps) {
       const fontSize = 14 * scaleX
       ctx.font = `${fontSize}px Georgia, serif`
       
-      for (const pt of WATERMARK_POINTS) {
+      const watermarkPoints = []
+      for (let y = 120; y <= 1000 + 120; y += 220) {
+        for (let x = -220; x <= albumWidth + 220; x += 360) {
+          watermarkPoints.push({ x, y })
+        }
+      }
+
+      for (const pt of watermarkPoints) {
         ctx.save()
         ctx.translate(pt.x * scaleX, pt.y * scaleY)
         ctx.rotate(-24 * Math.PI / 180)
@@ -367,6 +385,10 @@ export function Book3D({ album }: Book3DProps) {
           currentPage={delayedPage}
           opened={delayedPage > index}
           bookClosed={delayedPage === 0 || delayedPage === bookPages.length}
+          pageGeometry={pageGeometry}
+          segmentWidth={segmentWidth}
+          pageDepth={PAGE_DEPTH}
+          pageGap={PAGE_GAP}
         />
       ))}
     </group>

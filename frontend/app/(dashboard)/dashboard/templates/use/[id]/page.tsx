@@ -111,7 +111,8 @@ export default function UseTemplatePage() {
               thumbnail: album.cover_photo_url || 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?q=80&w=800&auto=format&fit=crop',
               category: 'Artist',
               spreads: album.layout_data?.spreads || [],
-              layout_schema: album.layout_schema || album.layout_data?.layout_schema || null
+              layout_schema: album.layout_schema || album.layout_data?.layout_schema || null,
+              page_previews_urls: album.page_previews_urls || album.layout_data?.page_previews_urls || []
             })
           }
         })
@@ -224,7 +225,8 @@ export default function UseTemplatePage() {
           taken_at: p.taken_at,
           created_at: p.created_at
         })),
-        templateSchema
+        templateSchema,
+        template.page_previews_urls || []
       )
       const finalSpreads = autoFilledSpreads.length > 0 ? autoFilledSpreads : templateSpreads
 
@@ -350,7 +352,8 @@ export default function UseTemplatePage() {
           taken_at: p.taken_at,
           created_at: p.created_at
         })),
-        templateSchema
+        templateSchema,
+        template.page_previews_urls || []
       )
       const finalSpreads = autoFilledSpreads.length > 0 ? autoFilledSpreads : templateSpreads
 
@@ -431,7 +434,7 @@ export default function UseTemplatePage() {
         blob_url: url
       }))
       const templateSchema = template.layout_schema || template.layoutSchema || template.spreads || []
-      const autoFilledSpreads = autoFillAlbum(mockPhotos, templateSchema)
+      const autoFilledSpreads = autoFillAlbum(mockPhotos, templateSchema, template.page_previews_urls || [])
       const finalSpreads = autoFilledSpreads.length > 0 ? autoFilledSpreads : templateSpreads
 
       // 3. Create album and redirect to builder via Backend API

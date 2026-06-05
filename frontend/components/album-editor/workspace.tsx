@@ -6,7 +6,7 @@ import useImage from 'use-image'
 import { AlbumSpread, AlbumElement, DrawingElement } from './types'
 import Konva from 'konva'
 import { ReframeModal } from './reframe-modal'
-import { checkResolution } from '@/lib/template-engine-utils'
+import { checkResolution, getAlbumAspectRatio } from '@/lib/template-engine-utils'
 
 interface URLImageProps {
   imageSrc: string
@@ -66,24 +66,8 @@ interface WorkspaceProps {
 }
 
 const DRAG_MIME = 'application/x-folio-album-element'
-const SPREAD_WIDTH = 700
-const SPREAD_HEIGHT = 1000
 const SNAP_TOLERANCE = 8
 const GRID_STEP = 40
-
-const GRID_LINES = (() => {
-  const lines: Array<{ axis: 'x' | 'y'; value: number; major: boolean }> = []
-
-  for (let x = 0; x <= SPREAD_WIDTH; x += GRID_STEP) {
-    lines.push({ axis: 'x', value: x, major: x % (GRID_STEP * 5) === 0 || x === SPREAD_WIDTH / 2 })
-  }
-
-  for (let y = 0; y <= SPREAD_HEIGHT; y += GRID_STEP) {
-    lines.push({ axis: 'y', value: y, major: y % (GRID_STEP * 5) === 0 || y === SPREAD_HEIGHT / 2 })
-  }
-
-  return lines
-})()
 
 const QUICK_FONT_OPTIONS = [
   { label: 'Serif', value: 'serif' },
@@ -92,16 +76,6 @@ const QUICK_FONT_OPTIONS = [
   { label: 'Cormorant', value: 'Cormorant Garamond, serif' },
   { label: 'DM Sans', value: 'DM Sans, sans-serif' },
 ]
-
-const WATERMARK_POINTS = (() => {
-  const points: Array<{ x: number; y: number }> = []
-  for (let y = 120; y <= SPREAD_HEIGHT + 120; y += 220) {
-    for (let x = -220; x <= SPREAD_WIDTH + 220; x += 360) {
-      points.push({ x, y })
-    }
-  }
-  return points
-})()
 
 export function Workspace({
   spread,
@@ -120,6 +94,38 @@ export function Workspace({
   simpleMode = false,
   photos = []
 }: WorkspaceProps) {
+  const aspectRatio = React.useMemo(() => {
+    const bgImageElement = spread.elements.find(el => el.id?.startsWith('bg-image-') || el.name === 'Page Background')
+    if (bgImageElement && bgImageElement.width && bgImageElement.height) {
+      return bgImageElement.width / bgImageElement.height
+    }
+    return 0.7
+  }, [spread])
+
+  const SPREAD_HEIGHT = 1000
+  const SPREAD_WIDTH = Math.round(SPREAD_HEIGHT * aspectRatio)
+
+  const GRID_LINES = React.useMemo(() => {
+    const lines: Array<{ axis: 'x' | 'y'; value: number; major: boolean }> = []
+    for (let x = 0; x <= SPREAD_WIDTH; x += GRID_STEP) {
+      lines.push({ axis: 'x', value: x, major: x % (GRID_STEP * 5) === 0 || x === SPREAD_WIDTH / 2 })
+    }
+    for (let y = 0; y <= SPREAD_HEIGHT; y += GRID_STEP) {
+      lines.push({ axis: 'y', value: y, major: y % (GRID_STEP * 5) === 0 || y === SPREAD_HEIGHT / 2 })
+    }
+    return lines
+  }, [SPREAD_WIDTH, SPREAD_HEIGHT])
+
+  const WATERMARK_POINTS = React.useMemo(() => {
+    const points: Array<{ x: number; y: number }> = []
+    for (let y = 120; y <= SPREAD_HEIGHT + 120; y += 220) {
+      for (let x = -220; x <= SPREAD_WIDTH + 220; x += 360) {
+        points.push({ x, y })
+      }
+    }
+    return points
+  }, [SPREAD_WIDTH, SPREAD_HEIGHT])
+
   const containerRef = useRef<HTMLDivElement>(null)
   const contextMenuRef = useRef<HTMLDivElement>(null)
   const stageRef = useRef<Konva.Stage>(null)
@@ -640,7 +646,7 @@ export function Workspace({
                 let warningText = ''
                 
                 if (photo && photo.width && photo.height) {
-                  const widthMm = (el.width / SPREAD_WIDTH) * 210
+                  const widthMm = (el.width / SPREAD_WIDTH) * (297 * aspectRatio)
                   const heightMm = (el.height / SPREAD_HEIGHT) * 297
                   const resCheck = checkResolution(photo.width, photo.height, widthMm, heightMm)
                   if (resCheck.status !== 'ok') {

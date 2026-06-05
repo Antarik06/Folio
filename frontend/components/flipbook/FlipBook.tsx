@@ -11,18 +11,14 @@ interface FlipBookProps {
   pages: FlipbookPageData[]
   protections: FlipbookProtections
   hasCover?: boolean
+  aspectRatio?: number
 }
-
-const LOGICAL_PAGE_WIDTH = 700
-const LOGICAL_PAGE_HEIGHT = 1000
-const BOOK_WIDTH = LOGICAL_PAGE_WIDTH
-const BOOK_HEIGHT = LOGICAL_PAGE_HEIGHT
 
 function clamp(value: number, min: number, max: number) {
   return Math.max(min, Math.min(max, value))
 }
 
-function usePageScale() {
+function usePageScale(logicalPageWidth: number, logicalPageHeight: number) {
   const viewportRef = React.useRef<HTMLDivElement | null>(null)
   const [scale, setScale] = React.useState(1)
 
@@ -34,10 +30,10 @@ function usePageScale() {
       const entry = entries[0]
       if (!entry) return
 
-      const width = entry.contentRect.width || LOGICAL_PAGE_WIDTH
-      const height = entry.contentRect.height || LOGICAL_PAGE_HEIGHT
+      const width = entry.contentRect.width || logicalPageWidth
+      const height = entry.contentRect.height || logicalPageHeight
 
-      const nextScale = Math.min(width / LOGICAL_PAGE_WIDTH, height / LOGICAL_PAGE_HEIGHT)
+      const nextScale = Math.min(width / logicalPageWidth, height / logicalPageHeight)
       setScale(Number.isFinite(nextScale) && nextScale > 0 ? nextScale : 1)
     })
 
@@ -46,7 +42,7 @@ function usePageScale() {
     return () => {
       resizeObserver.disconnect()
     }
-  }, [])
+  }, [logicalPageWidth, logicalPageHeight])
 
   return { viewportRef, scale }
 }
@@ -166,21 +162,37 @@ function renderElement(el: AlbumElement) {
   return null
 }
 
-function PageContent({ page }: { page: FlipbookPageData }) {
-  const { viewportRef, scale } = usePageScale()
+function PageContent({ 
+  page, 
+  logicalPageWidth, 
+  logicalPageHeight 
+}: { 
+  page: FlipbookPageData
+  logicalPageWidth: number
+  logicalPageHeight: number
+}) {
+  const { viewportRef, scale } = usePageScale(logicalPageWidth, logicalPageHeight)
 
   const sorted = React.useMemo(() => {
     return [...page.elements].sort((a, b) => a.zIndex - b.zIndex)
   }, [page.elements])
 
-  const scaledWidth = LOGICAL_PAGE_WIDTH * scale
-  const scaledHeight = LOGICAL_PAGE_HEIGHT * scale
+  const scaledWidth = logicalPageWidth * scale
+  const scaledHeight = logicalPageHeight * scale
 
   return (
     <div className={styles.pageSurface} style={{ background: page.background }}>
       <div ref={viewportRef} className={styles.pageViewport}>
         <div className={styles.pageCanvasShell} style={{ width: scaledWidth, height: scaledHeight }}>
-          <div className={styles.pageCanvas} style={{ transform: `scale(${scale})` }}>
+          <div 
+            className={styles.pageCanvas} 
+            style={{ 
+              width: logicalPageWidth,
+              height: logicalPageHeight,
+              transform: `scale(${scale})`,
+              transformOrigin: 'top left'
+            }}
+          >
             <div className={styles.pageInner}>
               {sorted.map((el) => renderElement(el))}
             </div>
@@ -191,9 +203,19 @@ function PageContent({ page }: { page: FlipbookPageData }) {
   )
 }
 
-const MemoPageContent = React.memo(PageContent, (prev, next) => prev.page === next.page)
+const MemoPageContent = React.memo(PageContent, (prev, next) => 
+  prev.page === next.page &&
+  prev.logicalPageWidth === next.logicalPageWidth &&
+  prev.logicalPageHeight === next.logicalPageHeight
+)
 
-export function FlipBook({ title, pages, protections, hasCover = false }: FlipBookProps) {
+export function FlipBook({ 
+  title, 
+  pages, 
+  protections, 
+  hasCover = false,
+  aspectRatio = 0.7 
+}: FlipBookProps) {
   const containerRef = React.useRef<HTMLDivElement | null>(null)
   const pageFlipRef = React.useRef<any>(null)
   const pageRefs = React.useRef<Array<HTMLDivElement | null>>([])
@@ -205,6 +227,9 @@ export function FlipBook({ title, pages, protections, hasCover = false }: FlipBo
   const [isReady, setIsReady] = React.useState(false)
   const [isFlipping, setIsFlipping] = React.useState(false)
   const [orientation, setOrientation] = React.useState<'landscape' | 'portrait'>('landscape')
+
+  const logicalPageHeight = 1000
+  const logicalPageWidth = Math.round(1000 * aspectRatio)
 
   const totalPages = pages.length
   const canGoPrev = currentPage > 0
@@ -241,8 +266,8 @@ export function FlipBook({ title, pages, protections, hasCover = false }: FlipBo
       if (!active || !containerRef.current) return
 
       instance = new PageFlip(containerRef.current, {
-        width: BOOK_WIDTH,
-        height: BOOK_HEIGHT,
+        width: logicalPageWidth,
+        height: logicalPageHeight,
         minWidth: 280,
         maxWidth: 1400,
         minHeight: 380,
@@ -302,7 +327,7 @@ export function FlipBook({ title, pages, protections, hasCover = false }: FlipBo
       }
       pageFlipRef.current = null
     }
-  }, [pages, totalPages])
+  }, [pages, totalPages, logicalPageWidth, logicalPageHeight, hasCover])
 
   const flipPrev = React.useCallback(() => {
     if (!pageFlipRef.current || !canGoPrev || isFlipping || interactionLockRef.current) return
@@ -324,7 +349,7 @@ export function FlipBook({ title, pages, protections, hasCover = false }: FlipBo
   }, [])
 
   return (
-    <section className={styles.wrapper}>
+    <section className={styles.wrapper} style={{ '--page-aspect-ratio': aspectRatio } as React.CSSProperties}>
       <header className={styles.header}>
         <div>
           <h1 className={styles.title}>{title}</h1>
@@ -411,7 +436,11 @@ export function FlipBook({ title, pages, protections, hasCover = false }: FlipBo
                 className={`${styles.page} page`}
                 data-density={index === 0 ? 'hard' : 'soft'}
               >
-                <MemoPageContent page={page} />
+                <MemoPageContent 
+                  page={page} 
+                  logicalPageWidth={logicalPageWidth} 
+                  logicalPageHeight={logicalPageHeight} 
+                />
               </div>
             ))}
           </div>

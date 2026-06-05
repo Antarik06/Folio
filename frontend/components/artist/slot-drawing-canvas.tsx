@@ -26,11 +26,11 @@ export interface SlotDefinition {
 }
 
 interface SlotDrawingCanvasProps {
-  pageImageUrl: string
+  pageImageUrls: string[]
   pageWidthMm: number
   pageHeightMm: number
-  initialSlots?: SlotDefinition[]
-  onSave: (slots: SlotDefinition[]) => void
+  initialSlots?: Record<number, SlotDefinition[]>
+  onSave: (pages: { page_number: number; page_type: string; slots: SlotDefinition[] }[]) => void
   onCancel: () => void
 }
 
@@ -42,29 +42,63 @@ interface DrawRect {
   height: number
 }
 
+function PageBackgroundImage({ src, width, height }: { src: string; width: number; height: number }) {
+  const [bgImage] = useImage(src, 'anonymous')
+  if (!bgImage) return null
+  return (
+    <KonvaImage
+      image={bgImage}
+      width={width}
+      height={height}
+      name="background-image"
+    />
+  )
+}
+
 export function SlotDrawingCanvas({
-  pageImageUrl,
+  pageImageUrls,
   pageWidthMm = 210,
   pageHeightMm = 297,
-  initialSlots = [],
+  initialSlots = {},
   onSave,
   onCancel
 }: SlotDrawingCanvasProps) {
-  const [bgImage] = useImage(pageImageUrl, 'anonymous')
-  
   // Canvas scale configuration
   const stageWidth = 600
   const stageHeight = (pageHeightMm / pageWidthMm) * stageWidth
 
-  const [slots, setSlots] = useState<SlotDefinition[]>(initialSlots)
+  const [currentPageIndex, setCurrentPageIndex] = useState(0)
+  const [slotsPerPage, setSlotsPerPage] = useState<Record<number, SlotDefinition[]>>(() => {
+    const init: Record<number, SlotDefinition[]> = {}
+    for (let i = 0; i < pageImageUrls.length; i++) {
+      init[i] = initialSlots[i] ? [...initialSlots[i]] : []
+    }
+    return init
+  })
   const [selectedSlotId, setSelectedSlotId] = useState<string | null>(null)
-  
+
   // Drawing states
   const [isDrawing, setIsDrawing] = useState(false)
   const [newRect, setNewRect] = useState<DrawRect | null>(null)
-  
+
   const stageRef = useRef<any>(null)
   const transformerRef = useRef<any>(null)
+
+  // Current page slots
+  const slots = slotsPerPage[currentPageIndex] || []
+
+  const setSlots = (updater: SlotDefinition[] | ((prev: SlotDefinition[]) => SlotDefinition[])) => {
+    setSlotsPerPage(prev => {
+      const current = prev[currentPageIndex] || []
+      const next = typeof updater === 'function' ? updater(current) : updater
+      return { ...prev, [currentPageIndex]: next }
+    })
+  }
+
+  // Clear selection when switching pages
+  useEffect(() => {
+    setSelectedSlotId(null)
+  }, [currentPageIndex])
 
   // Sync transformer selection
   useEffect(() => {
@@ -248,7 +282,20 @@ export function SlotDrawingCanvas({
     setSelectedSlotId(null)
   };
 
+  const handleSave = () => {
+    const pages = pageImageUrls.map((_, idx) => ({
+      page_number: idx + 1,
+      page_type: idx === 0 ? 'cover' : 'inner',
+      slots: slotsPerPage[idx] || []
+    }))
+    onSave(pages)
+  }
+
   const selectedSlot = slots.find(s => s.slot_id === selectedSlotId)
+
+  // Thumbnail dimensions
+  const thumbWidth = 60
+  const thumbHeight = (pageHeightMm / pageWidthMm) * thumbWidth
 
   return (
     <div className="flex flex-col lg:flex-row gap-8 bg-white dark:bg-[#1A1613] p-6 border border-[#EBE6DD] dark:border-white/10 rounded-2xl shadow-sm">
@@ -258,6 +305,55 @@ export function SlotDrawingCanvas({
         <div className="mb-4 text-center">
           <p className="text-xs uppercase tracking-widest text-[#B85C38] font-bold">Slot Layout Designer</p>
           <p className="text-[10px] text-[#7A6F64] dark:text-[#B7AA9C]">Click and drag on the layout preview to draw photo or text slot boundaries</p>
+        </div>
+
+        {/* Page navigation tabs */}
+        <div className="flex gap-3 mb-4 pb-4 border-b border-[#EBE6DD] dark:border-white/10 overflow-x-auto max-w-full px-1">
+          {pageImageUrls.map((url, idx) => {
+            const isActive = idx === currentPageIndex
+            const pageSlotCount = (slotsPerPage[idx] || []).length
+            return (
+              <button
+                key={idx}
+                onClick={() => setCurrentPageIndex(idx)}
+                className={`flex flex-col items-center gap-1.5 p-1.5 rounded-lg transition-all cursor-pointer flex-shrink-0 ${
+                  isActive
+                    ? 'ring-2 ring-[#B85C38] bg-[#B85C38]/10 dark:bg-[#B85C38]/20'
+                    : 'hover:bg-[#EBE6DD]/50 dark:hover:bg-white/5 border border-transparent hover:border-[#EBE6DD] dark:hover:border-white/10'
+                }`}
+              >
+                <div
+                  className={`rounded overflow-hidden border ${
+                    isActive
+                      ? 'border-[#B85C38]'
+                      : 'border-[#EBE6DD] dark:border-white/10'
+                  }`}
+                  style={{ width: thumbWidth, height: thumbHeight }}
+                >
+                  <img
+                    src={url}
+                    alt={`Page ${idx + 1}`}
+                    className="w-full h-full object-cover"
+                    draggable={false}
+                  />
+                </div>
+                <span className={`text-[9px] uppercase font-bold tracking-wider ${
+                  isActive
+                    ? 'text-[#B85C38]'
+                    : 'text-[#7A6F64] dark:text-[#B7AA9C]'
+                }`}>
+                  Page {idx + 1}
+                </span>
+                <span className={`text-[8px] font-mono ${
+                  isActive
+                    ? 'text-[#B85C38]/70'
+                    : 'text-[#7A6F64]/70 dark:text-[#B7AA9C]/70'
+                }`}>
+                  {pageSlotCount} slot{pageSlotCount !== 1 ? 's' : ''}
+                </span>
+              </button>
+            )
+          })}
         </div>
 
         <div className="relative border border-[#EBE6DD] dark:border-white/10 shadow-lg bg-[#FAF9F6] dark:bg-black/20 rounded-xl overflow-hidden">
@@ -271,14 +367,11 @@ export function SlotDrawingCanvas({
           >
             <Layer>
               {/* Background design representation */}
-              {bgImage && (
-                <KonvaImage
-                  image={bgImage}
-                  width={stageWidth}
-                  height={stageHeight}
-                  name="background-image"
-                />
-              )}
+              <PageBackgroundImage
+                src={pageImageUrls[currentPageIndex]}
+                width={stageWidth}
+                height={stageHeight}
+              />
 
               {/* Saved Slots list */}
               {slots.map(slot => {
@@ -494,7 +587,7 @@ export function SlotDrawingCanvas({
         {/* Action Panel Button Bar */}
         <div className="flex gap-3 border-t border-[#EBE6DD] dark:border-white/10 pt-6 mt-6">
           <button
-            onClick={() => onSave(slots)}
+            onClick={handleSave}
             className="flex-1 py-3 bg-[#B85C38] hover:bg-[#B85C38]/90 text-white text-[10px] uppercase font-bold tracking-[0.15em] transition-colors flex items-center justify-center gap-1 shadow-lg shadow-[#B85C38]/20 rounded-lg cursor-pointer"
           >
             <Check className="w-3.5 h-3.5" />

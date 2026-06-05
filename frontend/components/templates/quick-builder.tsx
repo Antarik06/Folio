@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/client'
 import { apiClient } from '@/lib/api-client'
 import { AlbumSpread } from '@/components/album-editor/types'
 import { ChevronLeft, Edit3, Settings2, Check, ArrowRight } from 'lucide-react'
+import { getAlbumAspectRatio } from '@/lib/template-engine-utils'
 
 interface Props {
   album: any
@@ -17,6 +18,9 @@ export function QuickBuilder({ album, initialSpreads, photos }: Props) {
   const router = useRouter()
   const [spreads, setSpreads] = useState<AlbumSpread[]>(initialSpreads)
   const [saving, setSaving] = useState(false)
+
+  const aspectRatio = getAlbumAspectRatio(album)
+  const albumWidth = Math.round(1000 * aspectRatio)
 
   const handleSave = async () => {
     setSaving(true)
@@ -120,8 +124,8 @@ export function QuickBuilder({ album, initialSpreads, photos }: Props) {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-white/40 p-12 lg:p-16 shadow-2xl backdrop-blur-sm border border-white/60">
                    {/* FRONT PAGE */}
                    <div 
-                      className="aspect-3/4 bg-white shadow-xl relative overflow-hidden group/page border border-border/50"
-                      style={{ background: spread.front?.background || spread.background }}
+                      className="bg-white shadow-xl relative overflow-hidden group/page border border-border/50"
+                      style={{ background: spread.front?.background || spread.background, aspectRatio }}
                     >
                       {spread.front?.elements.map(el => {
                         if (el.type === 'image') {
@@ -131,9 +135,9 @@ export function QuickBuilder({ album, initialSpreads, photos }: Props) {
                             onClick={() => handlePhotoSwap(spread.id!, 'front', el.id!)}
                             className="absolute bg-muted flex items-center justify-center overflow-hidden transition-all hover:ring-4 hover:ring-primary/30 group/img shadow-sm"
                             style={{
-                              left: `${(el.x / 700) * 100}%`,
+                              left: `${(el.x / albumWidth) * 100}%`,
                               top: `${(el.y / 1000) * 100}%`,
-                              width: `${(el.width / 700) * 100}%`,
+                              width: `${(el.width / albumWidth) * 100}%`,
                               height: `${(el.height / 1000) * 100}%`,
                               zIndex: el.zIndex
                             }}
@@ -156,12 +160,12 @@ export function QuickBuilder({ album, initialSpreads, photos }: Props) {
                             onBlur={(e) => handleTextChange(spread.id!, 'front', el.id!, e.currentTarget.innerText)}
                             className="absolute p-2 border border-transparent hover:border-primary/20 hover:bg-primary/5 transition-all text-left flex items-center outline-none focus:ring-2 focus:ring-primary/30"
                             style={{
-                              left: `${(el.x / 700) * 100}%`,
+                              left: `${(el.x / albumWidth) * 100}%`,
                               top: `${(el.y / 1000) * 100}%`,
-                              width: `${(el.width / 700) * 100}%`,
+                              width: `${(el.width / albumWidth) * 100}%`,
                               height: `${(el.height / 1000) * 100}%`,
                               zIndex: el.zIndex,
-                              fontSize: `${(el.fontSize / 700) * 100}cqw`,
+                              fontSize: `${(el.fontSize / albumWidth) * 100}cqw`,
                               fontFamily: el.fontFamily === 'serif' ? 'var(--font-serif)' : 'inherit',
                               color: el.fill,
                               fontWeight: el.fontWeight,
@@ -178,8 +182,8 @@ export function QuickBuilder({ album, initialSpreads, photos }: Props) {
 
                     {/* BACK PAGE */}
                     <div 
-                      className="aspect-3/4 bg-white shadow-xl relative overflow-hidden group/page border border-border/50 hidden md:block"
-                      style={{ background: spread.back ? (spread.back.background || spread.background) : '#F9F9F9' }}
+                      className="bg-white shadow-xl relative overflow-hidden group/page border border-border/50 hidden md:block"
+                      style={{ background: spread.back ? (spread.back.background || spread.background) : '#F9F9F9', aspectRatio }}
                     >
                       {spread.back ? (
                         spread.back.elements.map(el => {
@@ -190,9 +194,9 @@ export function QuickBuilder({ album, initialSpreads, photos }: Props) {
                               onClick={() => handlePhotoSwap(spread.id!, 'back', el.id!)}
                               className="absolute bg-muted flex items-center justify-center overflow-hidden transition-all hover:ring-4 hover:ring-primary/30 group/img shadow-sm"
                               style={{
-                                left: `${(el.x / 700) * 100}%`,
+                                left: `${(el.x / albumWidth) * 100}%`,
                                 top: `${(el.y / 1000) * 100}%`,
-                                width: `${(el.width / 700) * 100}%`,
+                                width: `${(el.width / albumWidth) * 100}%`,
                                 height: `${(el.height / 1000) * 100}%`,
                                 zIndex: el.zIndex
                               }}
@@ -215,12 +219,12 @@ export function QuickBuilder({ album, initialSpreads, photos }: Props) {
                               onBlur={(e) => handleTextChange(spread.id!, 'back', el.id!, e.currentTarget.innerText)}
                               className="absolute p-2 border border-transparent hover:border-primary/20 hover:bg-primary/5 transition-all text-left flex items-center outline-none focus:ring-2 focus:ring-primary/30"
                               style={{
-                                left: `${(el.x / 700) * 100}%`,
+                                left: `${(el.x / albumWidth) * 100}%`,
                                 top: `${(el.y / 1000) * 100}%`,
-                                width: `${(el.width / 700) * 100}%`,
+                                width: `${(el.width / albumWidth) * 100}%`,
                                 height: `${(el.height / 1000) * 100}%`,
                                 zIndex: el.zIndex,
-                                fontSize: `${(el.fontSize / 700) * 100}cqw`,
+                                fontSize: `${(el.fontSize / albumWidth) * 100}cqw`,
                                 fontFamily: el.fontFamily === 'serif' ? 'var(--font-serif)' : 'inherit',
                                 color: el.fill,
                                 fontWeight: el.fontWeight,

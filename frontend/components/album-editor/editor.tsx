@@ -13,6 +13,7 @@ import { Topbar } from './topbar'
 import { Workspace } from './workspace'
 import { Timeline } from './timeline'
 import { LayersPanel } from './layers-panel'
+import { getAlbumAspectRatio } from '@/lib/template-engine-utils'
 
 type EditorMode = 'simple' | 'advanced'
 
@@ -87,7 +88,7 @@ const DEFAULT_SPREAD: AlbumSpread = {
   },
 }
 
-const DEFAULT_COVER_SPREAD = (id: string, coverImageUrl?: string): AlbumSpread => {
+const DEFAULT_COVER_SPREAD = (id: string, coverImageUrl: string | undefined, width: number, height: number): AlbumSpread => {
   const elements: AlbumElement[] = []
 
   if (coverImageUrl) {
@@ -98,8 +99,8 @@ const DEFAULT_COVER_SPREAD = (id: string, coverImageUrl?: string): AlbumSpread =
       src: coverImageUrl,
       x: 0,
       y: 0,
-      width: SPREAD_WIDTH,
-      height: SPREAD_HEIGHT,
+      width: width,
+      height: height,
       zIndex: 1,
       rotation: 0,
       fitMode: 'fill',
@@ -111,14 +112,14 @@ const DEFAULT_COVER_SPREAD = (id: string, coverImageUrl?: string): AlbumSpread =
     id: `cover-title-${id}`,
     type: 'text',
     name: 'Cover Title',
-    x: 70,
-    y: coverImageUrl ? 800 : 430, // Position lower if there's an image
+    x: Math.round(width * 0.1),
+    y: coverImageUrl ? Math.round(height * 0.8) : Math.round(height * 0.43), // Position lower if there's an image
     text: 'Album Cover',
     fontSize: 72,
     fontFamily: 'serif',
     fill: coverImageUrl ? '#ffffff' : '#1c1814', // Light text if image background
     rotation: 0,
-    width: 560,
+    width: Math.round(width * 0.8),
     height: 110,
     zIndex: 10,
     fontWeight: 'bold',
@@ -144,8 +145,6 @@ const DEFAULT_COVER_SPREAD = (id: string, coverImageUrl?: string): AlbumSpread =
 }
 
 const HISTORY_LIMIT = 200
-const SPREAD_WIDTH = 700
-const SPREAD_HEIGHT = 1000
 const PAGE_MARGIN = 40
 type SpreadSide = 'front' | 'back'
 
@@ -656,11 +655,30 @@ export function AlbumEditor({
   mode = 'advanced',
   templates = [],
 }: EditorProps) {
+  const aspectRatio = useMemo(() => {
+    if (initialSpreads && initialSpreads.length > 0) {
+      for (const spread of initialSpreads) {
+        const elements = spread.elements || spread.front?.elements || []
+        const bgEl = elements.find((el: any) => el.id?.startsWith('bg-image-') || el.name === 'Page Background')
+        if (bgEl && bgEl.width && bgEl.height) {
+          return bgEl.width / bgEl.height
+        }
+      }
+    }
+    if (initialLayoutData?.layout_schema?.page_size?.width_mm && initialLayoutData?.layout_schema?.page_size?.height_mm) {
+      return initialLayoutData.layout_schema.page_size.width_mm / initialLayoutData.layout_schema.page_size.height_mm
+    }
+    return 0.7
+  }, [initialSpreads, initialLayoutData])
+
+  const SPREAD_HEIGHT = 1000
+  const SPREAD_WIDTH = Math.round(SPREAD_HEIGHT * aspectRatio)
+
   const isSimpleMode = mode === 'simple'
   const router = useRouter()
   const fallbackSpreads = useMemo(
-    () => normalizeSpreads(initialSpreads?.length ? initialSpreads : [DEFAULT_COVER_SPREAD('spread-0', coverImageUrl), DEFAULT_SPREAD]),
-    [initialSpreads, coverImageUrl]
+    () => normalizeSpreads(initialSpreads?.length ? initialSpreads : [DEFAULT_COVER_SPREAD('spread-0', coverImageUrl, SPREAD_WIDTH, SPREAD_HEIGHT), DEFAULT_SPREAD]),
+    [initialSpreads, coverImageUrl, SPREAD_WIDTH, SPREAD_HEIGHT]
   )
 
   const startingTemplateId =
@@ -1128,7 +1146,7 @@ export function AlbumEditor({
         }
 
         const newId = uuidv4()
-        const coverSpread = DEFAULT_COVER_SPREAD(newId)
+        const coverSpread = DEFAULT_COVER_SPREAD(newId, undefined, SPREAD_WIDTH, SPREAD_HEIGHT)
         coverSelectionId = coverSpread.elements[0]?.id || null
 
         const normalizedSpreads = doc.spreads.map((spread) => ({

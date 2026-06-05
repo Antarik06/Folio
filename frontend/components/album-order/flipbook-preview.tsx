@@ -8,9 +8,10 @@ interface FlipbookPreviewProps {
   title: string
   pages: FlipbookPageData[]
   isLoading?: boolean
+  aspectRatio?: number
 }
 
-export function FlipbookPreview({ title, pages, isLoading = false }: FlipbookPreviewProps) {
+export function FlipbookPreview({ title, pages, isLoading = false, aspectRatio }: FlipbookPreviewProps) {
   if (isLoading) {
     return (
       <div className="w-full aspect-[14/10] rounded-lg border border-linen bg-muted/40 flex items-center justify-center">
@@ -46,6 +47,7 @@ export function FlipbookPreview({ title, pages, isLoading = false }: FlipbookPre
           noDownload: false,
         }}
         hasCover={false}
+        aspectRatio={aspectRatio}
       />
     </div>
   )

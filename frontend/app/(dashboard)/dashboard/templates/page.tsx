@@ -65,6 +65,7 @@ export default async function TemplatesPage({ searchParams }: { searchParams: Pr
       spreads: album.layout_data?.spreads || [],
       layout_schema: album.layout_data?.pages ? album.layout_data : (album.layout_data?.layout_schema || null),
       isDynamic: true,
+      page_previews_urls: album.page_previews_urls || album.layout_data?.page_previews_urls || [],
       pageCount: album.page_count || album.layout_data?.pages?.length || (Array.isArray(album.layout_data?.spreads) ? album.layout_data.spreads.length * 2 : 2)
     }
   })

@@ -210,6 +210,9 @@ export function ArtistDashboardClient({
     errorMsg?: string
   }>({ status: 'idle', url: '' })
 
+  const [pdfPagePreviews, setPdfPagePreviews] = useState<string[]>([])
+  const [pdfDimensions, setPdfDimensions] = useState<{ width: number; height: number }>({ width: 210, height: 297 })
+
   const [thumbState, setThumbState] = useState<{
     status: 'idle' | 'uploading' | 'verifying' | 'success' | 'error'
     url: string
@@ -222,8 +225,6 @@ export function ArtistDashboardClient({
     errorMsg?: string
   }>({ status: 'idle' })
 
-  const [pdfPreviewUrl, setPdfPreviewUrl] = useState<string>('')
-  const [pdfDimensions, setPdfDimensions] = useState<{ width: number; height: number }>({ width: 210, height: 297 })
 
   const openWizard = () => {
     setNewTemplate({
@@ -242,7 +243,7 @@ export function ArtistDashboardClient({
     setBackgroundFile(null)
     setPdfLinkUrl('')
     setPdfState({ status: 'idle', url: '' })
-    setPdfPreviewUrl('')
+    setPdfPagePreviews([])
     setPdfDimensions({ width: 210, height: 297 })
     setThumbnailFile(null)
     setThumbLinkUrl('')
@@ -268,35 +269,39 @@ export function ArtistDashboardClient({
     return pdfjsLib
   }
 
-  const renderPdfToDataUrl = async (file: File): Promise<{ dataUrl: string; widthMm: number; heightMm: number }> => {
+  const renderPdfToDataUrl = async (file: File): Promise<{ pages: { dataUrl: string; widthMm: number; heightMm: number }[] }> => {
     const pdfjsLib = await loadPdfjs()
     const arrayBuffer = await file.arrayBuffer()
     const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer })
     const pdf = await loadingTask.promise
-    const page = await pdf.getPage(1)
     
-    const originalViewport = page.getViewport({ scale: 1.0 })
-    const widthPts = originalViewport.width
-    const heightPts = originalViewport.height
-    const widthMm = Math.round((widthPts / 72) * 25.4)
-    const heightMm = Math.round((heightPts / 72) * 25.4)
-    
-    const viewport = page.getViewport({ scale: 1.5 })
-    const canvas = document.createElement('canvas')
-    const context = canvas.getContext('2d')
-    if (!context) throw new Error('Canvas 2D context not supported')
-    
-    canvas.height = viewport.height
-    canvas.width = viewport.width
-    await page.render({ canvasContext: context, viewport }).promise
-    return {
-      dataUrl: canvas.toDataURL('image/png'),
-      widthMm,
-      heightMm
+    const pagesData = []
+    for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+      const page = await pdf.getPage(pageNum)
+      const originalViewport = page.getViewport({ scale: 1.0 })
+      const widthPts = originalViewport.width
+      const heightPts = originalViewport.height
+      const widthMm = Math.round((widthPts / 72) * 25.4)
+      const heightMm = Math.round((heightPts / 72) * 25.4)
+      
+      const viewport = page.getViewport({ scale: 1.5 })
+      const canvas = document.createElement('canvas')
+      const context = canvas.getContext('2d')
+      if (!context) throw new Error('Canvas 2D context not supported')
+      
+      canvas.height = viewport.height
+      canvas.width = viewport.width
+      await page.render({ canvasContext: context, viewport }).promise
+      pagesData.push({
+        dataUrl: canvas.toDataURL('image/png'),
+        widthMm,
+        heightMm
+      })
     }
+    return { pages: pagesData }
   }
 
-  const renderPdfUrlToDataUrl = async (pdfUrl: string): Promise<{ dataUrl: string; widthMm: number; heightMm: number }> => {
+  const renderPdfUrlToDataUrl = async (pdfUrl: string): Promise<{ pages: { dataUrl: string; widthMm: number; heightMm: number }[] }> => {
     const pdfjsLib = await loadPdfjs()
     
     let token = ''
@@ -344,27 +349,31 @@ export function ArtistDashboardClient({
     
     const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer })
     const pdf = await loadingTask.promise
-    const page = await pdf.getPage(1)
     
-    const originalViewport = page.getViewport({ scale: 1.0 })
-    const widthPts = originalViewport.width
-    const heightPts = originalViewport.height
-    const widthMm = Math.round((widthPts / 72) * 25.4)
-    const heightMm = Math.round((heightPts / 72) * 25.4)
-    
-    const viewport = page.getViewport({ scale: 1.5 })
-    const canvas = document.createElement('canvas')
-    const context = canvas.getContext('2d')
-    if (!context) throw new Error('Canvas 2D context not supported')
-    
-    canvas.height = viewport.height
-    canvas.width = viewport.width
-    await page.render({ canvasContext: context, viewport }).promise
-    return {
-      dataUrl: canvas.toDataURL('image/png'),
-      widthMm,
-      heightMm
+    const pagesData = []
+    for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+      const page = await pdf.getPage(pageNum)
+      const originalViewport = page.getViewport({ scale: 1.0 })
+      const widthPts = originalViewport.width
+      const heightPts = originalViewport.height
+      const widthMm = Math.round((widthPts / 72) * 25.4)
+      const heightMm = Math.round((heightPts / 72) * 25.4)
+      
+      const viewport = page.getViewport({ scale: 1.5 })
+      const canvas = document.createElement('canvas')
+      const context = canvas.getContext('2d')
+      if (!context) throw new Error('Canvas 2D context not supported')
+      
+      canvas.height = viewport.height
+      canvas.width = viewport.width
+      await page.render({ canvasContext: context, viewport }).promise
+      pagesData.push({
+        dataUrl: canvas.toDataURL('image/png'),
+        widthMm,
+        heightMm
+      })
     }
+    return { pages: pagesData }
   }
 
   const handleUploadPdf = async () => {
@@ -387,8 +396,11 @@ export function ArtistDashboardClient({
       if (pdfUploadMethod === 'upload' && backgroundFile) {
         try {
           const result = await renderPdfToDataUrl(backgroundFile)
-          setPdfPreviewUrl(result.dataUrl)
-          setPdfDimensions({ width: result.widthMm, height: result.heightMm })
+          const previews = result.pages.map(p => p.dataUrl)
+          setPdfPagePreviews(previews)
+          if (result.pages.length > 0) {
+            setPdfDimensions({ width: result.pages[0].widthMm, height: result.pages[0].heightMm })
+          }
         } catch (e: any) {
           console.error('Failed to render local PDF layout preview:', e)
           throw new Error(e.message || 'Failed to verify local PDF file.')
@@ -407,8 +419,11 @@ export function ArtistDashboardClient({
 
         try {
           const result = await renderPdfUrlToDataUrl(pdfUrl)
-          setPdfPreviewUrl(result.dataUrl)
-          setPdfDimensions({ width: result.widthMm, height: result.heightMm })
+          const previews = result.pages.map(p => p.dataUrl)
+          setPdfPagePreviews(previews)
+          if (result.pages.length > 0) {
+            setPdfDimensions({ width: result.pages[0].widthMm, height: result.pages[0].heightMm })
+          }
         } catch (e: any) {
           console.error('Failed to render remote PDF layout preview:', e)
           throw new Error(e.message || 'Failed to verify PDF URL.')
@@ -510,7 +525,7 @@ export function ArtistDashboardClient({
     setLoadingTemplates(true)
     try {
       const data = await apiClient.get('/api/artists/templates')
-      const mapped = (data || []).map((t: any) => ({
+       const mapped = (data || []).map((t: any) => ({
         id: t.id,
         title: t.name,
         description: t.description,
@@ -520,7 +535,8 @@ export function ArtistDashboardClient({
         layout_data: t.layout_schema,
         thumbnail_url: t.thumbnail_url,
         background_pdf_path: t.background_pdf_path,
-        page_count: t.page_count
+        page_count: t.page_count,
+        page_previews_urls: t.page_previews_urls || []
       }))
       setAlbums(mapped)
     } catch (e) {
@@ -678,7 +694,8 @@ export function ArtistDashboardClient({
       }
 
       // 4. Generate PDF preview if not done already
-      if (pdfUrl && !pdfPreviewUrl) {
+      let previewsToUpload = [...pdfPagePreviews]
+      if (pdfUrl && previewsToUpload.length === 0) {
         try {
           let result
           if (pdfUploadMethod === 'upload' && backgroundFile) {
@@ -686,11 +703,46 @@ export function ArtistDashboardClient({
           } else {
             result = await renderPdfUrlToDataUrl(pdfUrl)
           }
-          setPdfPreviewUrl(result.dataUrl)
-          setPdfDimensions({ width: result.widthMm, height: result.heightMm })
+          previewsToUpload = result.pages.map(p => p.dataUrl)
+          setPdfPagePreviews(previewsToUpload)
+          if (result.pages.length > 0) {
+            setPdfDimensions({ width: result.pages[0].widthMm, height: result.pages[0].heightMm })
+          }
         } catch (e: any) {
           console.error('Failed to render PDF layout preview in Next step:', e)
           throw new Error(e.message || 'Failed to verify PDF URL.')
+        }
+      }
+
+      // Upload PDF previews to Supabase storage to get public URLs
+      const pagePreviewsUrls: string[] = []
+      if (previewsToUpload.length > 0) {
+        const dataUrlToBlob = (dataUrl: string) => {
+          const arr = dataUrl.split(',')
+          const mime = arr[0].match(/:(.*?);/)![1]
+          const bstr = atob(arr[1])
+          let n = bstr.length
+          const u8arr = new Uint8Array(n)
+          while (n--) {
+            u8arr[n] = bstr.charCodeAt(n)
+          }
+          return new Blob([u8arr], { type: mime })
+        }
+
+        for (let i = 0; i < previewsToUpload.length; i++) {
+          try {
+            const blob = dataUrlToBlob(previewsToUpload[i])
+            const pagePath = `templates/${randomId}_page_${i + 1}.png`
+            const { error: pageErr } = await supabase.storage.from('photos').upload(pagePath, blob, {
+              contentType: 'image/png',
+              upsert: true
+            })
+            if (pageErr) throw pageErr
+            const { data: { publicUrl } } = supabase.storage.from('photos').getPublicUrl(pagePath)
+            pagePreviewsUrls.push(publicUrl)
+          } catch (uploadErr) {
+            console.error(`Failed to upload page preview ${i + 1}:`, uploadErr)
+          }
         }
       }
 
@@ -698,6 +750,7 @@ export function ArtistDashboardClient({
         ...prev,
         background_pdf_path: pdfUrl,
         thumbnail_url: thumbUrl,
+        page_previews_urls: pagePreviewsUrls,
         layout_schema: parsedSchema || prev.layout_schema
       }))
 
@@ -720,24 +773,15 @@ export function ArtistDashboardClient({
     }
   }
 
-  const handleSaveDrawnSlots = (drawnSlots: SlotDefinition[]) => {
-    const pages = [
-      {
-        page_number: 1,
-        page_type: 'cover',
-        slots: drawnSlots.filter(s => s.z_index <= 2)
-      },
-      {
-        page_number: 2,
-        page_type: 'inner',
-        slots: drawnSlots.filter(s => s.z_index > 2)
-      }
-    ]
-
+  const handleSaveDrawnSlots = (pages: any[]) => {
     setNewTemplate(prev => ({
       ...prev,
       layout_schema: {
         ...prev.layout_schema,
+        page_size: {
+          width_mm: pdfDimensions.width,
+          height_mm: pdfDimensions.height
+        },
         pages
       }
     }))
@@ -764,7 +808,8 @@ export function ArtistDashboardClient({
           layout_data: res.layout_schema,
           thumbnail_url: res.thumbnail_url,
           background_pdf_path: res.background_pdf_path,
-          page_count: res.page_count
+          page_count: res.page_count,
+          page_previews_urls: res.page_previews_urls || []
         }
         setAlbums(prev => [mappedRes, ...prev])
         setWizardStep(1)
@@ -1821,10 +1866,25 @@ export function ArtistDashboardClient({
               {wizardStep === 2 && (
                 <div className="space-y-4">
                   <SlotDrawingCanvas
-                    pageImageUrl={pdfPreviewUrl || newTemplate.thumbnail_url || 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?q=80&w=800&auto=format&fit=crop'}
+                    pageImageUrls={
+                      pdfPagePreviews.length > 0
+                        ? pdfPagePreviews
+                        : [newTemplate.thumbnail_url || 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?q=80&w=800&auto=format&fit=crop']
+                    }
                     pageWidthMm={pdfDimensions.width}
                     pageHeightMm={pdfDimensions.height}
-                    initialSlots={newTemplate.layout_schema?.pages?.[0]?.slots || []}
+                    initialSlots={
+                      (() => {
+                        const init: Record<number, SlotDefinition[]> = {}
+                        if (newTemplate.layout_schema?.pages) {
+                          newTemplate.layout_schema.pages.forEach((p: any) => {
+                            const idx = (p.page_number || 1) - 1
+                            init[idx] = p.slots || []
+                          })
+                        }
+                        return init
+                      })()
+                    }
                     onSave={handleSaveDrawnSlots}
                     onCancel={() => setWizardStep(1)}
                   />
