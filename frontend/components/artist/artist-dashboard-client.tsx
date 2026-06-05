@@ -13,7 +13,7 @@ import {
   Menu, X, ArrowLeft, Palette, Clock, ChevronRight, Zap, Sparkles,
   Check, Heart, Gift, Users, GraduationCap, Briefcase
 } from 'lucide-react'
-import { apiClient } from '@/lib/api-client'
+import { apiClient, BACKEND_URL } from '@/lib/api-client'
 import { parsePSDFile } from '@/lib/psd-parser'
 
 /* ─── Types ─────────────────────────────────────────────────────── */
@@ -326,8 +326,7 @@ export function ArtistDashboardClient({
       console.warn('Failed to retrieve session token for PDF proxy:', err)
     }
 
-    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000'
-    const proxyUrl = `${backendUrl}/api/artists/templates/proxy-pdf?url=${encodeURIComponent(pdfUrl)}`
+    const proxyUrl = `${BACKEND_URL}/api/artists/templates/proxy-pdf?url=${encodeURIComponent(pdfUrl)}`
 
     const headers: Record<string, string> = {}
     if (token) {
@@ -399,8 +398,7 @@ export function ArtistDashboardClient({
       console.warn('Failed to retrieve session token for proxy:', err)
     }
 
-    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000'
-    const proxyUrl = `${backendUrl}/api/artists/templates/proxy-pdf?url=${encodeURIComponent(externalUrl)}`
+    const proxyUrl = `${BACKEND_URL}/api/artists/templates/proxy-pdf?url=${encodeURIComponent(externalUrl)}`
 
     const headers: Record<string, string> = {}
     if (token) {

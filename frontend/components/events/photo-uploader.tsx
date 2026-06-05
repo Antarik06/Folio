@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { Upload, Cloud, Loader2, CheckCircle2, AlertCircle } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
-import { apiClient } from '@/lib/api-client'
+import { apiClient, BACKEND_URL } from '@/lib/api-client'
 import { loadGoogleScripts, authenticateGoogleDrive, GoogleDriveFile } from '@/lib/google-drive'
 import { GoogleDrivePicker } from './google-drive-picker'
 
@@ -184,9 +184,8 @@ export function PhotoUploader({
             const { data: { user: verifiedUser } } = await supabase.auth.getUser()
             if (!verifiedUser) throw new Error('Not authenticated')
             const { data: { session } } = await supabase.auth.getSession()
-            const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000'
             const response = await fetch(
-              `${backendUrl}/api/photos/proxy-google-drive?fileId=${driveFile.id}&token=${item.token}`,
+              `${BACKEND_URL}/api/photos/proxy-google-drive?fileId=${driveFile.id}&token=${item.token}`,
               {
                 headers: {
                   Authorization: `Bearer ${session?.access_token || ''}`,

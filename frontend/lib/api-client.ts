@@ -1,6 +1,23 @@
 import { createClient as createBrowserClient } from './supabase/client'
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000'
+export function getSanitizedBackendUrl(): string {
+  let url = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000'
+  
+  // Trim and strip trailing slashes
+  url = url.trim().replace(/\/$/, '')
+  
+  // If running in browser on HTTPS, and backend URL is HTTP (but not localhost), upgrade to HTTPS
+  if (typeof window !== 'undefined' && window.location.protocol === 'https:') {
+    if (url.startsWith('http://') && !url.includes('localhost') && !url.includes('127.0.0.1') && !url.includes('::1')) {
+      url = url.replace(/^http:\/\//, 'https://')
+      console.warn(`Upgraded backend URL to HTTPS to prevent mixed content: ${url}`)
+    }
+  }
+  
+  return url
+}
+
+export const BACKEND_URL = getSanitizedBackendUrl()
 
 /**
  * Client-side fetcher that automatically includes the Supabase Access Token JWT.

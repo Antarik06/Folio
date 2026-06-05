@@ -87,13 +87,42 @@ app.use((req, res, next) => {
 })
 
 // Configure CORS to accept requests from our frontend
-const origin = process.env.FRONTEND_URL || 'http://localhost:3000'
+const originEnv = process.env.FRONTEND_URL || 'http://localhost:3000'
+const allowedOrigins = originEnv
+  .split(',')
+  .map(o => o.trim().replace(/\/$/, ''))
+  .filter(Boolean)
+
+// Always allow localhost:3000
+if (!allowedOrigins.includes('http://localhost:3000')) {
+  allowedOrigins.push('http://localhost:3000')
+}
+
 app.use(cors({
-  origin: [origin, 'http://localhost:3000'],
+  origin: (requestOrigin, callback) => {
+    // Allow requests with no origin (like mobile apps, curl, node-fetch)
+    if (!requestOrigin) return callback(null, true)
+    
+    const cleanOrigin = requestOrigin.trim().replace(/\/$/, '')
+    
+    // Check if origin is in our configured list
+    if (allowedOrigins.includes(cleanOrigin)) {
+      return callback(null, true)
+    }
+    
+    // Dynamically allow Vercel subdomains (e.g. preview branch deployments)
+    if (cleanOrigin.endsWith('.vercel.app') || /^https?:\/\/.*\.vercel\.app$/.test(cleanOrigin)) {
+      return callback(null, true)
+    }
+    
+    console.warn(`[CORS Blocked] Origin: "${requestOrigin}" is not in allowed origins list:`, allowedOrigins)
+    // Pass false to not allow CORS, which tells the browser to block it.
+    return callback(null, false)
+  },
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS']
 }))
+
 
 import path from 'path'
 
@@ -118,7 +147,7 @@ app.use(errorMiddleware)
 app.listen(PORT, () => {
   console.log(`==========================================`)
   console.log(`Folio Modular Backend running on port ${PORT}`)
-  console.log(`Active CORS origin: ${origin}`)
+  console.log(`Active CORS origins: ${allowedOrigins.join(', ')}`)
   console.log(`==========================================`)
   
   // Start background print queue worker daemon
