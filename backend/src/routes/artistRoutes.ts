@@ -248,11 +248,15 @@ router.get('/templates/proxy-pdf', async (req: AuthenticatedRequest, res: Respon
   }
 })
 
-// Helper to validate PDF magic bytes and send the response
+// Helper to validate PDF or PSD magic bytes and send the response
 function validateAndSendBuffer(buffer: Buffer, res: Response) {
-  if (buffer.length < 4 || buffer.toString('utf-8', 0, 4) !== '%PDF') {
+  const signature = buffer.length >= 4 ? buffer.toString('utf-8', 0, 4) : ''
+  const isPdf = signature === '%PDF'
+  const isPsd = signature === '8BPS'
+
+  if (!isPdf && !isPsd) {
     const sampleText = buffer.toString('utf-8', 0, 1000)
-    console.warn('[PDF Proxy] Retrieved content does not appear to be a valid PDF. First 1000 chars:', sampleText)
+    console.warn('[PDF/PSD Proxy] Retrieved content does not appear to be valid PDF or PSD. First 1000 chars:', sampleText)
     
     // Check if the response contains HTML (which indicates a Google Drive login/error page or generic HTML error page)
     const isHtml = sampleText.toLowerCase().includes('<html') || sampleText.toLowerCase().includes('<!doctype html')
@@ -263,15 +267,19 @@ function validateAndSendBuffer(buffer: Buffer, res: Response) {
         })
       }
       return res.status(400).json({
-        error: 'The link returned an HTML webpage instead of a PDF file. Make sure the link points directly to a PDF asset and is shared publicly.'
+        error: 'The link returned an HTML webpage instead of a document file. Make sure the link points directly to a PDF or PSD asset and is shared publicly.'
       })
     }
     return res.status(400).json({
-      error: 'Invalid PDF structure. The URL did not return a valid PDF document.'
+      error: 'Invalid structure. The URL did not return a valid PDF or PSD document.'
     })
   }
 
-  res.setHeader('Content-Type', 'application/pdf')
+  if (isPdf) {
+    res.setHeader('Content-Type', 'application/pdf')
+  } else {
+    res.setHeader('Content-Type', 'image/vnd.adobe.photoshop')
+  }
   res.setHeader('Cache-Control', 'public, max-age=3600')
   return res.send(buffer)
 }

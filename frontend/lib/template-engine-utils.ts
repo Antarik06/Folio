@@ -3,6 +3,33 @@ import { AlbumSpread, AlbumElement, AlbumPageSide } from '@/components/album-edi
 const SPREAD_WIDTH = 700
 const SPREAD_HEIGHT = 1000
 
+export function getAlbumAspectRatio(album: any): number {
+  const layout = album?.layout_data ?? album?.theme_config ?? album ?? null
+  const schema = layout?.layout_schema ?? album?.layout_schema ?? null
+  
+  if (schema?.page_size?.width_mm && schema?.page_size?.height_mm) {
+    const ratio = schema.page_size.width_mm / schema.page_size.height_mm
+    if (ratio > 0 && !isNaN(ratio)) {
+      return ratio
+    }
+  }
+
+  // Fallback: search spreads for a page background
+  const spreads = layout?.spreads || album?.spreads || []
+  for (const spread of spreads) {
+    const elements = spread.elements || spread.front?.elements || []
+    const bgEl = elements.find((el: any) => el.id?.startsWith('bg-image-') || el.name === 'Page Background')
+    if (bgEl && bgEl.width && bgEl.height) {
+      const ratio = bgEl.width / bgEl.height
+      if (ratio > 0 && !isNaN(ratio)) {
+        return ratio
+      }
+    }
+  }
+
+  return 0.7 // Default 7:10
+}
+
 export interface ResolutionCheckResult {
   status: 'ok' | 'warning' | 'error'
   message?: string
@@ -70,9 +97,31 @@ export function smartSortPhotos(photos: AutoFillPhoto[]): AutoFillPhoto[] {
  */
 export function autoFillAlbum(
   photos: AutoFillPhoto[],
-  schema: any
+  schema: any,
+  pagePreviewsUrls: string[] = []
 ): AlbumSpread[] {
   const sortedPhotos = smartSortPhotos(photos)
+
+  // Determine aspect ratio and width dynamically
+  let aspectRatio = 0.7
+  const configWidthMm = schema?.page_size?.width_mm
+  const configHeightMm = schema?.page_size?.height_mm
+  if (configWidthMm && configHeightMm) {
+    aspectRatio = configWidthMm / configHeightMm
+  } else if (schema && (Array.isArray(schema.spreads) || Array.isArray(schema))) {
+    const targetSpreads = Array.isArray(schema) ? schema : schema.spreads
+    for (const spread of targetSpreads) {
+      const elements = spread.elements || spread.front?.elements || []
+      const bgEl = elements.find((el: any) => el.id?.startsWith('bg-image-') || el.name === 'Page Background')
+      if (bgEl && bgEl.width && bgEl.height) {
+        aspectRatio = bgEl.width / bgEl.height
+        break
+      }
+    }
+  }
+
+  const SPREAD_HEIGHT = 1000
+  const SPREAD_WIDTH = Math.round(SPREAD_HEIGHT * aspectRatio)
 
   // Fallback: If schema is an array of spreads or has spreads directly, fill its image elements
   if (schema && (Array.isArray(schema.spreads) || Array.isArray(schema))) {
@@ -85,6 +134,9 @@ export function autoFillAlbum(
         if (!elements) return
         elements.forEach(el => {
           if (el.type === 'image') {
+            if (el.locked && (el.name === 'Page Background' || el.id?.startsWith('bg-image-'))) {
+              return
+            }
             if (unassigned.length > 0) {
               const slotRatio = (el.width || 100) / (el.height || 100)
               let bestIdx = 0
@@ -192,6 +244,23 @@ export function autoFillAlbum(
   const coverPage = pages.find((p: any) => p.page_number === 1) || { slots: [] }
   const coverElements = mapSlotsToElements(coverPage.slots, 1)
 
+  if (pagePreviewsUrls && pagePreviewsUrls[0]) {
+    coverElements.unshift({
+      id: 'bg-image-1',
+      type: 'image',
+      name: 'Page Background',
+      src: pagePreviewsUrls[0],
+      x: 0,
+      y: 0,
+      width: SPREAD_WIDTH,
+      height: SPREAD_HEIGHT,
+      zIndex: 0,
+      rotation: 0,
+      fitMode: 'fill',
+      locked: true
+    } as AlbumElement)
+  }
+
   spreadsList.push({
     id: 'spread-cover',
     isCover: true,
@@ -215,6 +284,44 @@ export function autoFillAlbum(
 
     const elL = pageL ? mapSlotsToElements(pageL.slots, innerPageNum) : []
     const elR = pageR ? mapSlotsToElements(pageR.slots, innerPageNum + 1) : []
+
+    if (pagePreviewsUrls) {
+      const previewL = pagePreviewsUrls[innerPageNum - 1]
+      if (previewL) {
+        elL.unshift({
+          id: `bg-image-${innerPageNum}`,
+          type: 'image',
+          name: 'Page Background',
+          src: previewL,
+          x: 0,
+          y: 0,
+          width: SPREAD_WIDTH,
+          height: SPREAD_HEIGHT,
+          zIndex: 0,
+          rotation: 0,
+          fitMode: 'fill',
+          locked: true
+        } as AlbumElement)
+      }
+
+      const previewR = pagePreviewsUrls[innerPageNum]
+      if (previewR) {
+        elR.unshift({
+          id: `bg-image-${innerPageNum + 1}`,
+          type: 'image',
+          name: 'Page Background',
+          src: previewR,
+          x: 0,
+          y: 0,
+          width: SPREAD_WIDTH,
+          height: SPREAD_HEIGHT,
+          zIndex: 0,
+          rotation: 0,
+          fitMode: 'fill',
+          locked: true
+        } as AlbumElement)
+      }
+    }
 
     spreadsList.push({
       id: `spread-${Math.floor(innerPageNum / 2)}`,

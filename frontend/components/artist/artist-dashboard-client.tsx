@@ -14,6 +14,7 @@ import {
   Check, Heart, Gift, Users, GraduationCap, Briefcase
 } from 'lucide-react'
 import { apiClient } from '@/lib/api-client'
+import { parsePSDFile } from '@/lib/psd-parser'
 
 /* ─── Types ─────────────────────────────────────────────────────── */
 
@@ -376,16 +377,69 @@ export function ArtistDashboardClient({
     return { pages: pagesData }
   }
 
+  const fetchAndDetectFormat = async (externalUrl: string): Promise<{ arrayBuffer: ArrayBuffer; isPsd: boolean }> => {
+    let token = ''
+    try {
+      const { createClient } = await import('@/lib/supabase/client')
+      const supabase = createClient()
+      const { data } = await supabase.auth.getSession()
+      token = data?.session?.access_token || ''
+      
+      if (!token && typeof document !== 'undefined') {
+        const cookies = document.cookie.split(';')
+        const artistCookie = cookies.find(c => c.trim().startsWith('artist_session='))
+        const adminCookie = cookies.find(c => c.trim().startsWith('admin_session='))
+        if (artistCookie) {
+          token = artistCookie.split('=')[1].trim()
+        } else if (adminCookie) {
+          token = adminCookie.split('=')[1].trim()
+        }
+      }
+    } catch (err) {
+      console.warn('Failed to retrieve session token for proxy:', err)
+    }
+
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000'
+    const proxyUrl = `${backendUrl}/api/artists/templates/proxy-pdf?url=${encodeURIComponent(externalUrl)}`
+
+    const headers: Record<string, string> = {}
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`
+    }
+
+    const res = await fetch(proxyUrl, { headers })
+    if (!res.ok) {
+      let errMsg = `Failed to fetch file via proxy: ${res.statusText}`
+      try {
+        const errorData = await res.json()
+        if (errorData?.error) {
+          errMsg = errorData.error
+        }
+      } catch (_) {}
+      throw new Error(errMsg)
+    }
+    const blob = await res.blob()
+    const arrayBuffer = await blob.arrayBuffer()
+    
+    // Check magic bytes:
+    const uint8 = new Uint8Array(arrayBuffer.slice(0, 4))
+    const signature = String.fromCharCode(...uint8)
+    const isPsd = signature === '8BPS'
+    
+    return { arrayBuffer, isPsd }
+  }
+
   const handleUploadPdf = async () => {
     if (pdfUploadMethod === 'upload' && !backgroundFile) {
-      alert('Please select a PDF file first.')
+      alert('Please select a PDF or PSD file first.')
       return
     }
     if (pdfUploadMethod === 'link' && !pdfLinkUrl.trim()) {
-      alert('Please enter a Google Drive or external PDF link first.')
+      alert('Please enter a Google Drive or external PDF/PSD link first.')
       return
     }
 
+    const isPsd = backgroundFile?.name.toLowerCase().endsWith('.psd')
     setPdfState({ status: pdfUploadMethod === 'upload' ? 'uploading' : 'verifying', url: '' })
     try {
       const { createClient } = await import('@/lib/supabase/client')
@@ -394,23 +448,44 @@ export function ArtistDashboardClient({
 
       let pdfUrl = ''
       if (pdfUploadMethod === 'upload' && backgroundFile) {
-        try {
-          const result = await renderPdfToDataUrl(backgroundFile)
-          const previews = result.pages.map(p => p.dataUrl)
-          setPdfPagePreviews(previews)
-          if (result.pages.length > 0) {
-            setPdfDimensions({ width: result.pages[0].widthMm, height: result.pages[0].heightMm })
+        if (isPsd) {
+          try {
+            const parsedLayout = await parsePSDFile(backgroundFile, randomId)
+            setPdfPagePreviews(parsedLayout.previews)
+            setPdfDimensions({ width: parsedLayout.page_size.width_mm, height: parsedLayout.page_size.height_mm })
+            setNewTemplate(prev => ({
+              ...prev,
+              layout_schema: parsedLayout
+            }))
+          } catch (e: any) {
+            console.error('Failed to parse PSD template:', e)
+            throw new Error(e.message || 'Failed to verify and parse PSD file.')
           }
-        } catch (e: any) {
-          console.error('Failed to render local PDF layout preview:', e)
-          throw new Error(e.message || 'Failed to verify local PDF file.')
-        }
 
-        const pdfPath = `templates/${randomId}_bg.pdf`
-        const { error: pdfErr } = await supabase.storage.from('photos').upload(pdfPath, backgroundFile)
-        if (pdfErr) throw pdfErr
-        const { data: { publicUrl: fetchedUrl } } = supabase.storage.from('photos').getPublicUrl(pdfPath)
-        pdfUrl = fetchedUrl
+          const psdPath = `templates/${randomId}_bg.psd`
+          const { error: psdErr } = await supabase.storage.from('photos').upload(psdPath, backgroundFile)
+          if (psdErr) throw psdErr
+          const { data: { publicUrl: fetchedUrl } } = supabase.storage.from('photos').getPublicUrl(psdPath)
+          pdfUrl = fetchedUrl
+        } else {
+          try {
+            const result = await renderPdfToDataUrl(backgroundFile)
+            const previews = result.pages.map(p => p.dataUrl)
+            setPdfPagePreviews(previews)
+            if (result.pages.length > 0) {
+              setPdfDimensions({ width: result.pages[0].widthMm, height: result.pages[0].heightMm })
+            }
+          } catch (e: any) {
+            console.error('Failed to render local PDF layout preview:', e)
+            throw new Error(e.message || 'Failed to verify local PDF file.')
+          }
+
+          const pdfPath = `templates/${randomId}_bg.pdf`
+          const { error: pdfErr } = await supabase.storage.from('photos').upload(pdfPath, backgroundFile)
+          if (pdfErr) throw pdfErr
+          const { data: { publicUrl: fetchedUrl } } = supabase.storage.from('photos').getPublicUrl(pdfPath)
+          pdfUrl = fetchedUrl
+        }
       } else {
         pdfUrl = cleanExternalUrl(pdfLinkUrl.trim())
         if (!pdfUrl.startsWith('http://') && !pdfUrl.startsWith('https://')) {
@@ -418,15 +493,53 @@ export function ArtistDashboardClient({
         }
 
         try {
-          const result = await renderPdfUrlToDataUrl(pdfUrl)
-          const previews = result.pages.map(p => p.dataUrl)
-          setPdfPagePreviews(previews)
-          if (result.pages.length > 0) {
-            setPdfDimensions({ width: result.pages[0].widthMm, height: result.pages[0].heightMm })
+          const { arrayBuffer, isPsd: isPsdLink } = await fetchAndDetectFormat(pdfUrl)
+          if (isPsdLink) {
+            const fileFromBuffer = new File([arrayBuffer], 'temp.psd', { type: 'image/vnd.adobe.photoshop' })
+            const parsedLayout = await parsePSDFile(fileFromBuffer, randomId)
+            setPdfPagePreviews(parsedLayout.previews)
+            setPdfDimensions({ width: parsedLayout.page_size.width_mm, height: parsedLayout.page_size.height_mm })
+            setNewTemplate(prev => ({
+              ...prev,
+              layout_schema: parsedLayout
+            }))
+          } else {
+            const pdfjsLib = await loadPdfjs()
+            const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer })
+            const pdf = await loadingTask.promise
+            
+            const pagesData = []
+            for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+              const page = await pdf.getPage(pageNum)
+              const originalViewport = page.getViewport({ scale: 1.0 })
+              const widthPts = originalViewport.width
+              const heightPts = originalViewport.height
+              const widthMm = Math.round((widthPts / 72) * 25.4)
+              const heightMm = Math.round((heightPts / 72) * 25.4)
+              
+              const viewport = page.getViewport({ scale: 1.5 })
+              const canvas = document.createElement('canvas')
+              const context = canvas.getContext('2d')
+              if (!context) throw new Error('Canvas 2D context not supported')
+              
+              canvas.height = viewport.height
+              canvas.width = viewport.width
+              await page.render({ canvasContext: context, viewport }).promise
+              pagesData.push({
+                dataUrl: canvas.toDataURL('image/png'),
+                widthMm,
+                heightMm
+              })
+            }
+            const previews = pagesData.map(p => p.dataUrl)
+            setPdfPagePreviews(previews)
+            if (pagesData.length > 0) {
+              setPdfDimensions({ width: pagesData[0].widthMm, height: pagesData[0].heightMm })
+            }
           }
         } catch (e: any) {
-          console.error('Failed to render remote PDF layout preview:', e)
-          throw new Error(e.message || 'Failed to verify PDF URL.')
+          console.error('Failed to parse remote PDF/PSD layout preview:', e)
+          throw new Error(e.message || 'Failed to verify remote layout URL.')
         }
       }
 
@@ -435,7 +548,7 @@ export function ArtistDashboardClient({
     } catch (err: any) {
       console.error(err)
       setPdfState({ status: 'error', url: '', errorMsg: err.message || 'Upload/fetch failed' })
-      alert(`PDF validation failed: ${err.message || err}`)
+      alert(`Validation failed: ${err.message || err}`)
     }
   }
 
@@ -630,23 +743,42 @@ export function ArtistDashboardClient({
       const supabase = createClient()
       const randomId = Math.random().toString(36).substring(2, 10)
 
-      // 1. Resolve Background PDF URL
+      const isPsdFile = backgroundFile?.name.toLowerCase().endsWith('.psd')
+
+      // 1. Resolve Background PDF/PSD URL
       let pdfUrl = pdfState.url
       if (pdfState.status !== 'success') {
         if (pdfUploadMethod === 'upload') {
           if (!backgroundFile) {
-            alert('Background design PDF is required.')
+            alert('Background design file is required.')
             setUploadingFiles(false)
             return false
           }
-          const pdfPath = `templates/${randomId}_bg.pdf`
+          const extension = isPsdFile ? 'psd' : 'pdf'
+          const pdfPath = `templates/${randomId}_bg.${extension}`
+          
+          if (isPsdFile) {
+            try {
+              const parsedLayout = await parsePSDFile(backgroundFile, randomId)
+              setPdfPagePreviews(parsedLayout.previews)
+              setPdfDimensions({ width: parsedLayout.page_size.width_mm, height: parsedLayout.page_size.height_mm })
+              setNewTemplate(prev => ({
+                ...prev,
+                layout_schema: parsedLayout
+              }))
+            } catch (e: any) {
+              console.error('Failed to parse PSD template:', e)
+              throw new Error(e.message || 'Failed to verify and parse PSD file.')
+            }
+          }
+
           const { error: pdfErr } = await supabase.storage.from('photos').upload(pdfPath, backgroundFile)
           if (pdfErr) throw pdfErr
           const { data: { publicUrl: fetchedUrl } } = supabase.storage.from('photos').getPublicUrl(pdfPath)
           pdfUrl = fetchedUrl
         } else {
           if (!pdfLinkUrl.trim()) {
-            alert('Background PDF Google Drive or external URL is required.')
+            alert('Background PDF/PSD Google Drive or external URL is required.')
             setUploadingFiles(false)
             return false
           }
@@ -672,7 +804,7 @@ export function ArtistDashboardClient({
 
       // 3. Resolve IDML parsing
       let parsedSchema = newTemplate.layout_schema
-      if (idmlFile && idmlState.status !== 'success') {
+      if (idmlFile && idmlState.status !== 'success' && !isPsdFile) {
         const base64 = await fileToBase64(idmlFile)
         const schema = await apiClient.post('/api/artists/templates/parse-idml', {
           base64Data: base64,
@@ -693,28 +825,77 @@ export function ArtistDashboardClient({
         }
       }
 
-      // 4. Generate PDF preview if not done already
+      // 4. Generate PDF/PSD preview if not done already
       let previewsToUpload = [...pdfPagePreviews]
       if (pdfUrl && previewsToUpload.length === 0) {
         try {
-          let result
-          if (pdfUploadMethod === 'upload' && backgroundFile) {
-            result = await renderPdfToDataUrl(backgroundFile)
+          if (pdfUploadMethod === 'upload') {
+            if (isPsdFile && backgroundFile) {
+              const parsedLayout = await parsePSDFile(backgroundFile, randomId)
+              previewsToUpload = parsedLayout.previews
+              setPdfPagePreviews(previewsToUpload)
+              setPdfDimensions({ width: parsedLayout.page_size.width_mm, height: parsedLayout.page_size.height_mm })
+              parsedSchema = parsedLayout
+            } else if (backgroundFile) {
+              const result = await renderPdfToDataUrl(backgroundFile)
+              previewsToUpload = result.pages.map(p => p.dataUrl)
+              setPdfPagePreviews(previewsToUpload)
+              if (result.pages.length > 0) {
+                setPdfDimensions({ width: result.pages[0].widthMm, height: result.pages[0].heightMm })
+              }
+            }
           } else {
-            result = await renderPdfUrlToDataUrl(pdfUrl)
-          }
-          previewsToUpload = result.pages.map(p => p.dataUrl)
-          setPdfPagePreviews(previewsToUpload)
-          if (result.pages.length > 0) {
-            setPdfDimensions({ width: result.pages[0].widthMm, height: result.pages[0].heightMm })
+            // Link method
+            const { arrayBuffer, isPsd: isPsdLink } = await fetchAndDetectFormat(pdfUrl)
+            if (isPsdLink) {
+              const fileFromBuffer = new File([arrayBuffer], 'temp.psd', { type: 'image/vnd.adobe.photoshop' })
+              const parsedLayout = await parsePSDFile(fileFromBuffer, randomId)
+              previewsToUpload = parsedLayout.previews
+              setPdfPagePreviews(previewsToUpload)
+              setPdfDimensions({ width: parsedLayout.page_size.width_mm, height: parsedLayout.page_size.height_mm })
+              parsedSchema = parsedLayout
+            } else {
+              const pdfjsLib = await loadPdfjs()
+              const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer })
+              const pdf = await loadingTask.promise
+              
+              const pagesData = []
+              for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+                const page = await pdf.getPage(pageNum)
+                const originalViewport = page.getViewport({ scale: 1.0 })
+                const widthPts = originalViewport.width
+                const heightPts = originalViewport.height
+                const widthMm = Math.round((widthPts / 72) * 25.4)
+                const heightMm = Math.round((heightPts / 72) * 25.4)
+                
+                const viewport = page.getViewport({ scale: 1.5 })
+                const canvas = document.createElement('canvas')
+                const context = canvas.getContext('2d')
+                if (!context) throw new Error('Canvas 2D context not supported')
+                
+                canvas.height = viewport.height
+                canvas.width = viewport.width
+                await page.render({ canvasContext: context, viewport }).promise
+                pagesData.push({
+                  dataUrl: canvas.toDataURL('image/png'),
+                  widthMm,
+                  heightMm
+                })
+              }
+              previewsToUpload = pagesData.map(p => p.dataUrl)
+              setPdfPagePreviews(previewsToUpload)
+              if (pagesData.length > 0) {
+                setPdfDimensions({ width: pagesData[0].widthMm, height: pagesData[0].heightMm })
+              }
+            }
           }
         } catch (e: any) {
-          console.error('Failed to render PDF layout preview in Next step:', e)
-          throw new Error(e.message || 'Failed to verify PDF URL.')
+          console.error('Failed to render PDF/PSD layout preview in Next step:', e)
+          throw new Error(e.message || 'Failed to verify URL.')
         }
       }
 
-      // Upload PDF previews to Supabase storage to get public URLs
+      // Upload previews to Supabase storage to get public URLs
       const pagePreviewsUrls: string[] = []
       if (previewsToUpload.length > 0) {
         const dataUrlToBlob = (dataUrl: string) => {
@@ -755,7 +936,8 @@ export function ArtistDashboardClient({
       }))
 
       setUploadingFiles(false)
-      setWizardStep(idmlFile ? 3 : 2)
+      const isActuallyPsd = isPsdFile || (parsedSchema && parsedSchema.pages && parsedSchema.pages.length > 0)
+      setWizardStep(idmlFile || isActuallyPsd ? 3 : 2)
       return true
     } catch (err: any) {
       console.error(err)
@@ -766,7 +948,9 @@ export function ArtistDashboardClient({
   }
 
   const handleBackStep = () => {
-    if (wizardStep === 3 && idmlFile) {
+    const isPsdFile = backgroundFile?.name.toLowerCase().endsWith('.psd')
+    const isActuallyPsd = isPsdFile || (newTemplate.layout_schema && newTemplate.layout_schema.pages && newTemplate.layout_schema.pages.length > 0)
+    if (wizardStep === 3 && (idmlFile || isActuallyPsd)) {
       setWizardStep(1)
     } else {
       setWizardStep(prev => prev - 1)
@@ -1483,20 +1667,20 @@ export function ArtistDashboardClient({
               {wizardStep === 1 && (
                 <div className="space-y-6 animate-in fade-in duration-300">
                   <div className="p-4 bg-[#F5F0E8] dark:bg-[#120f0d] border border-[#EBE6DD] dark:border-white/10 rounded-xl text-[13px] text-[#7A6F64] dark:text-[#B7AA9C] leading-relaxed shadow-inner">
-                    Configure your design assets. Upload or link your background layout PDF (mandatory), and optionally add an InDesign IDML package (for automatic slot calculations) and cover thumbnail.
+                    Configure your design assets. Upload your background layout PDF or PSD (mandatory), and optionally add an InDesign IDML package (for automatic slot calculations if uploading PDF) and cover thumbnail.
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {/* Left Column: Background PDF Configuration */}
+                    {/* Left Column: Background PDF/PSD Configuration */}
                     <div className="space-y-4 bg-white dark:bg-[#1A1613] p-5 rounded-xl border border-[#EBE6DD] dark:border-white/5 shadow-sm">
                       <div className="flex items-center gap-2 mb-1">
                         <div className="w-6 h-6 rounded-md bg-[#B85C38]/10 flex items-center justify-center">
                           <span className="text-[10px] font-bold text-[#B85C38]">1</span>
                         </div>
-                        <h3 className="font-serif text-sm text-[#1C1814] dark:text-[#F5F0E8]">Background PDF Layout</h3>
+                        <h3 className="font-serif text-sm text-[#1C1814] dark:text-[#F5F0E8]">Background Layout (PDF / PSD)</h3>
                       </div>
 
-                      {/* PDF Source Tab Selector */}
+                      {/* PDF/PSD Source Tab Selector */}
                       <div className="flex gap-2">
                         <button
                           type="button"
@@ -1533,7 +1717,7 @@ export function ArtistDashboardClient({
                           <div className="border-2 border-dashed border-[#DDD8CE] dark:border-white/10 hover:border-[#B85C38]/30 rounded-xl p-5 text-center transition-colors group bg-[#FAF9F6] dark:bg-black/5">
                             <input
                               type="file"
-                              accept=".pdf"
+                              accept=".pdf,.psd"
                               onChange={(e) => {
                                 setBackgroundFile(e.target.files?.[0] || null)
                                 setPdfState({ status: 'idle', url: '' })
@@ -1544,9 +1728,9 @@ export function ArtistDashboardClient({
                             <label htmlFor="wizard-pdf" className="cursor-pointer flex flex-col items-center">
                               <Upload className="w-5 h-5 text-[#7A6F64] dark:text-[#B7AA9C] group-hover:text-[#B85C38] transition-colors mb-2" />
                               <span className="text-[12px] text-[#1C1814] dark:text-[#F5F0E8] font-medium truncate max-w-[200px]">
-                                {backgroundFile ? backgroundFile.name : 'Choose PDF background'}
+                                {backgroundFile ? backgroundFile.name : 'Choose PDF or PSD background'}
                               </span>
-                              <span className="text-[9px] text-[#7A6F64] dark:text-[#B7AA9C] mt-0.5">One page per book page</span>
+                              <span className="text-[9px] text-[#7A6F64] dark:text-[#B7AA9C] mt-0.5">PSD will auto-extract slots & split spreads</span>
                             </label>
                           </div>
                           {backgroundFile && pdfState.status !== 'success' && (
@@ -1558,10 +1742,10 @@ export function ArtistDashboardClient({
                             >
                               {pdfState.status === 'uploading' ? (
                                 <>
-                                  <Loader2 className="w-3.5 h-3.5 animate-spin" /> Uploading PDF...
+                                  <Loader2 className="w-3.5 h-3.5 animate-spin" /> {backgroundFile.name.toLowerCase().endsWith('.psd') ? 'Parsing & Uploading PSD...' : 'Uploading PDF...'}
                                 </>
                               ) : (
-                                'Upload & Verify PDF'
+                                backgroundFile.name.toLowerCase().endsWith('.psd') ? 'Parse & Upload PSD' : 'Upload & Verify PDF'
                               )}
                             </button>
                           )}
@@ -1576,7 +1760,7 @@ export function ArtistDashboardClient({
                                 setPdfLinkUrl(e.target.value)
                                 setPdfState({ status: 'idle', url: '' })
                               }}
-                              placeholder="Paste direct PDF link or Google Drive link..."
+                              placeholder="Paste direct PDF/PSD link or Google Drive link..."
                               className="flex-1 border border-[#EBE6DD] dark:border-white/10 bg-[#FAF9F6] dark:bg-black/5 px-3 py-2 text-xs text-[#1C1814] dark:text-[#F5F0E8] rounded-lg focus:outline-none focus:ring-1 focus:ring-[#B85C38]/40 focus:border-[#B85C38]/40 transition-all placeholder:text-[#7A6F64]/30"
                             />
                             {pdfLinkUrl.trim() && pdfState.status !== 'success' && (
@@ -1635,82 +1819,89 @@ export function ArtistDashboardClient({
                     {/* Right Column: IDML File and Cover Thumbnail */}
                     <div className="space-y-5 bg-white dark:bg-[#1A1613] p-5 rounded-xl border border-[#EBE6DD] dark:border-white/5 shadow-sm">
                       {/* IDML Section */}
-                      <div className="space-y-2">
-                        <div className="flex items-center gap-2 mb-1">
-                          <div className="w-6 h-6 rounded-md bg-[#B85C38]/10 flex items-center justify-center">
-                            <span className="text-[10px] font-bold text-[#B85C38]">2</span>
+                      {!backgroundFile?.name.toLowerCase().endsWith('.psd') ? (
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2 mb-1">
+                            <div className="w-6 h-6 rounded-md bg-[#B85C38]/10 flex items-center justify-center">
+                              <span className="text-[10px] font-bold text-[#B85C38]">2</span>
+                            </div>
+                            <h3 className="font-serif text-sm text-[#1C1814] dark:text-[#F5F0E8]">InDesign IDML Package <span className="text-[9px] text-[#7A6F64]/50 lowercase">(optional)</span></h3>
                           </div>
-                          <h3 className="font-serif text-sm text-[#1C1814] dark:text-[#F5F0E8]">InDesign IDML Package <span className="text-[9px] text-[#7A6F64]/50 lowercase">(optional)</span></h3>
-                        </div>
 
-                        <div className="space-y-3">
-                          <div className="border-2 border-dashed border-[#DDD8CE] dark:border-white/10 hover:border-[#B85C38]/30 rounded-xl p-4 text-center transition-colors group bg-[#FAF9F6] dark:bg-black/5">
-                            <input
-                              type="file"
-                              accept=".idml"
-                              onChange={(e) => {
-                                setIdmlFile(e.target.files?.[0] || null)
-                                setIdmlState({ status: 'idle' })
-                              }}
-                              className="hidden"
-                              id="wizard-idml"
-                            />
-                            <label htmlFor="wizard-idml" className="cursor-pointer flex flex-col items-center">
-                              <Upload className="w-4 h-4 text-[#7A6F64] dark:text-[#B7AA9C] group-hover:text-[#B85C38] transition-colors mb-1.5" />
-                              <span className="text-[11px] text-[#1C1814] dark:text-[#F5F0E8] font-medium truncate max-w-[200px]">
-                                {idmlFile ? idmlFile.name : 'Choose IDML archive'}
-                              </span>
-                              <span className="text-[9px] text-[#7A6F64] dark:text-[#B7AA9C] mt-0.5">Extracts slots coordinates</span>
-                            </label>
+                          <div className="space-y-3">
+                            <div className="border-2 border-dashed border-[#DDD8CE] dark:border-white/10 hover:border-[#B85C38]/30 rounded-xl p-4 text-center transition-colors group bg-[#FAF9F6] dark:bg-black/5">
+                              <input
+                                type="file"
+                                accept=".idml"
+                                onChange={(e) => {
+                                  setIdmlFile(e.target.files?.[0] || null)
+                                  setIdmlState({ status: 'idle' })
+                                }}
+                                className="hidden"
+                                id="wizard-idml"
+                              />
+                              <label htmlFor="wizard-idml" className="cursor-pointer flex flex-col items-center">
+                                <Upload className="w-4 h-4 text-[#7A6F64] dark:text-[#B7AA9C] group-hover:text-[#B85C38] transition-colors mb-1.5" />
+                                <span className="text-[11px] text-[#1C1814] dark:text-[#F5F0E8] font-medium truncate max-w-[200px]">
+                                  {idmlFile ? idmlFile.name : 'Choose IDML archive'}
+                                </span>
+                                <span className="text-[9px] text-[#7A6F64] dark:text-[#B7AA9C] mt-0.5">Extracts slots coordinates</span>
+                              </label>
+                            </div>
+                            {idmlFile && idmlState.status !== 'success' && (
+                              <button
+                                type="button"
+                                onClick={handleParseIdml}
+                                disabled={idmlState.status === 'parsing'}
+                                className="w-full py-2 bg-[#B85C38] hover:bg-[#B85C38]/90 text-white rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md shadow-[#B85C38]/10"
+                              >
+                                {idmlState.status === 'parsing' ? (
+                                  <>
+                                    <Loader2 className="w-3.5 h-3.5 animate-spin" /> Parsing IDML...
+                                  </>
+                                ) : (
+                                  'Parse IDML Layout'
+                                )}
+                              </button>
+                            )}
                           </div>
-                          {idmlFile && idmlState.status !== 'success' && (
-                            <button
-                              type="button"
-                              onClick={handleParseIdml}
-                              disabled={idmlState.status === 'parsing'}
-                              className="w-full py-2 bg-[#B85C38] hover:bg-[#B85C38]/90 text-white rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md shadow-[#B85C38]/10"
-                            >
-                              {idmlState.status === 'parsing' ? (
-                                <>
-                                  <Loader2 className="w-3.5 h-3.5 animate-spin" /> Parsing IDML...
-                                </>
-                              ) : (
-                                'Parse IDML Layout'
-                              )}
-                            </button>
+
+                          {/* IDML Parsing Feedback */}
+                          {idmlState.status === 'success' && (
+                            <div className="flex items-center justify-between p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-lg text-emerald-800 dark:text-emerald-300 text-xs animate-in fade-in">
+                              <div className="flex items-center gap-2">
+                                <CheckCircle className="w-4 h-4 text-emerald-500 shrink-0" />
+                                <span>Parsed layout! {idmlState.slotsCount} photo slots detected.</span>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setIdmlState({ status: 'idle' })
+                                  setIdmlFile(null)
+                                  setNewTemplate(prev => ({ ...prev, layout_schema: { pages: [] } }))
+                                }}
+                                className="text-[10px] underline hover:text-[#B85C38] cursor-pointer shrink-0 ml-2"
+                              >
+                                Clear
+                              </button>
+                            </div>
+                          )}
+                          {idmlState.status === 'error' && (
+                            <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-800 dark:text-red-300 text-xs flex flex-col gap-1">
+                              <div className="flex items-center gap-2">
+                                <AlertCircle className="w-4 h-4 text-red-500" />
+                                <span className="font-bold">Error</span>
+                              </div>
+                              <p className="text-[10px] leading-snug">{idmlState.errorMsg}</p>
+                            </div>
                           )}
                         </div>
-
-                        {/* IDML Parsing Feedback */}
-                        {idmlState.status === 'success' && (
-                          <div className="flex items-center justify-between p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-lg text-emerald-800 dark:text-emerald-300 text-xs animate-in fade-in">
-                            <div className="flex items-center gap-2">
-                              <CheckCircle className="w-4 h-4 text-emerald-500 shrink-0" />
-                              <span>Parsed layout! {idmlState.slotsCount} photo slots detected.</span>
-                            </div>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setIdmlState({ status: 'idle' })
-                                setIdmlFile(null)
-                                setNewTemplate(prev => ({ ...prev, layout_schema: { pages: [] } }))
-                              }}
-                              className="text-[10px] underline hover:text-[#B85C38] cursor-pointer shrink-0 ml-2"
-                            >
-                              Clear
-                            </button>
-                          </div>
-                        )}
-                        {idmlState.status === 'error' && (
-                          <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-800 dark:text-red-300 text-xs flex flex-col gap-1">
-                            <div className="flex items-center gap-2">
-                              <AlertCircle className="w-4 h-4 text-red-500" />
-                              <span className="font-bold">Error</span>
-                            </div>
-                            <p className="text-[10px] leading-snug">{idmlState.errorMsg}</p>
-                          </div>
-                        )}
-                      </div>
+                      ) : (
+                        <div className="p-4 bg-[#F5F0E8] dark:bg-[#120f0d] border border-[#EBE6DD] dark:border-white/10 rounded-xl text-[11px] text-[#7A6F64] dark:text-[#B7AA9C] leading-normal shadow-inner">
+                          <span className="font-bold text-[#B85C38] block mb-1">PSD Auto-extraction Active</span>
+                          Slot definitions, text elements, and spreads are automatically parsed from your PSD layers. Manual drawing and IDML package uploads are skipped.
+                        </div>
+                      )}
 
                       {/* Thumbnail Section */}
                       <div className="space-y-3 pt-2 border-t border-[#EBE6DD] dark:border-white/5">
@@ -2137,7 +2328,9 @@ export function ArtistDashboardClient({
                         <h4 className="text-[10px] uppercase font-bold tracking-[0.2em] text-[#B85C38]">Design Assets</h4>
                         <div className="space-y-2 text-xs">
                           <div className="flex justify-between items-center py-2 border-b border-[#FAF9F6] dark:border-white/5">
-                            <span className="text-[#7A6F64] dark:text-[#B7AA9C]">Background PDF Layout</span>
+                            <span className="text-[#7A6F64] dark:text-[#B7AA9C]">
+                              {newTemplate.background_pdf_path?.toLowerCase().endsWith('.psd') ? 'Background PSD Layout' : 'Background PDF Layout'}
+                            </span>
                             <div className="flex items-center gap-1.5 min-w-0">
                               <CheckCircle className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
                               <a
@@ -2146,14 +2339,22 @@ export function ArtistDashboardClient({
                                 rel="noreferrer"
                                 className="text-[#B85C38] hover:underline truncate font-mono text-[10px] max-w-[200px]"
                               >
-                                {newTemplate.background_pdf_path ? 'View PDF File' : 'No PDF path'}
+                                {newTemplate.background_pdf_path
+                                  ? newTemplate.background_pdf_path.toLowerCase().endsWith('.psd')
+                                    ? 'View PSD File'
+                                    : 'View PDF File'
+                                  : 'No path'}
                               </a>
                             </div>
                           </div>
                           <div className="flex justify-between items-center py-2 border-b border-[#FAF9F6] dark:border-white/5">
                             <span className="text-[#7A6F64] dark:text-[#B7AA9C]">Layout Configuration Source</span>
                             <span className="font-medium text-[#1C1814] dark:text-[#F5F0E8] text-right truncate max-w-[200px]">
-                              {idmlFile ? `Parsed InDesign IDML Package` : 'Drawn via Slot canvas'}
+                              {idmlFile
+                                ? 'Parsed InDesign IDML Package'
+                                : backgroundFile?.name.toLowerCase().endsWith('.psd')
+                                ? 'Parsed PSD Layers'
+                                : 'Drawn via Slot canvas'}
                             </span>
                           </div>
                           <div className="flex justify-between items-center py-2">
