@@ -41,7 +41,6 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
       console.error('Failed to fetch profile in DashboardPage:', err)
     }
   }
-
   let dashboardData: any = { events: [], guestEntries: [], albums: [], orders: [] }
   try {
     dashboardData = await serverFetch('/api/events/dashboard', token)
