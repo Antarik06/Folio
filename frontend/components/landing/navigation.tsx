@@ -95,6 +95,13 @@ export function Navigation() {
           >
             Pricing
           </a>
+          <Link 
+            href="/join" 
+            onClick={() => setIsMenuOpen(false)}
+            className="font-serif text-3xl text-foreground"
+          >
+            Join
+          </Link>
           
           <div className="h-px bg-border my-4" />
           

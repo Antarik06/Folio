@@ -32,8 +32,8 @@ export function EventTabs({ eventId, isHost, defaultTab = 'photos', children }: 
   return (
     <div>
       {/* Tab Navigation */}
-      <div className="border-b border-border mb-8">
-        <nav className="flex gap-8">
+      <div className="border-b border-border mb-8 overflow-hidden">
+        <nav className="flex gap-8 overflow-x-auto scrollbar-hide whitespace-nowrap pb-px">
           {tabs.map((tab) => (
             <button
               key={tab.id}

@@ -10,7 +10,9 @@ import {
   FolderOpen,
   Check,
   Search,
+  X,
 } from 'lucide-react'
+import { cn } from '@/lib/utils'
 import type { MagazineTemplate } from '@/lib/magazine-templates'
 import { apiClient } from '@/lib/api-client'
 import type { AlbumElement, ImageElement, ShapeElement, DrawingElement } from './types'
@@ -46,6 +48,11 @@ interface SidebarProps {
   templates?: MagazineTemplate[]
   activeTemplateId?: string | null
   onApplyTemplate?: (templateId: string) => Promise<boolean> | boolean
+
+  // Mobile props
+  isMobile?: boolean
+  isOpen?: boolean
+  onClose?: () => void
 }
 
 const FULL_TABS: { id: SidebarPanel; label: string; icon: any; disabled?: boolean }[] = [
@@ -512,6 +519,9 @@ export function Sidebar({
   templates = [],
   activeTemplateId = null,
   onApplyTemplate,
+  isMobile = false,
+  isOpen = false,
+  onClose,
 }: SidebarProps) {
   const [selectedPhotoIds, setSelectedPhotoIds] = React.useState<Set<string>>(new Set())
   const [elementQuery, setElementQuery] = React.useState('')
@@ -925,7 +935,11 @@ export function Sidebar({
   }, [onApplyTemplate])
 
   return (
-    <div className="flex h-full bg-[#18191B] dark:bg-[#0F0D0B] flex-shrink-0 z-20 transition-colors">
+    <div className={cn(
+      "flex h-full bg-[#18191B] dark:bg-[#0F0D0B] flex-shrink-0 z-25 transition-all duration-300 border-r border-[#E5E5E5] dark:border-[#3a342b]",
+      isMobile ? "fixed inset-y-0 left-0 transform" : "",
+      isMobile && !isOpen ? "-translate-x-full" : isMobile ? "translate-x-0 shadow-2xl" : ""
+    )}>
       
       {/* Very thin left icon rail */}
       <div className="flex flex-col items-center w-[72px] border-r border-white/10 pt-4 h-full bg-black/90">
@@ -964,7 +978,22 @@ export function Sidebar({
       </div>
 
       {/* Expanded properties panel */}
-      <div className="w-[320px] border-r border-[#E5E5E5] dark:border-[#3a342b] bg-white dark:bg-[#171511] h-full overflow-y-auto flex flex-col p-4 z-10 shadow-[1px_0_10px_rgba(0,0,0,0.05)] transition-colors">
+      <div className={cn(
+        "border-r border-[#E5E5E5] dark:border-[#3a342b] bg-white dark:bg-[#171511] h-full overflow-y-auto flex flex-col p-4 z-10 shadow-[1px_0_10px_rgba(0,0,0,0.05)] transition-colors",
+        isMobile ? "w-[calc(100vw-72px)] max-w-[320px]" : "w-[320px]"
+      )}>
+        {isMobile && (
+          <div className="flex justify-end mb-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="p-1 rounded bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground"
+              aria-label="Close panel"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        )}
 
         {activePanel === 'templates' && (
           <div className="flex flex-col h-full animate-in fade-in slide-in-from-left-4 duration-300">

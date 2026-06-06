@@ -710,6 +710,39 @@ export function AlbumEditor({
   const [brushSize, setBrushSize] = useState(5)
   const [showGrid, setShowGrid] = useState(true)
 
+  const [isMobile, setIsMobile] = useState(false)
+  const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [layersOpen, setLayersOpen] = useState(false)
+
+  // Screen size listener for < 1024px (mobile + tablet)
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 1024)
+    }
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+    return () => window.removeEventListener('resize', checkMobile)
+  }, [])
+
+  // Auto-fit zoom calculation when viewport changes
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const calculateFitZoom = () => {
+      const workspacePadding = isMobile ? 32 : 64
+      // Left side rail is 72px width
+      const sideRailWidth = 72
+      const availableWidth = window.innerWidth - sideRailWidth - workspacePadding
+      const fitZoom = Math.floor((availableWidth / SPREAD_WIDTH) * 100)
+      const clampedZoom = Math.max(15, Math.min(150, fitZoom))
+      setZoomState(clampedZoom)
+    }
+
+    calculateFitZoom()
+    window.addEventListener('resize', calculateFitZoom)
+    return () => window.removeEventListener('resize', calculateFitZoom)
+  }, [SPREAD_WIDTH, isMobile])
+
   const supabase = useMemo(() => createBrowserClient(), [])
   const skipAutosaveRef = useRef(true)
 
@@ -1600,12 +1633,13 @@ export function AlbumEditor({
   }
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden bg-[#F1F2F4] dark:bg-[#12100D] text-foreground font-sans transition-colors">
+    <div className="flex h-screen w-screen overflow-hidden bg-[#F1F2F4] dark:bg-[#12100D] text-foreground font-sans transition-colors relative">
       <Sidebar
         activePanel={activePanel}
         onChangePanel={(panel) => {
           setActivePanel(panel)
           if (panel !== 'draw') setIsDrawingMode(false)
+          if (isMobile) setSidebarOpen(true)
         }}
         onAddElement={addElement}
         onUpdateElement={updateElement}
@@ -1631,7 +1665,25 @@ export function AlbumEditor({
         templates={templates}
         activeTemplateId={activeTemplateId}
         onApplyTemplate={handleApplyTemplate}
+        isMobile={isMobile}
+        isOpen={sidebarOpen}
       />
+
+      {/* Sidebar Backdrop Overlay on Mobile */}
+      {isMobile && sidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-black/40 z-20 transition-opacity animate-in fade-in duration-200"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
+      {/* Layers Panel Backdrop Overlay on Mobile */}
+      {isMobile && layersOpen && (
+        <div 
+          className="fixed inset-0 bg-black/40 z-20 transition-opacity animate-in fade-in duration-200"
+          onClick={() => setLayersOpen(false)}
+        />
+      )}
 
       <div className="flex-1 flex flex-col h-full min-w-0 transition-all duration-300">
         <Topbar
@@ -1661,10 +1713,15 @@ export function AlbumEditor({
           onToggleGrid={toggleGrid}
           onOpenAdvancedView={isSimpleMode ? handleOpenAdvancedEditor : undefined}
           simpleMode={isSimpleMode}
+          isMobile={isMobile}
+          sidebarOpen={sidebarOpen}
+          onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
+          layersOpen={layersOpen}
+          onToggleLayers={() => setLayersOpen(!layersOpen)}
         />
 
-        <div className="flex-1 min-h-0 flex bg-[#E5E5E5] dark:bg-[#171411] transition-colors">
-          <div className="flex-1 relative overflow-auto touch-pan-x touch-pan-y flex items-center justify-center p-8">
+        <div className="flex-1 min-h-0 flex bg-[#E5E5E5] dark:bg-[#171411] transition-colors relative">
+          <div className="flex-1 relative overflow-auto touch-pan-x touch-pan-y flex items-center justify-center p-4 md:p-8">
             <Workspace
               spread={activeSpreadView || activeSpread}
               zoom={zoom}
@@ -1682,16 +1739,22 @@ export function AlbumEditor({
             />
           </div>
 
-          {!isSimpleMode && (
+          {!isSimpleMode && (!isMobile || layersOpen) && (
             <LayersPanel
               elements={activeSpreadSide.elements}
               selection={selection}
-              onSelect={setSelectionSafe}
+              onSelect={(ids) => {
+                setSelectionSafe(ids)
+                if (isMobile) setLayersOpen(false)
+              }}
               onRename={handleRenameLayer}
               onToggleLock={handleToggleLock}
               onToggleHidden={handleToggleHidden}
               onMoveUp={(id) => moveLayer(id, 'up')}
               onMoveDown={(id) => moveLayer(id, 'down')}
+              isMobile={isMobile}
+              isOpen={layersOpen}
+              onClose={() => setLayersOpen(false)}
             />
           )}
         </div>

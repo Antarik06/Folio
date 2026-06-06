@@ -483,128 +483,132 @@ export function PhotoGrid({ photos, folders, eventId, currentUserId, isOwner, is
           </div>
 
           {/* Filtering Dropdowns & Actions */}
-          <div className="flex flex-wrap items-center gap-3">
-            {/* Person Filter */}
-            <select
-              value={selectedPerson || ''}
-              onChange={e => {
-                setSelectedPerson(e.target.value || null)
-              }}
-              className="px-3 py-2 bg-background border border-border text-xs uppercase tracking-wider text-muted-foreground focus:outline-none focus:border-primary font-medium"
-            >
-              <option value="">All People</option>
-              {allPeople.map(p => (
-                <option key={p} value={p}>{p}</option>
-              ))}
-            </select>
-
-            {/* Location Filter */}
-            <select
-              value={selectedLocation || ''}
-              onChange={e => {
-                setSelectedLocation(e.target.value || null)
-              }}
-              className="px-3 py-2 bg-background border border-border text-xs uppercase tracking-wider text-muted-foreground focus:outline-none focus:border-primary font-medium"
-            >
-              <option value="">All Locations</option>
-              {allLocations.map(l => (
-                <option key={l} value={l}>{l}</option>
-              ))}
-            </select>
-
-            {/* Clear Filters indicator */}
-            {isFiltering && (
-              <button
-                onClick={() => {
-                  setSelectedPerson(null)
-                  setSelectedLocation(null)
+          <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto">
+            <div className="grid grid-cols-2 gap-2 w-full sm:flex sm:w-auto">
+              {/* Person Filter */}
+              <select
+                value={selectedPerson || ''}
+                onChange={e => {
+                  setSelectedPerson(e.target.value || null)
                 }}
-                className="p-2 border border-primary/20 bg-primary/5 text-primary text-xs uppercase tracking-wider font-bold hover:bg-primary/10 transition-colors flex items-center gap-1.5"
-                title="Clear Filters"
+                className="w-full sm:w-auto px-3 py-2 bg-background border border-border text-xs uppercase tracking-wider text-muted-foreground focus:outline-none focus:border-primary font-medium"
               >
-                <X className="w-3.5 h-3.5" />
-                Reset Search
-              </button>
-            )}
+                <option value="">All People</option>
+                {allPeople.map(p => (
+                  <option key={p} value={p}>{p}</option>
+                ))}
+              </select>
 
-            {/* Select Mode Toggle */}
-            <button
-              type="button"
-              onClick={() => {
-                setIsSelectionMode(prev => !prev)
-                setSelectedPhotoIds([])
-              }}
-              className={`flex items-center gap-1.5 px-3 py-2 border text-xs uppercase tracking-wider font-bold transition-all cursor-pointer ${
-                isSelectionMode
-                  ? 'bg-primary border-primary text-primary-foreground'
-                  : 'bg-card border-border text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              {isSelectionMode ? 'Cancel Selection' : 'Select Photos'}
-            </button>
-
-            {/* Batch Move Selector */}
-            {isSelectionMode && selectedPhotoIds.length > 0 && isManager && (
-              <div className="flex items-center gap-2 bg-card border border-border px-3 py-1 animate-in fade-in duration-200">
-                <span className="text-[10px] text-muted-foreground font-bold uppercase font-mono">
-                  {selectedPhotoIds.length} Sel:
-                </span>
-                <select
-                  onChange={async (e) => {
-                    const targetFolderId = e.target.value === '__root__' ? null : (e.target.value || null)
-                    if (e.target.value && window.confirm(`Move ${selectedPhotoIds.length} photos?`)) {
-                      setLocalPhotos(prev =>
-                        prev.map(p => selectedPhotoIds.includes(p.id) ? { ...p, folder_id: targetFolderId } : p)
-                      )
-                      startTransition(async () => {
-                        for (const id of selectedPhotoIds) {
-                          await movePhotoAction(eventId, id, targetFolderId)
-                        }
-                        setSelectedPhotoIds([])
-                        setIsSelectionMode(false)
-                        window.location.reload()
-                      })
-                    }
-                    e.target.value = ''
-                  }}
-                  className="bg-background border border-border text-[10px] uppercase tracking-wider font-bold px-2 py-1.5 focus:outline-none focus:border-primary text-muted-foreground"
-                >
-                  <option value="">Move To...</option>
-                  <option value="__root__">Root Collection</option>
-                  {folders.map(f => (
-                    <option key={f.id} value={f.id}>{f.name}</option>
-                  ))}
-                </select>
-              </div>
-            )}
-
-            {/* Layout Switcher */}
-            <div className="flex items-center border border-border divide-x divide-border bg-card">
-              {(['editorial', 'grid', 'rows', 'masonry'] as const).map((mode) => (
-                <button
-                  key={mode}
-                  type="button"
-                  onClick={() => setLayoutMode(mode)}
-                  className={`px-3 py-2 text-[10px] uppercase tracking-wider font-bold transition-all cursor-pointer ${
-                    layoutMode === mode ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
-                  }`}
-                  title={`${mode.charAt(0).toUpperCase() + mode.slice(1)} Layout`}
-                >
-                  {mode}
-                </button>
-              ))}
+              {/* Location Filter */}
+              <select
+                value={selectedLocation || ''}
+                onChange={e => {
+                  setSelectedLocation(e.target.value || null)
+                }}
+                className="w-full sm:w-auto px-3 py-2 bg-background border border-border text-xs uppercase tracking-wider text-muted-foreground focus:outline-none focus:border-primary font-medium"
+              >
+                <option value="">All Locations</option>
+                {allLocations.map(l => (
+                  <option key={l} value={l}>{l}</option>
+                ))}
+              </select>
             </div>
 
-            {/* Create Folder button (managers only, disabled when filtering) */}
-            {isManager && !isFiltering && (
+            <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+              {/* Clear Filters indicator */}
+              {isFiltering && (
+                <button
+                  onClick={() => {
+                    setSelectedPerson(null)
+                    setSelectedLocation(null)
+                  }}
+                  className="p-2 border border-primary/20 bg-primary/5 text-primary text-xs uppercase tracking-wider font-bold hover:bg-primary/10 transition-colors flex items-center gap-1.5"
+                  title="Clear Filters"
+                >
+                  <X className="w-3.5 h-3.5" />
+                  Reset Search
+                </button>
+              )}
+
+              {/* Select Mode Toggle */}
               <button
-                onClick={() => setShowCreateFolder(prev => !prev)}
-                className="flex items-center gap-1.5 px-4 py-2 bg-secondary text-secondary-foreground text-xs uppercase tracking-wider font-bold hover:bg-secondary/90 transition-colors cursor-pointer"
+                type="button"
+                onClick={() => {
+                  setIsSelectionMode(prev => !prev)
+                  setSelectedPhotoIds([])
+                }}
+                className={`flex items-center gap-1.5 px-3 py-2 border text-xs uppercase tracking-wider font-bold transition-all cursor-pointer ${
+                  isSelectionMode
+                    ? 'bg-primary border-primary text-primary-foreground'
+                    : 'bg-card border-border text-muted-foreground hover:text-foreground'
+                }`}
               >
-                <FolderPlus className="w-3.5 h-3.5" />
-                New Folder
+                {isSelectionMode ? 'Cancel Selection' : 'Select Photos'}
               </button>
-            )}
+
+              {/* Batch Move Selector */}
+              {isSelectionMode && selectedPhotoIds.length > 0 && isManager && (
+                <div className="flex items-center gap-2 bg-card border border-border px-3 py-1 animate-in fade-in duration-200">
+                  <span className="text-[10px] text-muted-foreground font-bold uppercase font-mono">
+                    {selectedPhotoIds.length} Sel:
+                  </span>
+                  <select
+                    onChange={async (e) => {
+                      const targetFolderId = e.target.value === '__root__' ? null : (e.target.value || null)
+                      if (e.target.value && window.confirm(`Move ${selectedPhotoIds.length} photos?`)) {
+                        setLocalPhotos(prev =>
+                          prev.map(p => selectedPhotoIds.includes(p.id) ? { ...p, folder_id: targetFolderId } : p)
+                        )
+                        startTransition(async () => {
+                          for (const id of selectedPhotoIds) {
+                            await movePhotoAction(eventId, id, targetFolderId)
+                          }
+                          setSelectedPhotoIds([])
+                          setIsSelectionMode(false)
+                          window.location.reload()
+                        })
+                      }
+                      e.target.value = ''
+                    }}
+                    className="bg-background border border-border text-[10px] uppercase tracking-wider font-bold px-2 py-1.5 focus:outline-none focus:border-primary text-muted-foreground"
+                  >
+                    <option value="">Move To...</option>
+                    <option value="__root__">Root Collection</option>
+                    {folders.map(f => (
+                      <option key={f.id} value={f.id}>{f.name}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {/* Layout Switcher */}
+              <div className="flex items-center border border-border divide-x divide-border bg-card">
+                {(['editorial', 'grid', 'rows', 'masonry'] as const).map((mode) => (
+                  <button
+                    key={mode}
+                    type="button"
+                    onClick={() => setLayoutMode(mode)}
+                    className={`px-2 py-1.5 sm:px-3 sm:py-2 text-[9px] sm:text-[10px] uppercase tracking-wider font-bold transition-all cursor-pointer ${
+                      layoutMode === mode ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                    title={`${mode.charAt(0).toUpperCase() + mode.slice(1)} Layout`}
+                  >
+                    {mode}
+                  </button>
+                ))}
+              </div>
+
+              {/* Create Folder button (managers only, disabled when filtering) */}
+              {isManager && !isFiltering && (
+                <button
+                  onClick={() => setShowCreateFolder(prev => !prev)}
+                  className="flex items-center gap-1.5 px-4 py-2 bg-secondary text-secondary-foreground text-xs uppercase tracking-wider font-bold hover:bg-secondary/90 transition-colors cursor-pointer"
+                >
+                  <FolderPlus className="w-3.5 h-3.5" />
+                  New Folder
+                </button>
+              )}
+            </div>
           </div>
 
         </div>

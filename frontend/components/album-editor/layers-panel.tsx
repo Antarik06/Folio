@@ -1,7 +1,8 @@
 'use client'
 
 import React from 'react'
-import { Eye, EyeOff, Lock, Unlock, ChevronUp, ChevronDown, Layers3 } from 'lucide-react'
+import { Eye, EyeOff, Lock, Unlock, ChevronUp, ChevronDown, Layers3, X } from 'lucide-react'
+import { cn } from '@/lib/utils'
 import { AlbumElement } from './types'
 
 interface LayersPanelProps {
@@ -13,6 +14,9 @@ interface LayersPanelProps {
   onToggleHidden: (id: string) => void
   onMoveUp: (id: string) => void
   onMoveDown: (id: string) => void
+  isMobile?: boolean
+  isOpen?: boolean
+  onClose?: () => void
 }
 
 function inferImageLayerName(src: string | null | undefined) {
@@ -64,6 +68,9 @@ export function LayersPanel({
   onToggleHidden,
   onMoveUp,
   onMoveDown,
+  isMobile = false,
+  isOpen = false,
+  onClose,
 }: LayersPanelProps) {
   const ordered = [...elements].sort((a, b) => b.zIndex - a.zIndex)
   const [movedLayerId, setMovedLayerId] = React.useState<string | null>(null)
@@ -88,10 +95,26 @@ export function LayersPanel({
   )
 
   return (
-    <aside className="w-75 border-l border-[#E5E5E5] dark:border-[#3a342b] bg-white dark:bg-[#171511] h-full overflow-y-auto p-3 shrink-0">
-      <div className="flex items-center gap-2 px-1 py-2 mb-2">
-        <Layers3 className="w-4 h-4 text-muted-foreground" />
-        <h3 className="text-sm font-semibold text-foreground">Layers</h3>
+    <aside className={cn(
+      "border-[#E5E5E5] dark:border-[#3a342b] bg-white dark:bg-[#171511] h-full overflow-y-auto p-3 shrink-0 transition-all duration-300",
+      isMobile ? "fixed inset-y-0 right-0 z-30 w-[280px] max-w-[80vw] border-l transform shadow-2xl" : "w-75 border-l",
+      isMobile && !isOpen ? "translate-x-full" : isMobile ? "translate-x-0" : ""
+    )}>
+      <div className="flex items-center justify-between px-1 py-2 mb-2">
+        <div className="flex items-center gap-2">
+          <Layers3 className="w-4 h-4 text-muted-foreground" />
+          <h3 className="text-sm font-semibold text-foreground">Layers</h3>
+        </div>
+        {isMobile && (
+          <button 
+            type="button"
+            onClick={onClose}
+            className="p-1 rounded bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground"
+            aria-label="Close layers"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        )}
       </div>
 
       {ordered.length === 0 ? (

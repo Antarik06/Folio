@@ -1,11 +1,13 @@
 'use client'
 
+import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { User } from '@supabase/supabase-js'
 import { Profile } from '@/lib/types/database'
 import { signOut } from '@/lib/actions/auth'
 import { ThemeToggle } from '@/components/theme-toggle'
+import { Menu, X } from 'lucide-react'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -21,6 +23,7 @@ interface DashboardNavProps {
 
 export function DashboardNav({ user, profile }: DashboardNavProps) {
   const pathname = usePathname()
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
 
   const navItems = [
     { href: '/dashboard', label: 'Overview' },
@@ -117,8 +120,59 @@ export function DashboardNav({ user, profile }: DashboardNavProps) {
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+
+          {/* Hamburger Menu Toggle */}
+          <button
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            className="md:hidden p-2 text-muted-foreground hover:text-foreground transition-colors"
+            aria-label="Toggle Navigation Menu"
+          >
+            {isMobileMenuOpen ? <X className="w-6.5 h-6.5" /> : <Menu className="w-6.5 h-6.5" />}
+          </button>
         </div>
       </div>
+
+      {/* Mobile Menu Dropdown */}
+      {isMobileMenuOpen && (
+        <div className="md:hidden absolute top-16 left-0 right-0 bg-background border-b border-border p-6 shadow-lg flex flex-col gap-4 z-40 animate-in fade-in slide-in-from-top-4 duration-200">
+          <nav className="flex flex-col gap-4">
+            {navItems.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                onClick={() => setIsMobileMenuOpen(false)}
+                className={`text-base font-medium transition-colors ${
+                  pathname === item.href || pathname.startsWith(item.href + '/')
+                    ? 'text-primary font-bold'
+                    : 'text-foreground hover:text-primary'
+                }`}
+              >
+                {item.label}
+              </Link>
+            ))}
+          </nav>
+          <div className="h-px bg-border my-2" />
+          <div className="flex flex-col gap-3">
+            <Link
+              href="/events/new"
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="flex items-center justify-center gap-2 bg-primary text-primary-foreground px-4 py-2.5 text-sm font-medium hover:bg-primary/90 transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4v16m8-8H4" />
+              </svg>
+              New Event
+            </Link>
+            <Link
+              href="/dashboard/join"
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="flex items-center justify-center gap-2 bg-primary/10 text-primary px-4 py-2.5 text-sm font-medium hover:bg-primary/20 transition-colors"
+            >
+              Join Event
+            </Link>
+          </div>
+        </div>
+      )}
     </header>
   )
 }
