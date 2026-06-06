@@ -1150,7 +1150,7 @@ export function ArtistDashboardClient({
         {/* Bottom Section */}
         <div className="px-4 py-5 border-t border-white/[0.06] space-y-1.5">
           <Link
-            href="/dashboard"
+            href="/dashboard?mode=user"
             className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-white/30 hover:text-white/60 hover:bg-white/[0.04] transition-all text-[12px] group"
           >
             <ArrowLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
