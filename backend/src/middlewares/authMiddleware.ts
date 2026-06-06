@@ -57,6 +57,7 @@ export async function authMiddleware(req: AuthenticatedRequest, res: Response, n
              ON CONFLICT (id) DO NOTHING`,
             ['11111111-2222-3333-4444-444444444444', 'admin@folio.com', 'Super Admin']
           )
+          await query(`UPDATE public.profiles SET role = 'admin' WHERE id = $1`, ['11111111-2222-3333-4444-444444444444'])
         } catch (err) {
           console.warn('Note: Could not seed admin mock auth/profile:', (err as Error).message)
         }
@@ -85,6 +86,7 @@ export async function authMiddleware(req: AuthenticatedRequest, res: Response, n
              ON CONFLICT (id) DO NOTHING`,
             ['22222222-3333-4444-5555-555555555555', 'artist@folio.com', 'Independent Artist']
           )
+          await query(`UPDATE public.profiles SET role = 'artist' WHERE id = $1`, ['22222222-3333-4444-5555-555555555555'])
         } catch (err) {
           console.error('Failed to ensure artist profile:', err)
         }
