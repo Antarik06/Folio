@@ -4,7 +4,8 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { cookies } from 'next/headers'
 
-export default async function DashboardPage() {
+export default async function DashboardPage({ searchParams }: { searchParams: Promise<{ mode?: string }> }) {
+  const { mode } = (await searchParams) || {}
   const supabase = await createClient()
   // Verify user identity securely
   const { data: { user } } = await supabase.auth.getUser()
@@ -15,10 +16,10 @@ export default async function DashboardPage() {
   const isAdmin = cookieStore.get('admin_session')?.value === 'admin-secret-token' || user.email === 'admin@folio.com'
   const isArtist = cookieStore.get('artist_session')?.value === 'artist-secret-token' || user.email === 'artist@folio.com'
 
-  if (isAdmin) {
+  if (isAdmin && mode !== 'user') {
     redirect('/dashboard/admin')
   }
-  if (isArtist) {
+  if (isArtist && mode !== 'user') {
     redirect('/dashboard/artist')
   }
 
@@ -30,10 +31,10 @@ export default async function DashboardPage() {
   if (token) {
     try {
       const profile = await serverFetch('/api/profile', token)
-      if (profile?.role === 'admin') {
+      if (profile?.role === 'admin' && mode !== 'user') {
         redirect('/dashboard/admin')
       }
-      if (profile?.role === 'artist') {
+      if (profile?.role === 'artist' && mode !== 'user') {
         redirect('/dashboard/artist')
       }
     } catch (err) {

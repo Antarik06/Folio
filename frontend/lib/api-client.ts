@@ -100,6 +100,7 @@ export async function serverFetch(path: string, token: string | null, options: R
   }
 
   const response = await fetch(`${baseUrl}${path}`, {
+    cache: 'no-store',
     ...options,
     headers
   })
