@@ -11,10 +11,11 @@ import {
   Image as ImageIcon, Layout, Plus, Trash2, Globe, Eye, Loader2,
   ClipboardList, BarChart3, Upload, BookOpen, AlertCircle, CheckCircle,
   Menu, X, ArrowLeft, Palette, Clock, ChevronRight, Zap, Sparkles,
-  Check, Heart, Gift, Users, GraduationCap, Briefcase
+  Check, Heart, Gift, Users, GraduationCap, Briefcase, LogOut
 } from 'lucide-react'
 import { apiClient, BACKEND_URL } from '@/lib/api-client'
 import { parsePSDFile } from '@/lib/psd-parser'
+import { signOut } from '@/lib/actions/auth'
 
 /* ─── Types ─────────────────────────────────────────────────────── */
 
@@ -64,7 +65,7 @@ interface ArtistDashboardClientProps {
   portfolioEventId: string
   initialPhotos: Photo[]
   initialFolders: Folder[]
-  initialAlbums: Album[]
+  initialTemplates: Album[]
   currentUserId: string
   initialConciergeProjects: any[]
   conciergePackages: any[]
@@ -146,7 +147,7 @@ export function ArtistDashboardClient({
   portfolioEventId,
   initialPhotos,
   initialFolders,
-  initialAlbums,
+  initialTemplates,
   currentUserId,
   initialConciergeProjects,
   conciergePackages
@@ -155,7 +156,7 @@ export function ArtistDashboardClient({
 
   /* ── Core State ── */
   const [activeTab, setActiveTab] = useState<'templates' | 'media' | 'reviews' | 'stats' | 'concierge'>('templates')
-  const [albums, setAlbums] = useState<Album[]>(initialAlbums)
+  const [albums, setAlbums] = useState<Album[]>(initialTemplates)
   const [photos, setPhotos] = useState<Photo[]>(initialPhotos)
   const [folders] = useState<Folder[]>(initialFolders)
   const [creating, setCreating] = useState(false)
@@ -1147,7 +1148,7 @@ export function ArtistDashboardClient({
         </nav>
 
         {/* Bottom Section */}
-        <div className="px-4 py-5 border-t border-white/[0.06] space-y-3">
+        <div className="px-4 py-5 border-t border-white/[0.06] space-y-1.5">
           <Link
             href="/dashboard"
             className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-white/30 hover:text-white/60 hover:bg-white/[0.04] transition-all text-[12px] group"
@@ -1155,6 +1156,16 @@ export function ArtistDashboardClient({
             <ArrowLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
             <span>Exit to Dashboard</span>
           </Link>
+          
+          <form action={signOut} className="w-full">
+            <button
+              type="submit"
+              className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-rose-400/70 hover:text-rose-300 hover:bg-rose-500/[0.06] transition-all text-[12px] group cursor-pointer"
+            >
+              <LogOut className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+              <span>Sign Out</span>
+            </button>
+          </form>
         </div>
       </aside>
 
