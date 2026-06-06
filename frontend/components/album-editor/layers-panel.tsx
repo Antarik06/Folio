@@ -97,7 +97,7 @@ export function LayersPanel({
   return (
     <aside className={cn(
       "border-[#E5E5E5] dark:border-[#3a342b] bg-white dark:bg-[#171511] h-full overflow-y-auto p-3 shrink-0 transition-all duration-300",
-      isMobile ? "fixed inset-y-0 right-0 z-30 w-[280px] max-w-[80vw] border-l transform shadow-2xl" : "w-75 border-l",
+      isMobile ? "fixed inset-y-0 right-0 z-30 w-[280px] max-w-[80vw] border-l transform shadow-2xl" : "w-[300px] border-l",
       isMobile && !isOpen ? "translate-x-full" : isMobile ? "translate-x-0" : ""
     )}>
       <div className="flex items-center justify-between px-1 py-2 mb-2">

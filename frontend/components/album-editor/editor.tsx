@@ -729,18 +729,25 @@ export function AlbumEditor({
   useEffect(() => {
     if (typeof window === 'undefined') return
     const calculateFitZoom = () => {
-      const workspacePadding = isMobile ? 32 : 64
-      // Left side rail is 72px width
-      const sideRailWidth = 72
-      const availableWidth = window.innerWidth - sideRailWidth - workspacePadding
-      const fitZoom = Math.floor((availableWidth / SPREAD_WIDTH) * 100)
-      const clampedZoom = Math.max(15, Math.min(150, fitZoom))
-      setZoomState(clampedZoom)
+      if (isMobile) {
+        // On mobile, panels are overlay drawers and do not take document flow space.
+        // We only subtract workspace padding (p-4 = 16px * 2 = 32px).
+        const availableWidth = window.innerWidth - 32
+        const fitZoom = Math.floor((availableWidth / SPREAD_WIDTH) * 100)
+        const clampedZoom = Math.max(15, Math.min(150, fitZoom))
+        setZoomState(clampedZoom)
+      } else {
+        // On desktop/web, default zoom is set to 50%
+        setZoomState(50)
+      }
     }
 
     calculateFitZoom()
-    window.addEventListener('resize', calculateFitZoom)
-    return () => window.removeEventListener('resize', calculateFitZoom)
+
+    if (isMobile) {
+      window.addEventListener('resize', calculateFitZoom)
+      return () => window.removeEventListener('resize', calculateFitZoom)
+    }
   }, [SPREAD_WIDTH, isMobile])
 
   const supabase = useMemo(() => createBrowserClient(), [])
