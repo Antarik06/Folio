@@ -66,7 +66,7 @@ export default async function ArtistDashboardPage() {
     }
   }
 
-  // 3. Fetch detailed portfolio event assets and albums
+  // 3. Fetch detailed portfolio event assets (photos, folders)
   let details: any = null
   try {
     details = await serverFetch(`/api/events/${portfolioEvent.id}`, token)
@@ -76,7 +76,29 @@ export default async function ArtistDashboardPage() {
 
   const photos = details?.photos || []
   const folders = details?.folders || []
-  const albums = details?.albums || []
+
+  // 4. Fetch templates from public.templates
+  let templates: any[] = []
+  try {
+    templates = await serverFetch('/api/artists/templates', token)
+  } catch (err) {
+    console.error('Failed to load initial artist templates:', err)
+  }
+
+  const initialTemplates = (templates || []).map((t: any) => ({
+    id: t.id,
+    title: t.name,
+    description: t.description,
+    is_published: t.status === 'published',
+    created_at: t.created_at,
+    cover_photo_id: undefined,
+    layout_data: t.layout_schema,
+    thumbnail_url: t.thumbnail_url,
+    background_pdf_path: t.background_pdf_path,
+    page_count: t.page_count,
+    page_previews_urls: t.page_previews_urls || []
+  }))
+
   let conciergeProjects: any[] = []
   let conciergePackages: any[] = []
 
@@ -92,7 +114,7 @@ export default async function ArtistDashboardPage() {
       portfolioEventId={portfolioEvent.id}
       initialPhotos={photos}
       initialFolders={folders}
-      initialAlbums={albums}
+      initialTemplates={initialTemplates}
       currentUserId={profile.id}
       initialConciergeProjects={conciergeProjects}
       conciergePackages={conciergePackages}
