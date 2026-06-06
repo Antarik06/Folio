@@ -7158,8 +7158,8 @@
       "source_file": "backend\\src\\scratch\\check-artists-table.ts",
       "source_location": "L6",
       "weight": 1.0,
-      "_src": "check_artists_table_check",
-      "_tgt": "index_query",
+      "_src": "index_query",
+      "_tgt": "check_artists_table_check",
       "source": "index_query",
       "target": "check_artists_table_check"
     },
@@ -7410,8 +7410,8 @@
       "source_file": "backend\\src\\utils\\pricing.ts",
       "source_location": "L46",
       "weight": 1.0,
-      "_src": "pricing_validatepostalcode",
-      "_tgt": "test_published_endpoint_test",
+      "_src": "test_published_endpoint_test",
+      "_tgt": "pricing_validatepostalcode",
       "source": "test_published_endpoint_test",
       "target": "pricing_validatepostalcode"
     },
@@ -7422,8 +7422,8 @@
       "source_file": "backend\\src\\utils\\pricing.ts",
       "source_location": "L82",
       "weight": 1.0,
-      "_src": "pricing_getshippingaddresserrors",
-      "_tgt": "test_published_endpoint_test",
+      "_src": "test_published_endpoint_test",
+      "_tgt": "pricing_getshippingaddresserrors",
       "source": "test_published_endpoint_test",
       "target": "pricing_getshippingaddresserrors"
     },
@@ -7434,8 +7434,8 @@
       "source_file": "frontend\\app\\(dashboard)\\dashboard\\templates\\editor\\[id]\\page.tsx",
       "source_location": "L13",
       "weight": 1.0,
-      "_src": "page_isuuid",
-      "_tgt": "test_published_endpoint_test",
+      "_src": "test_published_endpoint_test",
+      "_tgt": "page_isuuid",
       "source": "test_published_endpoint_test",
       "target": "page_isuuid"
     },
