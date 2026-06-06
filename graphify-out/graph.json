@@ -4,6 +4,15 @@
   "graph": {},
   "nodes": [
     {
+      "label": "drizzle.config.ts",
+      "file_type": "code",
+      "source_file": "backend\\drizzle.config.ts",
+      "source_location": "L1",
+      "id": "backend_drizzle_config_ts",
+      "community": 126,
+      "norm_label": "drizzle.config.ts"
+    },
+    {
       "label": "index.ts",
       "file_type": "code",
       "source_file": "backend\\src\\index.ts",
@@ -135,7 +144,7 @@
       "source_file": "backend\\src\\middlewares\\errorMiddleware.ts",
       "source_location": "L1",
       "id": "backend_src_middlewares_errormiddleware_ts",
-      "community": 67,
+      "community": 66,
       "norm_label": "errormiddleware.ts"
     },
     {
@@ -144,7 +153,7 @@
       "source_file": "backend\\src\\middlewares\\errorMiddleware.ts",
       "source_location": "L3",
       "id": "errormiddleware_errormiddleware",
-      "community": 67,
+      "community": 66,
       "norm_label": "errormiddleware()"
     },
     {
@@ -319,6 +328,24 @@
       "norm_label": "run()"
     },
     {
+      "label": "check-artists-table.ts",
+      "file_type": "code",
+      "source_file": "backend\\src\\scratch\\check-artists-table.ts",
+      "source_location": "L1",
+      "id": "backend_src_scratch_check_artists_table_ts",
+      "community": 3,
+      "norm_label": "check-artists-table.ts"
+    },
+    {
+      "label": "check()",
+      "file_type": "code",
+      "source_file": "backend\\src\\scratch\\check-artists-table.ts",
+      "source_location": "L3",
+      "id": "check_artists_table_check",
+      "community": 3,
+      "norm_label": "check()"
+    },
+    {
       "label": "check-db.ts",
       "file_type": "code",
       "source_file": "backend\\src\\scratch\\check-db.ts",
@@ -373,6 +400,24 @@
       "norm_label": "runtest()"
     },
     {
+      "label": "test-published-endpoint.ts",
+      "file_type": "code",
+      "source_file": "backend\\src\\scratch\\test-published-endpoint.ts",
+      "source_location": "L1",
+      "id": "backend_src_scratch_test_published_endpoint_ts",
+      "community": 5,
+      "norm_label": "test-published-endpoint.ts"
+    },
+    {
+      "label": "test()",
+      "file_type": "code",
+      "source_file": "backend\\src\\scratch\\test-published-endpoint.ts",
+      "source_location": "L4",
+      "id": "test_published_endpoint_test",
+      "community": 5,
+      "norm_label": "test()"
+    },
+    {
       "label": "update-photos-bucket.ts",
       "file_type": "code",
       "source_file": "backend\\src\\scratch\\update-photos-bucket.ts",
@@ -414,7 +459,7 @@
       "source_file": "backend\\src\\services\\albumService.ts",
       "source_location": "L1",
       "id": "backend_src_services_albumservice_ts",
-      "community": 68,
+      "community": 67,
       "norm_label": "albumservice.ts"
     },
     {
@@ -423,7 +468,7 @@
       "source_file": "backend\\src\\services\\albumService.ts",
       "source_location": "L321",
       "id": "albumservice_helperconvertpagestospreads",
-      "community": 68,
+      "community": 67,
       "norm_label": "helperconvertpagestospreads()"
     },
     {
@@ -513,7 +558,7 @@
       "source_file": "backend\\src\\utils\\idmlParser.ts",
       "source_location": "L1",
       "id": "backend_src_utils_idmlparser_ts",
-      "community": 26,
+      "community": 25,
       "norm_label": "idmlparser.ts"
     },
     {
@@ -522,7 +567,7 @@
       "source_file": "backend\\src\\utils\\idmlParser.ts",
       "source_location": "L51",
       "id": "idmlparser_parsetransform",
-      "community": 26,
+      "community": 25,
       "norm_label": "parsetransform()"
     },
     {
@@ -531,7 +576,7 @@
       "source_file": "backend\\src\\utils\\idmlParser.ts",
       "source_location": "L63",
       "id": "idmlparser_parsebounds",
-      "community": 26,
+      "community": 25,
       "norm_label": "parsebounds()"
     },
     {
@@ -540,7 +585,7 @@
       "source_file": "backend\\src\\utils\\idmlParser.ts",
       "source_location": "L75",
       "id": "idmlparser_collectframes",
-      "community": 26,
+      "community": 25,
       "norm_label": "collectframes()"
     },
     {
@@ -549,7 +594,7 @@
       "source_file": "backend\\src\\utils\\idmlParser.ts",
       "source_location": "L115",
       "id": "idmlparser_parseidml",
-      "community": 26,
+      "community": 25,
       "norm_label": "parseidml()"
     },
     {
@@ -747,7 +792,7 @@
       "source_file": "frontend\\app\\layout.tsx",
       "source_location": "L1",
       "id": "frontend_app_layout_tsx",
-      "community": 69,
+      "community": 68,
       "norm_label": "layout.tsx"
     },
     {
@@ -756,7 +801,7 @@
       "source_file": "frontend\\app\\layout.tsx",
       "source_location": "L41",
       "id": "layout_rootlayout",
-      "community": 69,
+      "community": 68,
       "norm_label": "rootlayout()"
     },
     {
@@ -765,7 +810,7 @@
       "source_file": "frontend\\app\\page.tsx",
       "source_location": "L1",
       "id": "frontend_app_page_tsx",
-      "community": 70,
+      "community": 69,
       "norm_label": "page.tsx"
     },
     {
@@ -774,7 +819,7 @@
       "source_file": "frontend\\app\\page.tsx",
       "source_location": "L12",
       "id": "page_home",
-      "community": 70,
+      "community": 69,
       "norm_label": "home()"
     },
     {
@@ -828,7 +873,7 @@
       "source_file": "frontend\\app\\(dashboard)\\dashboard\\albums\\[id]\\order\\page.tsx",
       "source_location": "L1",
       "id": "frontend_app_dashboard_dashboard_albums_id_order_page_tsx",
-      "community": 71,
+      "community": 70,
       "norm_label": "page.tsx"
     },
     {
@@ -837,7 +882,7 @@
       "source_file": "frontend\\app\\(dashboard)\\dashboard\\albums\\[id]\\order\\page.tsx",
       "source_location": "L7",
       "id": "page_legacyalbumorderpage",
-      "community": 71,
+      "community": 70,
       "norm_label": "legacyalbumorderpage()"
     },
     {
@@ -954,7 +999,7 @@
       "source_file": "frontend\\app\\(dashboard)\\dashboard\\polaroid\\page.tsx",
       "source_location": "L1",
       "id": "frontend_app_dashboard_dashboard_polaroid_page_tsx",
-      "community": 50,
+      "community": 49,
       "norm_label": "page.tsx"
     },
     {
@@ -963,7 +1008,7 @@
       "source_file": "frontend\\app\\(dashboard)\\polaroid\\page.tsx",
       "source_location": "L3",
       "id": "page_polaroidpage",
-      "community": 50,
+      "community": 49,
       "norm_label": "polaroidpage()"
     },
     {
@@ -1026,7 +1071,7 @@
       "source_file": "frontend\\app\\(dashboard)\\dashboard\\templates\\builder\\[id]\\page.tsx",
       "source_location": "L1",
       "id": "frontend_app_dashboard_dashboard_templates_builder_id_page_tsx",
-      "community": 72,
+      "community": 71,
       "norm_label": "page.tsx"
     },
     {
@@ -1035,7 +1080,7 @@
       "source_file": "frontend\\app\\(dashboard)\\dashboard\\templates\\builder\\[id]\\page.tsx",
       "source_location": "L7",
       "id": "page_legacybuilderpage",
-      "community": 72,
+      "community": 71,
       "norm_label": "legacybuilderpage()"
     },
     {
@@ -1170,7 +1215,7 @@
       "source_file": "frontend\\app\\(dashboard)\\events\\page.tsx",
       "source_location": "L1",
       "id": "frontend_app_dashboard_events_page_tsx",
-      "community": 73,
+      "community": 72,
       "norm_label": "page.tsx"
     },
     {
@@ -1179,7 +1224,7 @@
       "source_file": "frontend\\app\\(dashboard)\\events\\page.tsx",
       "source_location": "L3",
       "id": "page_eventsredirect",
-      "community": 73,
+      "community": 72,
       "norm_label": "eventsredirect()"
     },
     {
@@ -1188,7 +1233,7 @@
       "source_file": "frontend\\app\\(dashboard)\\events\\new\\page.tsx",
       "source_location": "L1",
       "id": "frontend_app_dashboard_events_new_page_tsx",
-      "community": 74,
+      "community": 73,
       "norm_label": "page.tsx"
     },
     {
@@ -1197,7 +1242,7 @@
       "source_file": "frontend\\app\\(dashboard)\\events\\new\\page.tsx",
       "source_location": "L3",
       "id": "page_neweventredirect",
-      "community": 74,
+      "community": 73,
       "norm_label": "neweventredirect()"
     },
     {
@@ -1206,7 +1251,7 @@
       "source_file": "frontend\\app\\(dashboard)\\events\\[id]\\page.tsx",
       "source_location": "L1",
       "id": "frontend_app_dashboard_events_id_page_tsx",
-      "community": 75,
+      "community": 74,
       "norm_label": "page.tsx"
     },
     {
@@ -1215,7 +1260,7 @@
       "source_file": "frontend\\app\\(dashboard)\\events\\[id]\\page.tsx",
       "source_location": "L7",
       "id": "page_eventdetailredirect",
-      "community": 75,
+      "community": 74,
       "norm_label": "eventdetailredirect()"
     },
     {
@@ -1242,7 +1287,7 @@
       "source_file": "frontend\\app\\(dashboard)\\polaroid\\page.tsx",
       "source_location": "L1",
       "id": "frontend_app_dashboard_polaroid_page_tsx",
-      "community": 50,
+      "community": 49,
       "norm_label": "page.tsx"
     },
     {
@@ -1251,7 +1296,7 @@
       "source_file": "frontend\\app\\(dashboard)\\templates\\page.tsx",
       "source_location": "L1",
       "id": "frontend_app_dashboard_templates_page_tsx",
-      "community": 76,
+      "community": 75,
       "norm_label": "page.tsx"
     },
     {
@@ -1260,7 +1305,7 @@
       "source_file": "frontend\\app\\(dashboard)\\templates\\page.tsx",
       "source_location": "L3",
       "id": "page_legacytemplatespage",
-      "community": 76,
+      "community": 75,
       "norm_label": "legacytemplatespage()"
     },
     {
@@ -1269,7 +1314,7 @@
       "source_file": "frontend\\app\\(dashboard)\\templates\\editor\\[id]\\page.tsx",
       "source_location": "L1",
       "id": "frontend_app_dashboard_templates_editor_id_page_tsx",
-      "community": 77,
+      "community": 76,
       "norm_label": "page.tsx"
     },
     {
@@ -1278,7 +1323,7 @@
       "source_file": "frontend\\app\\(dashboard)\\templates\\editor\\[id]\\page.tsx",
       "source_location": "L7",
       "id": "page_legacysimpleeditorroute",
-      "community": 77,
+      "community": 76,
       "norm_label": "legacysimpleeditorroute()"
     },
     {
@@ -1287,7 +1332,7 @@
       "source_file": "frontend\\app\\(dashboard)\\templates\\preview\\[id]\\page.tsx",
       "source_location": "L1",
       "id": "frontend_app_dashboard_templates_preview_id_page_tsx",
-      "community": 78,
+      "community": 77,
       "norm_label": "page.tsx"
     },
     {
@@ -1296,7 +1341,7 @@
       "source_file": "frontend\\app\\(dashboard)\\templates\\preview\\[id]\\page.tsx",
       "source_location": "L7",
       "id": "page_legacytemplatepreviewpage",
-      "community": 78,
+      "community": 77,
       "norm_label": "legacytemplatepreviewpage()"
     },
     {
@@ -1305,7 +1350,7 @@
       "source_file": "frontend\\app\\(dashboard)\\templates\\use\\[id]\\page.tsx",
       "source_location": "L1",
       "id": "frontend_app_dashboard_templates_use_id_page_tsx",
-      "community": 79,
+      "community": 78,
       "norm_label": "page.tsx"
     },
     {
@@ -1314,7 +1359,7 @@
       "source_file": "frontend\\app\\(dashboard)\\templates\\use\\[id]\\page.tsx",
       "source_location": "L8",
       "id": "page_legacytemplateusepage",
-      "community": 79,
+      "community": 78,
       "norm_label": "legacytemplateusepage()"
     },
     {
@@ -1323,7 +1368,7 @@
       "source_file": "frontend\\app\\album\\share\\[token]\\page.tsx",
       "source_location": "L1",
       "id": "frontend_app_album_share_token_page_tsx",
-      "community": 23,
+      "community": 19,
       "norm_label": "page.tsx"
     },
     {
@@ -1332,7 +1377,7 @@
       "source_file": "frontend\\app\\album\\share\\[token]\\page.tsx",
       "source_location": "L11",
       "id": "page_normalizespreads",
-      "community": 23,
+      "community": 19,
       "norm_label": "normalizespreads()"
     },
     {
@@ -1341,7 +1386,7 @@
       "source_file": "frontend\\app\\album\\share\\[token]\\page.tsx",
       "source_location": "L46",
       "id": "page_sharedalbumpage",
-      "community": 23,
+      "community": 19,
       "norm_label": "sharedalbumpage()"
     },
     {
@@ -1458,7 +1503,7 @@
       "source_file": "frontend\\app\\join\\[code]\\enroll\\page.tsx",
       "source_location": "L1",
       "id": "frontend_app_join_code_enroll_page_tsx",
-      "community": 51,
+      "community": 50,
       "norm_label": "page.tsx"
     },
     {
@@ -1467,7 +1512,7 @@
       "source_file": "frontend\\app\\join\\[code]\\enroll\\page.tsx",
       "source_location": "L41",
       "id": "page_startcamera",
-      "community": 51,
+      "community": 50,
       "norm_label": "startcamera()"
     },
     {
@@ -1476,7 +1521,7 @@
       "source_file": "frontend\\app\\join\\[code]\\enroll\\page.tsx",
       "source_location": "L82",
       "id": "page_retake",
-      "community": 51,
+      "community": 50,
       "norm_label": "retake()"
     },
     {
@@ -1494,7 +1539,7 @@
       "source_file": "frontend\\app\\preview\\polaroid\\page.tsx",
       "source_location": "L1",
       "id": "frontend_app_preview_polaroid_page_tsx",
-      "community": 80,
+      "community": 79,
       "norm_label": "page.tsx"
     },
     {
@@ -1503,7 +1548,7 @@
       "source_file": "frontend\\app\\preview\\polaroid\\page.tsx",
       "source_location": "L18",
       "id": "page_polaroidpreviewpage",
-      "community": 80,
+      "community": 79,
       "norm_label": "polaroidpreviewpage()"
     },
     {
@@ -1530,7 +1575,7 @@
       "source_file": "frontend\\app\\preview\\template\\[albumId]\\preview-client.tsx",
       "source_location": "L1",
       "id": "frontend_app_preview_template_albumid_preview_client_tsx",
-      "community": 81,
+      "community": 80,
       "norm_label": "preview-client.tsx"
     },
     {
@@ -1539,7 +1584,7 @@
       "source_file": "frontend\\app\\preview\\template\\[albumId]\\preview-client.tsx",
       "source_location": "L15",
       "id": "preview_client_magazinepreviewclient",
-      "community": 81,
+      "community": 80,
       "norm_label": "magazinepreviewclient()"
     },
     {
@@ -1566,7 +1611,7 @@
       "source_file": "frontend\\app\\preview\\[id]\\preview-client.tsx",
       "source_location": "L1",
       "id": "frontend_app_preview_id_preview_client_tsx",
-      "community": 82,
+      "community": 81,
       "norm_label": "preview-client.tsx"
     },
     {
@@ -1575,7 +1620,7 @@
       "source_file": "frontend\\app\\preview\\[id]\\preview-client.tsx",
       "source_location": "L12",
       "id": "preview_client_previewclient",
-      "community": 82,
+      "community": 81,
       "norm_label": "previewclient()"
     },
     {
@@ -1584,7 +1629,7 @@
       "source_file": "frontend\\components\\theme-provider.tsx",
       "source_location": "L1",
       "id": "frontend_components_theme_provider_tsx",
-      "community": 83,
+      "community": 82,
       "norm_label": "theme-provider.tsx"
     },
     {
@@ -1593,7 +1638,7 @@
       "source_file": "frontend\\components\\theme-provider.tsx",
       "source_location": "L21",
       "id": "theme_provider_themeprovider",
-      "community": 83,
+      "community": 82,
       "norm_label": "themeprovider()"
     },
     {
@@ -1602,7 +1647,7 @@
       "source_file": "frontend\\components\\theme-toggle.tsx",
       "source_location": "L1",
       "id": "frontend_components_theme_toggle_tsx",
-      "community": 84,
+      "community": 83,
       "norm_label": "theme-toggle.tsx"
     },
     {
@@ -1611,7 +1656,7 @@
       "source_file": "frontend\\components\\theme-toggle.tsx",
       "source_location": "L7",
       "id": "theme_toggle_themetoggle",
-      "community": 84,
+      "community": 83,
       "norm_label": "themetoggle()"
     },
     {
@@ -1620,7 +1665,7 @@
       "source_file": "frontend\\components\\admin\\admin-dashboard-client.tsx",
       "source_location": "L1",
       "id": "frontend_components_admin_admin_dashboard_client_tsx",
-      "community": 38,
+      "community": 37,
       "norm_label": "admin-dashboard-client.tsx"
     },
     {
@@ -1629,7 +1674,7 @@
       "source_file": "frontend\\components\\admin\\admin-dashboard-client.tsx",
       "source_location": "L90",
       "id": "admin_dashboard_client_admindashboardclient",
-      "community": 38,
+      "community": 37,
       "norm_label": "admindashboardclient()"
     },
     {
@@ -1638,7 +1683,7 @@
       "source_file": "frontend\\components\\admin\\admin-dashboard-client.tsx",
       "source_location": "L518",
       "id": "admin_dashboard_client_getavatarbg",
-      "community": 38,
+      "community": 37,
       "norm_label": "getavatarbg()"
     },
     {
@@ -1647,7 +1692,7 @@
       "source_file": "frontend\\components\\admin\\admin-dashboard-client.tsx",
       "source_location": "L1364",
       "id": "admin_dashboard_client_formatprice",
-      "community": 38,
+      "community": 37,
       "norm_label": "formatprice()"
     },
     {
@@ -1872,7 +1917,7 @@
       "source_file": "frontend\\components\\album-editor\\layers-panel.tsx",
       "source_location": "L1",
       "id": "frontend_components_album_editor_layers_panel_tsx",
-      "community": 52,
+      "community": 51,
       "norm_label": "layers-panel.tsx"
     },
     {
@@ -1881,7 +1926,7 @@
       "source_file": "frontend\\components\\album-editor\\layers-panel.tsx",
       "source_location": "L22",
       "id": "layers_panel_inferimagelayername",
-      "community": 52,
+      "community": 51,
       "norm_label": "inferimagelayername()"
     },
     {
@@ -1890,7 +1935,7 @@
       "source_file": "frontend\\components\\album-editor\\layers-panel.tsx",
       "source_location": "L45",
       "id": "layers_panel_getdefaultname",
-      "community": 52,
+      "community": 51,
       "norm_label": "getdefaultname()"
     },
     {
@@ -1899,7 +1944,7 @@
       "source_file": "frontend\\components\\album-editor\\reframe-modal.tsx",
       "source_location": "L1",
       "id": "frontend_components_album_editor_reframe_modal_tsx",
-      "community": 53,
+      "community": 52,
       "norm_label": "reframe-modal.tsx"
     },
     {
@@ -1908,7 +1953,7 @@
       "source_file": "frontend\\components\\album-editor\\reframe-modal.tsx",
       "source_location": "L28",
       "id": "reframe_modal_handlecropcomplete",
-      "community": 53,
+      "community": 52,
       "norm_label": "handlecropcomplete()"
     },
     {
@@ -1917,7 +1962,7 @@
       "source_file": "frontend\\components\\album-editor\\reframe-modal.tsx",
       "source_location": "L33",
       "id": "reframe_modal_handledone",
-      "community": 53,
+      "community": 52,
       "norm_label": "handledone()"
     },
     {
@@ -1989,7 +2034,7 @@
       "source_file": "frontend\\components\\album-editor\\timeline.tsx",
       "source_location": "L1",
       "id": "frontend_components_album_editor_timeline_tsx",
-      "community": 85,
+      "community": 84,
       "norm_label": "timeline.tsx"
     },
     {
@@ -1998,7 +2043,7 @@
       "source_file": "frontend\\components\\album-editor\\timeline.tsx",
       "source_location": "L68",
       "id": "timeline_setdroptargetspreadid",
-      "community": 85,
+      "community": 84,
       "norm_label": "setdroptargetspreadid()"
     },
     {
@@ -2007,7 +2052,7 @@
       "source_file": "frontend\\components\\album-editor\\topbar.tsx",
       "source_location": "L1",
       "id": "frontend_components_album_editor_topbar_tsx",
-      "community": 27,
+      "community": 26,
       "norm_label": "topbar.tsx"
     },
     {
@@ -2016,7 +2061,7 @@
       "source_file": "frontend\\components\\album-editor\\topbar.tsx",
       "source_location": "L106",
       "id": "topbar_handlezoomout",
-      "community": 27,
+      "community": 26,
       "norm_label": "handlezoomout()"
     },
     {
@@ -2025,7 +2070,7 @@
       "source_file": "frontend\\components\\album-editor\\topbar.tsx",
       "source_location": "L107",
       "id": "topbar_handlezoomin",
-      "community": 27,
+      "community": 26,
       "norm_label": "handlezoomin()"
     },
     {
@@ -2034,7 +2079,7 @@
       "source_file": "frontend\\components\\album-editor\\topbar.tsx",
       "source_location": "L147",
       "id": "topbar_handlereplacephoto",
-      "community": 27,
+      "community": 26,
       "norm_label": "handlereplacephoto()"
     },
     {
@@ -2043,7 +2088,7 @@
       "source_file": "frontend\\components\\album-editor\\topbar.tsx",
       "source_location": "L154",
       "id": "topbar_replacewithphoto",
-      "community": 27,
+      "community": 26,
       "norm_label": "replacewithphoto()"
     },
     {
@@ -2223,7 +2268,7 @@
       "source_file": "frontend\\components\\album-order\\flipbook-preview.tsx",
       "source_location": "L1",
       "id": "frontend_components_album_order_flipbook_preview_tsx",
-      "community": 86,
+      "community": 85,
       "norm_label": "flipbook-preview.tsx"
     },
     {
@@ -2232,7 +2277,7 @@
       "source_file": "frontend\\components\\album-order\\flipbook-preview.tsx",
       "source_location": "L14",
       "id": "flipbook_preview_flipbookpreview",
-      "community": 86,
+      "community": 85,
       "norm_label": "flipbookpreview()"
     },
     {
@@ -2250,7 +2295,7 @@
       "source_file": "frontend\\components\\album-order\\order-history.tsx",
       "source_location": "L1",
       "id": "frontend_components_album_order_order_history_tsx",
-      "community": 54,
+      "community": 53,
       "norm_label": "order-history.tsx"
     },
     {
@@ -2259,7 +2304,7 @@
       "source_file": "frontend\\components\\album-order\\order-history.tsx",
       "source_location": "L13",
       "id": "order_history_statusicon",
-      "community": 54,
+      "community": 53,
       "norm_label": "statusicon()"
     },
     {
@@ -2268,7 +2313,7 @@
       "source_file": "frontend\\components\\album-order\\order-history.tsx",
       "source_location": "L26",
       "id": "order_history_statusbadge",
-      "community": 54,
+      "community": 53,
       "norm_label": "statusbadge()"
     },
     {
@@ -2295,7 +2340,7 @@
       "source_file": "frontend\\components\\album-order\\order-page-client.tsx",
       "source_location": "L173",
       "id": "order_page_client_handleapplypromo",
-      "community": 10,
+      "community": 9,
       "norm_label": "handleapplypromo()"
     },
     {
@@ -2349,7 +2394,7 @@
       "source_file": "frontend\\components\\album-order\\quantity-input.tsx",
       "source_location": "L1",
       "id": "frontend_components_album_order_quantity_input_tsx",
-      "community": 87,
+      "community": 86,
       "norm_label": "quantity-input.tsx"
     },
     {
@@ -2358,7 +2403,7 @@
       "source_file": "frontend\\components\\album-order\\quantity-input.tsx",
       "source_location": "L14",
       "id": "quantity_input_quantityinput",
-      "community": 87,
+      "community": 86,
       "norm_label": "quantityinput()"
     },
     {
@@ -2367,7 +2412,7 @@
       "source_file": "frontend\\components\\album-order\\shipping-form.tsx",
       "source_location": "L1",
       "id": "frontend_components_album_order_shipping_form_tsx",
-      "community": 88,
+      "community": 87,
       "norm_label": "shipping-form.tsx"
     },
     {
@@ -2376,7 +2421,7 @@
       "source_file": "frontend\\components\\album-order\\shipping-form.tsx",
       "source_location": "L16",
       "id": "shipping_form_handlefieldchange",
-      "community": 88,
+      "community": 87,
       "norm_label": "handlefieldchange()"
     },
     {
@@ -2610,7 +2655,7 @@
       "source_file": "frontend\\components\\artist\\slot-drawing-canvas.tsx",
       "source_location": "L1",
       "id": "frontend_components_artist_slot_drawing_canvas_tsx",
-      "community": 9,
+      "community": 8,
       "norm_label": "slot-drawing-canvas.tsx"
     },
     {
@@ -2619,7 +2664,7 @@
       "source_file": "frontend\\components\\artist\\slot-drawing-canvas.tsx",
       "source_location": "L90",
       "id": "slot_drawing_canvas_setslots",
-      "community": 9,
+      "community": 8,
       "norm_label": "setslots()"
     },
     {
@@ -2628,7 +2673,7 @@
       "source_file": "frontend\\components\\artist\\slot-drawing-canvas.tsx",
       "source_location": "L123",
       "id": "slot_drawing_canvas_mmtopx",
-      "community": 9,
+      "community": 8,
       "norm_label": "mmtopx()"
     },
     {
@@ -2637,7 +2682,7 @@
       "source_file": "frontend\\components\\artist\\slot-drawing-canvas.tsx",
       "source_location": "L129",
       "id": "slot_drawing_canvas_pxtomm",
-      "community": 9,
+      "community": 8,
       "norm_label": "pxtomm()"
     },
     {
@@ -2646,7 +2691,7 @@
       "source_file": "frontend\\components\\artist\\slot-drawing-canvas.tsx",
       "source_location": "L135",
       "id": "slot_drawing_canvas_handlemousedown",
-      "community": 9,
+      "community": 8,
       "norm_label": "handlemousedown()"
     },
     {
@@ -2655,7 +2700,7 @@
       "source_file": "frontend\\components\\artist\\slot-drawing-canvas.tsx",
       "source_location": "L155",
       "id": "slot_drawing_canvas_handlemousemove",
-      "community": 9,
+      "community": 8,
       "norm_label": "handlemousemove()"
     },
     {
@@ -2664,7 +2709,7 @@
       "source_file": "frontend\\components\\artist\\slot-drawing-canvas.tsx",
       "source_location": "L170",
       "id": "slot_drawing_canvas_handlemouseup",
-      "community": 9,
+      "community": 8,
       "norm_label": "handlemouseup()"
     },
     {
@@ -2673,7 +2718,7 @@
       "source_file": "frontend\\components\\artist\\slot-drawing-canvas.tsx",
       "source_location": "L206",
       "id": "slot_drawing_canvas_handleslotclick",
-      "community": 9,
+      "community": 8,
       "norm_label": "handleslotclick()"
     },
     {
@@ -2682,7 +2727,7 @@
       "source_file": "frontend\\components\\artist\\slot-drawing-canvas.tsx",
       "source_location": "L211",
       "id": "slot_drawing_canvas_handletransformend",
-      "community": 9,
+      "community": 8,
       "norm_label": "handletransformend()"
     },
     {
@@ -2691,7 +2736,7 @@
       "source_file": "frontend\\components\\artist\\slot-drawing-canvas.tsx",
       "source_location": "L242",
       "id": "slot_drawing_canvas_handledragend",
-      "community": 9,
+      "community": 8,
       "norm_label": "handledragend()"
     },
     {
@@ -2700,7 +2745,7 @@
       "source_file": "frontend\\components\\artist\\slot-drawing-canvas.tsx",
       "source_location": "L257",
       "id": "slot_drawing_canvas_handleupdateslotfield",
-      "community": 9,
+      "community": 8,
       "norm_label": "handleupdateslotfield()"
     },
     {
@@ -2709,7 +2754,7 @@
       "source_file": "frontend\\components\\artist\\slot-drawing-canvas.tsx",
       "source_location": "L280",
       "id": "slot_drawing_canvas_handledeleteslot",
-      "community": 9,
+      "community": 8,
       "norm_label": "handledeleteslot()"
     },
     {
@@ -2718,7 +2763,7 @@
       "source_file": "frontend\\components\\artist\\slot-drawing-canvas.tsx",
       "source_location": "L285",
       "id": "slot_drawing_canvas_handlesave",
-      "community": 9,
+      "community": 8,
       "norm_label": "handlesave()"
     },
     {
@@ -2745,7 +2790,7 @@
       "source_file": "frontend\\components\\dashboard\\shell.tsx",
       "source_location": "L1",
       "id": "frontend_components_dashboard_shell_tsx",
-      "community": 89,
+      "community": 88,
       "norm_label": "shell.tsx"
     },
     {
@@ -2754,7 +2799,7 @@
       "source_file": "frontend\\components\\dashboard\\shell.tsx",
       "source_location": "L15",
       "id": "shell_dashboardshell",
-      "community": 89,
+      "community": 88,
       "norm_label": "dashboardshell()"
     },
     {
@@ -2763,7 +2808,7 @@
       "source_file": "frontend\\components\\events\\albums-grid.tsx",
       "source_location": "L1",
       "id": "frontend_components_events_albums_grid_tsx",
-      "community": 12,
+      "community": 11,
       "norm_label": "albums-grid.tsx"
     },
     {
@@ -2772,7 +2817,7 @@
       "source_file": "frontend\\components\\events\\albums-grid.tsx",
       "source_location": "L51",
       "id": "albums_grid_formatlastmodified",
-      "community": 12,
+      "community": 11,
       "norm_label": "formatlastmodified()"
     },
     {
@@ -2781,7 +2826,7 @@
       "source_file": "frontend\\components\\events\\albums-grid.tsx",
       "source_location": "L61",
       "id": "albums_grid_getalbumstatus",
-      "community": 12,
+      "community": 11,
       "norm_label": "getalbumstatus()"
     },
     {
@@ -2790,7 +2835,7 @@
       "source_file": "frontend\\components\\events\\albums-grid.tsx",
       "source_location": "L95",
       "id": "albums_grid_setalbumpatch",
-      "community": 12,
+      "community": 11,
       "norm_label": "setalbumpatch()"
     },
     {
@@ -2799,7 +2844,7 @@
       "source_file": "frontend\\components\\events\\albums-grid.tsx",
       "source_location": "L99",
       "id": "albums_grid_openrenamedialog",
-      "community": 12,
+      "community": 11,
       "norm_label": "openrenamedialog()"
     },
     {
@@ -2808,7 +2853,7 @@
       "source_file": "frontend\\components\\events\\albums-grid.tsx",
       "source_location": "L106",
       "id": "albums_grid_handlerenamesubmit",
-      "community": 12,
+      "community": 11,
       "norm_label": "handlerenamesubmit()"
     },
     {
@@ -2817,7 +2862,7 @@
       "source_file": "frontend\\components\\events\\albums-grid.tsx",
       "source_location": "L140",
       "id": "albums_grid_handlesetalbumart",
-      "community": 12,
+      "community": 11,
       "norm_label": "handlesetalbumart()"
     },
     {
@@ -2826,7 +2871,7 @@
       "source_file": "frontend\\components\\events\\albums-grid.tsx",
       "source_location": "L157",
       "id": "albums_grid_openalbumartdialog",
-      "community": 12,
+      "community": 11,
       "norm_label": "openalbumartdialog()"
     },
     {
@@ -2835,7 +2880,7 @@
       "source_file": "frontend\\components\\events\\albums-grid.tsx",
       "source_location": "L164",
       "id": "albums_grid_handlealbumartsave",
-      "community": 12,
+      "community": 11,
       "norm_label": "handlealbumartsave()"
     },
     {
@@ -2844,7 +2889,7 @@
       "source_file": "frontend\\components\\events\\albums-grid.tsx",
       "source_location": "L188",
       "id": "albums_grid_handledelete",
-      "community": 12,
+      "community": 11,
       "norm_label": "handledelete()"
     },
     {
@@ -2853,7 +2898,7 @@
       "source_file": "frontend\\components\\events\\create-album-flow.tsx",
       "source_location": "L1",
       "id": "frontend_components_events_create_album_flow_tsx",
-      "community": 90,
+      "community": 89,
       "norm_label": "create-album-flow.tsx"
     },
     {
@@ -2862,7 +2907,7 @@
       "source_file": "frontend\\components\\events\\create-album-flow.tsx",
       "source_location": "L20",
       "id": "create_album_flow_createalbumflow",
-      "community": 90,
+      "community": 89,
       "norm_label": "createalbumflow()"
     },
     {
@@ -2880,7 +2925,7 @@
       "source_file": "frontend\\components\\events\\event-settings-panel.backup.tsx",
       "source_location": "L1",
       "id": "frontend_components_events_event_settings_panel_backup_tsx",
-      "community": 39,
+      "community": 38,
       "norm_label": "event-settings-panel.backup.tsx"
     },
     {
@@ -2889,7 +2934,7 @@
       "source_file": "frontend\\components\\events\\event-settings-panel.backup.tsx",
       "source_location": "L35",
       "id": "event_settings_panel_backup_coercesettings",
-      "community": 39,
+      "community": 38,
       "norm_label": "coercesettings()"
     },
     {
@@ -2898,7 +2943,7 @@
       "source_file": "frontend\\components\\events\\event-settings-panel.backup.tsx",
       "source_location": "L42",
       "id": "event_settings_panel_backup_getphotourl",
-      "community": 39,
+      "community": 38,
       "norm_label": "getphotourl()"
     },
     {
@@ -2907,7 +2952,7 @@
       "source_file": "frontend\\components\\events\\event-settings-panel.backup.tsx",
       "source_location": "L75",
       "id": "event_settings_panel_backup_savesettings",
-      "community": 39,
+      "community": 38,
       "norm_label": "savesettings()"
     },
     {
@@ -2916,7 +2961,7 @@
       "source_file": "frontend\\components\\events\\event-settings-panel.tsx",
       "source_location": "L1",
       "id": "frontend_components_events_event_settings_panel_tsx",
-      "community": 28,
+      "community": 27,
       "norm_label": "event-settings-panel.tsx"
     },
     {
@@ -2925,7 +2970,7 @@
       "source_file": "frontend\\components\\events\\event-settings-panel.tsx",
       "source_location": "L35",
       "id": "event_settings_panel_coercesettings",
-      "community": 28,
+      "community": 27,
       "norm_label": "coercesettings()"
     },
     {
@@ -2934,7 +2979,7 @@
       "source_file": "frontend\\components\\events\\event-settings-panel.tsx",
       "source_location": "L42",
       "id": "event_settings_panel_getphotourl",
-      "community": 28,
+      "community": 27,
       "norm_label": "getphotourl()"
     },
     {
@@ -2943,7 +2988,7 @@
       "source_file": "frontend\\components\\events\\event-settings-panel.tsx",
       "source_location": "L78",
       "id": "event_settings_panel_savesettings",
-      "community": 28,
+      "community": 27,
       "norm_label": "savesettings()"
     },
     {
@@ -2952,7 +2997,7 @@
       "source_file": "frontend\\components\\events\\event-settings-panel.tsx",
       "source_location": "L109",
       "id": "event_settings_panel_handledeleteevent",
-      "community": 28,
+      "community": 27,
       "norm_label": "handledeleteevent()"
     },
     {
@@ -2961,7 +3006,7 @@
       "source_file": "frontend\\components\\events\\event-tabs.tsx",
       "source_location": "L1",
       "id": "frontend_components_events_event_tabs_tsx",
-      "community": 91,
+      "community": 90,
       "norm_label": "event-tabs.tsx"
     },
     {
@@ -2970,7 +3015,7 @@
       "source_file": "frontend\\components\\events\\event-tabs.tsx",
       "source_location": "L12",
       "id": "event_tabs_eventtabs",
-      "community": 91,
+      "community": 90,
       "norm_label": "eventtabs()"
     },
     {
@@ -2979,7 +3024,7 @@
       "source_file": "frontend\\components\\events\\google-drive-picker.tsx",
       "source_location": "L1",
       "id": "frontend_components_events_google_drive_picker_tsx",
-      "community": 17,
+      "community": 16,
       "norm_label": "google-drive-picker.tsx"
     },
     {
@@ -2988,7 +3033,7 @@
       "source_file": "frontend\\components\\events\\google-drive-picker.tsx",
       "source_location": "L108",
       "id": "google_drive_picker_navigatetofolder",
-      "community": 17,
+      "community": 16,
       "norm_label": "navigatetofolder()"
     },
     {
@@ -2997,7 +3042,7 @@
       "source_file": "frontend\\components\\events\\google-drive-picker.tsx",
       "source_location": "L115",
       "id": "google_drive_picker_handlebreadcrumbclick",
-      "community": 17,
+      "community": 16,
       "norm_label": "handlebreadcrumbclick()"
     },
     {
@@ -3006,7 +3051,7 @@
       "source_file": "frontend\\components\\events\\google-drive-picker.tsx",
       "source_location": "L122",
       "id": "google_drive_picker_handletoggleselect",
-      "community": 17,
+      "community": 16,
       "norm_label": "handletoggleselect()"
     },
     {
@@ -3015,7 +3060,7 @@
       "source_file": "frontend\\components\\events\\google-drive-picker.tsx",
       "source_location": "L133",
       "id": "google_drive_picker_handledoubleclickfile",
-      "community": 17,
+      "community": 16,
       "norm_label": "handledoubleclickfile()"
     },
     {
@@ -3024,7 +3069,7 @@
       "source_file": "frontend\\components\\events\\google-drive-picker.tsx",
       "source_location": "L147",
       "id": "google_drive_picker_handleimport",
-      "community": 17,
+      "community": 16,
       "norm_label": "handleimport()"
     },
     {
@@ -3033,7 +3078,7 @@
       "source_file": "frontend\\components\\events\\google-drive-picker.tsx",
       "source_location": "L165",
       "id": "google_drive_picker_handleclose",
-      "community": 17,
+      "community": 16,
       "norm_label": "handleclose()"
     },
     {
@@ -3042,7 +3087,7 @@
       "source_file": "frontend\\components\\events\\google-drive-picker.tsx",
       "source_location": "L177",
       "id": "google_drive_picker_formatbytes",
-      "community": 17,
+      "community": 16,
       "norm_label": "formatbytes()"
     },
     {
@@ -3058,7 +3103,7 @@
       "label": "copyCode()",
       "file_type": "code",
       "source_file": "frontend\\components\\events\\guest-list.tsx",
-      "source_location": "L65",
+      "source_location": "L63",
       "id": "guest_list_copycode",
       "community": 20,
       "norm_label": "copycode()"
@@ -3067,7 +3112,7 @@
       "label": "copyLink()",
       "file_type": "code",
       "source_file": "frontend\\components\\events\\guest-list.tsx",
-      "source_location": "L72",
+      "source_location": "L70",
       "id": "guest_list_copylink",
       "community": 20,
       "norm_label": "copylink()"
@@ -3076,7 +3121,7 @@
       "label": "copyColCode()",
       "file_type": "code",
       "source_file": "frontend\\components\\events\\guest-list.tsx",
-      "source_location": "L79",
+      "source_location": "L77",
       "id": "guest_list_copycolcode",
       "community": 20,
       "norm_label": "copycolcode()"
@@ -3085,7 +3130,7 @@
       "label": "copyColLink()",
       "file_type": "code",
       "source_file": "frontend\\components\\events\\guest-list.tsx",
-      "source_location": "L86",
+      "source_location": "L84",
       "id": "guest_list_copycollink",
       "community": 20,
       "norm_label": "copycollink()"
@@ -3094,7 +3139,7 @@
       "label": "handleGenerateColCode()",
       "file_type": "code",
       "source_file": "frontend\\components\\events\\guest-list.tsx",
-      "source_location": "L93",
+      "source_location": "L91",
       "id": "guest_list_handlegeneratecolcode",
       "community": 20,
       "norm_label": "handlegeneratecolcode()"
@@ -3103,7 +3148,7 @@
       "label": "handleRemove()",
       "file_type": "code",
       "source_file": "frontend\\components\\events\\guest-list.tsx",
-      "source_location": "L99",
+      "source_location": "L97",
       "id": "guest_list_handleremove",
       "community": 20,
       "norm_label": "handleremove()"
@@ -3123,7 +3168,7 @@
       "source_file": "frontend\\components\\events\\photo-editor.tsx",
       "source_location": "L1",
       "id": "frontend_components_events_photo_editor_tsx",
-      "community": 11,
+      "community": 10,
       "norm_label": "photo-editor.tsx"
     },
     {
@@ -3132,7 +3177,7 @@
       "source_file": "frontend\\components\\events\\photo-editor.tsx",
       "source_location": "L121",
       "id": "photo_editor_buildcssfilter",
-      "community": 11,
+      "community": 10,
       "norm_label": "buildcssfilter()"
     },
     {
@@ -3141,7 +3186,7 @@
       "source_file": "frontend\\components\\events\\photo-editor.tsx",
       "source_location": "L288",
       "id": "photo_editor_snaprotate",
-      "community": 11,
+      "community": 10,
       "norm_label": "snaprotate()"
     },
     {
@@ -3150,7 +3195,7 @@
       "source_file": "frontend\\components\\events\\photo-editor.tsx",
       "source_location": "L321",
       "id": "photo_editor_updatesize",
-      "community": 11,
+      "community": 10,
       "norm_label": "updatesize()"
     },
     {
@@ -3159,7 +3204,7 @@
       "source_file": "frontend\\components\\events\\photo-editor.tsx",
       "source_location": "L342",
       "id": "photo_editor_clamp",
-      "community": 11,
+      "community": 10,
       "norm_label": "clamp()"
     },
     {
@@ -3168,7 +3213,7 @@
       "source_file": "frontend\\components\\events\\photo-editor.tsx",
       "source_location": "L375",
       "id": "photo_editor_stopresize",
-      "community": 11,
+      "community": 10,
       "norm_label": "stopresize()"
     },
     {
@@ -3177,7 +3222,7 @@
       "source_file": "frontend\\components\\events\\photo-editor.tsx",
       "source_location": "L381",
       "id": "photo_editor_startresize",
-      "community": 11,
+      "community": 10,
       "norm_label": "startresize()"
     },
     {
@@ -3186,7 +3231,7 @@
       "source_file": "frontend\\components\\events\\photo-editor.tsx",
       "source_location": "L399",
       "id": "photo_editor_resetcrop",
-      "community": 11,
+      "community": 10,
       "norm_label": "resetcrop()"
     },
     {
@@ -3195,7 +3240,7 @@
       "source_file": "frontend\\components\\events\\photo-editor.tsx",
       "source_location": "L408",
       "id": "photo_editor_applycropaspect",
-      "community": 11,
+      "community": 10,
       "norm_label": "applycropaspect()"
     },
     {
@@ -3204,7 +3249,7 @@
       "source_file": "frontend\\components\\events\\photo-editor.tsx",
       "source_location": "L416",
       "id": "photo_editor_handlesave",
-      "community": 11,
+      "community": 10,
       "norm_label": "handlesave()"
     },
     {
@@ -3213,7 +3258,7 @@
       "source_file": "frontend\\components\\events\\photo-editor.tsx",
       "source_location": "L494",
       "id": "photo_editor_handlereset",
-      "community": 11,
+      "community": 10,
       "norm_label": "handlereset()"
     },
     {
@@ -3375,7 +3420,7 @@
       "source_file": "frontend\\components\\events\\photo-lightbox.tsx",
       "source_location": "L1",
       "id": "frontend_components_events_photo_lightbox_tsx",
-      "community": 92,
+      "community": 91,
       "norm_label": "photo-lightbox.tsx"
     },
     {
@@ -3384,7 +3429,7 @@
       "source_file": "frontend\\components\\events\\photo-lightbox.tsx",
       "source_location": "L30",
       "id": "photo_lightbox_photolightbox",
-      "community": 92,
+      "community": 91,
       "norm_label": "photolightbox()"
     },
     {
@@ -3393,7 +3438,7 @@
       "source_file": "frontend\\components\\events\\photo-uploader.tsx",
       "source_location": "L1",
       "id": "frontend_components_events_photo_uploader_tsx",
-      "community": 8,
+      "community": 1,
       "norm_label": "photo-uploader.tsx"
     },
     {
@@ -3402,7 +3447,7 @@
       "source_file": "frontend\\components\\events\\photo-uploader.tsx",
       "source_location": "L32",
       "id": "photo_uploader_loadcdnscript",
-      "community": 8,
+      "community": 1,
       "norm_label": "loadcdnscript()"
     },
     {
@@ -3411,7 +3456,7 @@
       "source_file": "frontend\\components\\events\\photo-uploader.tsx",
       "source_location": "L67",
       "id": "photo_uploader_loadutifscript",
-      "community": 8,
+      "community": 1,
       "norm_label": "loadutifscript()"
     },
     {
@@ -3420,7 +3465,7 @@
       "source_file": "frontend\\components\\events\\photo-uploader.tsx",
       "source_location": "L72",
       "id": "photo_uploader_loadheictoscript",
-      "community": 8,
+      "community": 1,
       "norm_label": "loadheictoscript()"
     },
     {
@@ -3429,7 +3474,7 @@
       "source_file": "frontend\\components\\events\\photo-uploader.tsx",
       "source_location": "L77",
       "id": "photo_uploader_converttifftojpeg",
-      "community": 8,
+      "community": 1,
       "norm_label": "converttifftojpeg()"
     },
     {
@@ -3438,7 +3483,7 @@
       "source_file": "frontend\\components\\events\\photo-uploader.tsx",
       "source_location": "L111",
       "id": "photo_uploader_convertheictojpeg",
-      "community": 8,
+      "community": 1,
       "norm_label": "convertheictojpeg()"
     },
     {
@@ -3447,7 +3492,7 @@
       "source_file": "frontend\\components\\events\\photo-uploader.tsx",
       "source_location": "L151",
       "id": "photo_uploader_runuploadbatch",
-      "community": 8,
+      "community": 1,
       "norm_label": "runuploadbatch()"
     },
     {
@@ -3456,7 +3501,7 @@
       "source_file": "frontend\\components\\events\\photo-uploader.tsx",
       "source_location": "L304",
       "id": "photo_uploader_handlefileupload",
-      "community": 8,
+      "community": 1,
       "norm_label": "handlefileupload()"
     },
     {
@@ -3465,7 +3510,7 @@
       "source_file": "frontend\\components\\events\\photo-uploader.tsx",
       "source_location": "L331",
       "id": "photo_uploader_handlegoogledriveimport",
-      "community": 8,
+      "community": 1,
       "norm_label": "handlegoogledriveimport()"
     },
     {
@@ -3474,7 +3519,7 @@
       "source_file": "frontend\\components\\events\\photo-uploader.tsx",
       "source_location": "L356",
       "id": "photo_uploader_triggergoogledrivepicker",
-      "community": 8,
+      "community": 1,
       "norm_label": "triggergoogledrivepicker()"
     },
     {
@@ -3483,7 +3528,7 @@
       "source_file": "frontend\\components\\events\\template-selector.tsx",
       "source_location": "L1",
       "id": "frontend_components_events_template_selector_tsx",
-      "community": 93,
+      "community": 92,
       "norm_label": "template-selector.tsx"
     },
     {
@@ -3492,7 +3537,7 @@
       "source_file": "frontend\\components\\events\\template-selector.tsx",
       "source_location": "L16",
       "id": "template_selector_handleusetemplate",
-      "community": 93,
+      "community": 92,
       "norm_label": "handleusetemplate()"
     },
     {
@@ -3501,7 +3546,7 @@
       "source_file": "frontend\\components\\flipbook\\FlipBook.tsx",
       "source_location": "L1",
       "id": "frontend_components_flipbook_flipbook_tsx",
-      "community": 29,
+      "community": 28,
       "norm_label": "flipbook.tsx"
     },
     {
@@ -3510,7 +3555,7 @@
       "source_file": "frontend\\components\\flipbook\\FlipBook.tsx",
       "source_location": "L17",
       "id": "flipbook_clamp",
-      "community": 29,
+      "community": 28,
       "norm_label": "clamp()"
     },
     {
@@ -3519,7 +3564,7 @@
       "source_file": "frontend\\components\\flipbook\\FlipBook.tsx",
       "source_location": "L21",
       "id": "flipbook_usepagescale",
-      "community": 29,
+      "community": 28,
       "norm_label": "usepagescale()"
     },
     {
@@ -3528,7 +3573,7 @@
       "source_file": "frontend\\components\\flipbook\\FlipBook.tsx",
       "source_location": "L245",
       "id": "flipbook_handlekeydown",
-      "community": 29,
+      "community": 28,
       "norm_label": "handlekeydown()"
     },
     {
@@ -3537,7 +3582,7 @@
       "source_file": "frontend\\components\\flipbook\\FlipBook.tsx",
       "source_location": "L260",
       "id": "flipbook_initialize",
-      "community": 29,
+      "community": 28,
       "norm_label": "initialize()"
     },
     {
@@ -3555,7 +3600,7 @@
       "source_file": "frontend\\components\\landing\\cta-section.tsx",
       "source_location": "L1",
       "id": "frontend_components_landing_cta_section_tsx",
-      "community": 94,
+      "community": 93,
       "norm_label": "cta-section.tsx"
     },
     {
@@ -3564,7 +3609,7 @@
       "source_file": "frontend\\components\\landing\\cta-section.tsx",
       "source_location": "L6",
       "id": "cta_section_ctasection",
-      "community": 94,
+      "community": 93,
       "norm_label": "ctasection()"
     },
     {
@@ -3573,7 +3618,7 @@
       "source_file": "frontend\\components\\landing\\event-hub.tsx",
       "source_location": "L1",
       "id": "frontend_components_landing_event_hub_tsx",
-      "community": 95,
+      "community": 94,
       "norm_label": "event-hub.tsx"
     },
     {
@@ -3582,7 +3627,7 @@
       "source_file": "frontend\\components\\landing\\event-hub.tsx",
       "source_location": "L67",
       "id": "event_hub_eventhub",
-      "community": 95,
+      "community": 94,
       "norm_label": "eventhub()"
     },
     {
@@ -3591,7 +3636,7 @@
       "source_file": "frontend\\components\\landing\\feature-strip.tsx",
       "source_location": "L1",
       "id": "frontend_components_landing_feature_strip_tsx",
-      "community": 96,
+      "community": 95,
       "norm_label": "feature-strip.tsx"
     },
     {
@@ -3600,7 +3645,7 @@
       "source_file": "frontend\\components\\landing\\feature-strip.tsx",
       "source_location": "L50",
       "id": "feature_strip_featurestrip",
-      "community": 96,
+      "community": 95,
       "norm_label": "featurestrip()"
     },
     {
@@ -3609,7 +3654,7 @@
       "source_file": "frontend\\components\\landing\\footer.tsx",
       "source_location": "L1",
       "id": "frontend_components_landing_footer_tsx",
-      "community": 97,
+      "community": 96,
       "norm_label": "footer.tsx"
     },
     {
@@ -3618,7 +3663,7 @@
       "source_file": "frontend\\components\\landing\\footer.tsx",
       "source_location": "L1",
       "id": "footer_footer",
-      "community": 97,
+      "community": 96,
       "norm_label": "footer()"
     },
     {
@@ -3627,7 +3672,7 @@
       "source_file": "frontend\\components\\landing\\hero.tsx",
       "source_location": "L1",
       "id": "frontend_components_landing_hero_tsx",
-      "community": 55,
+      "community": 54,
       "norm_label": "hero.tsx"
     },
     {
@@ -3636,7 +3681,7 @@
       "source_file": "frontend\\components\\landing\\hero.tsx",
       "source_location": "L17",
       "id": "hero_handlemousemove",
-      "community": 55,
+      "community": 54,
       "norm_label": "handlemousemove()"
     },
     {
@@ -3645,7 +3690,7 @@
       "source_file": "frontend\\components\\landing\\hero.tsx",
       "source_location": "L39",
       "id": "hero_calculateparallax",
-      "community": 55,
+      "community": 54,
       "norm_label": "calculateparallax()"
     },
     {
@@ -3654,7 +3699,7 @@
       "source_file": "frontend\\components\\landing\\navigation.tsx",
       "source_location": "L1",
       "id": "frontend_components_landing_navigation_tsx",
-      "community": 98,
+      "community": 97,
       "norm_label": "navigation.tsx"
     },
     {
@@ -3663,7 +3708,7 @@
       "source_file": "frontend\\components\\landing\\navigation.tsx",
       "source_location": "L7",
       "id": "navigation_navigation",
-      "community": 98,
+      "community": 97,
       "norm_label": "navigation()"
     },
     {
@@ -3699,7 +3744,7 @@
       "source_file": "frontend\\components\\landing\\template-preview.tsx",
       "source_location": "L1",
       "id": "frontend_components_landing_template_preview_tsx",
-      "community": 56,
+      "community": 55,
       "norm_label": "template-preview.tsx"
     },
     {
@@ -3708,7 +3753,7 @@
       "source_file": "frontend\\components\\landing\\template-preview.tsx",
       "source_location": "L61",
       "id": "template_preview_handlenext",
-      "community": 56,
+      "community": 55,
       "norm_label": "handlenext()"
     },
     {
@@ -3717,7 +3762,7 @@
       "source_file": "frontend\\components\\landing\\template-preview.tsx",
       "source_location": "L67",
       "id": "template_preview_handleprev",
-      "community": 56,
+      "community": 55,
       "norm_label": "handleprev()"
     },
     {
@@ -3735,7 +3780,7 @@
       "source_file": "frontend\\components\\polaroid\\polaroid-studio.tsx",
       "source_location": "L1",
       "id": "frontend_components_polaroid_polaroid_studio_tsx",
-      "community": 10,
+      "community": 9,
       "norm_label": "polaroid-studio.tsx"
     },
     {
@@ -3744,7 +3789,7 @@
       "source_file": "frontend\\components\\polaroid\\polaroid-studio.tsx",
       "source_location": "L73",
       "id": "polaroid_studio_loadsettings",
-      "community": 10,
+      "community": 9,
       "norm_label": "loadsettings()"
     },
     {
@@ -3753,7 +3798,7 @@
       "source_file": "frontend\\components\\polaroid\\polaroid-studio.tsx",
       "source_location": "L109",
       "id": "polaroid_studio_removeimage",
-      "community": 10,
+      "community": 9,
       "norm_label": "removeimage()"
     },
     {
@@ -3762,7 +3807,7 @@
       "source_file": "frontend\\components\\polaroid\\polaroid-studio.tsx",
       "source_location": "L116",
       "id": "polaroid_studio_changeqty",
-      "community": 10,
+      "community": 9,
       "norm_label": "changeqty()"
     },
     {
@@ -3771,7 +3816,7 @@
       "source_file": "frontend\\components\\polaroid\\polaroid-studio.tsx",
       "source_location": "L122",
       "id": "polaroid_studio_goto3dpreview",
-      "community": 10,
+      "community": 9,
       "norm_label": "goto3dpreview()"
     },
     {
@@ -3780,7 +3825,7 @@
       "source_file": "frontend\\components\\polaroid\\polaroid-studio.tsx",
       "source_location": "L131",
       "id": "polaroid_studio_reset",
-      "community": 10,
+      "community": 9,
       "norm_label": "reset()"
     },
     {
@@ -3789,7 +3834,7 @@
       "source_file": "frontend\\components\\polaroid\\polaroid-studio.tsx",
       "source_location": "L310",
       "id": "polaroid_studio_cn",
-      "community": 10,
+      "community": 9,
       "norm_label": "cn()"
     },
     {
@@ -3798,7 +3843,7 @@
       "source_file": "frontend\\components\\premium\\premium-dashboard-client.tsx",
       "source_location": "L1",
       "id": "frontend_components_premium_premium_dashboard_client_tsx",
-      "community": 99,
+      "community": 98,
       "norm_label": "premium-dashboard-client.tsx"
     },
     {
@@ -3807,7 +3852,7 @@
       "source_file": "frontend\\components\\premium\\premium-dashboard-client.tsx",
       "source_location": "L15",
       "id": "premium_dashboard_client_premiumdashboardclient",
-      "community": 99,
+      "community": 98,
       "norm_label": "premiumdashboardclient()"
     },
     {
@@ -3816,7 +3861,7 @@
       "source_file": "frontend\\components\\premium\\premium-intake.tsx",
       "source_location": "L1",
       "id": "frontend_components_premium_premium_intake_tsx",
-      "community": 30,
+      "community": 29,
       "norm_label": "premium-intake.tsx"
     },
     {
@@ -3825,7 +3870,7 @@
       "source_file": "frontend\\components\\premium\\premium-intake.tsx",
       "source_location": "L34",
       "id": "premium_intake_handlenext",
-      "community": 30,
+      "community": 29,
       "norm_label": "handlenext()"
     },
     {
@@ -3834,7 +3879,7 @@
       "source_file": "frontend\\components\\premium\\premium-intake.tsx",
       "source_location": "L44",
       "id": "premium_intake_handleback",
-      "community": 30,
+      "community": 29,
       "norm_label": "handleback()"
     },
     {
@@ -3843,7 +3888,7 @@
       "source_file": "frontend\\components\\premium\\premium-intake.tsx",
       "source_location": "L49",
       "id": "premium_intake_handlefileupload",
-      "community": 30,
+      "community": 29,
       "norm_label": "handlefileupload()"
     },
     {
@@ -3852,7 +3897,7 @@
       "source_file": "frontend\\components\\premium\\premium-intake.tsx",
       "source_location": "L73",
       "id": "premium_intake_handlesubmit",
-      "community": 30,
+      "community": 29,
       "norm_label": "handlesubmit()"
     },
     {
@@ -3861,7 +3906,7 @@
       "source_file": "frontend\\components\\premium\\premium-workspace.tsx",
       "source_location": "L1",
       "id": "frontend_components_premium_premium_workspace_tsx",
-      "community": 31,
+      "community": 30,
       "norm_label": "premium-workspace.tsx"
     },
     {
@@ -3870,7 +3915,7 @@
       "source_file": "frontend\\components\\premium\\premium-workspace.tsx",
       "source_location": "L77",
       "id": "premium_workspace_handlesendmessage",
-      "community": 31,
+      "community": 30,
       "norm_label": "handlesendmessage()"
     },
     {
@@ -3879,7 +3924,7 @@
       "source_file": "frontend\\components\\premium\\premium-workspace.tsx",
       "source_location": "L96",
       "id": "premium_workspace_handleuploadproof",
-      "community": 31,
+      "community": 30,
       "norm_label": "handleuploadproof()"
     },
     {
@@ -3888,7 +3933,7 @@
       "source_file": "frontend\\components\\premium\\premium-workspace.tsx",
       "source_location": "L117",
       "id": "premium_workspace_handleapproveproject",
-      "community": 31,
+      "community": 30,
       "norm_label": "handleapproveproject()"
     },
     {
@@ -3897,7 +3942,7 @@
       "source_file": "frontend\\components\\premium\\premium-workspace.tsx",
       "source_location": "L130",
       "id": "premium_workspace_handlepaybalance",
-      "community": 31,
+      "community": 30,
       "norm_label": "handlepaybalance()"
     },
     {
@@ -3906,7 +3951,7 @@
       "source_file": "frontend\\components\\preview\\album-preview-3d.tsx",
       "source_location": "L1",
       "id": "frontend_components_preview_album_preview_3d_tsx",
-      "community": 100,
+      "community": 99,
       "norm_label": "album-preview-3d.tsx"
     },
     {
@@ -3915,7 +3960,7 @@
       "source_file": "frontend\\components\\preview\\album-preview-3d.tsx",
       "source_location": "L19",
       "id": "album_preview_3d_albumpreview3d",
-      "community": 100,
+      "community": 99,
       "norm_label": "albumpreview3d()"
     },
     {
@@ -3924,7 +3969,7 @@
       "source_file": "frontend\\components\\preview\\Book3D.tsx",
       "source_location": "L1",
       "id": "frontend_components_preview_book3d_tsx",
-      "community": 18,
+      "community": 17,
       "norm_label": "book3d.tsx"
     },
     {
@@ -3933,7 +3978,7 @@
       "source_file": "frontend\\components\\preview\\Book3D.tsx",
       "source_location": "L191",
       "id": "book3d_generatetextures",
-      "community": 18,
+      "community": 17,
       "norm_label": "generatetextures()"
     },
     {
@@ -3942,7 +3987,7 @@
       "source_file": "frontend\\components\\preview\\Book3D.tsx",
       "source_location": "L215",
       "id": "book3d_rendertocanvas",
-      "community": 18,
+      "community": 17,
       "norm_label": "rendertocanvas()"
     },
     {
@@ -3951,7 +3996,7 @@
       "source_file": "frontend\\components\\preview\\Book3D.tsx",
       "source_location": "L355",
       "id": "book3d_gotopage",
-      "community": 18,
+      "community": 17,
       "norm_label": "gotopage()"
     },
     {
@@ -3969,7 +4014,7 @@
       "source_file": "frontend\\components\\preview\\Magazine3D.tsx",
       "source_location": "L1",
       "id": "frontend_components_preview_magazine3d_tsx",
-      "community": 18,
+      "community": 17,
       "norm_label": "magazine3d.tsx"
     },
     {
@@ -3978,7 +4023,7 @@
       "source_file": "frontend\\components\\preview\\Magazine3D.tsx",
       "source_location": "L181",
       "id": "magazine3d_gen",
-      "community": 18,
+      "community": 17,
       "norm_label": "gen()"
     },
     {
@@ -3987,7 +4032,7 @@
       "source_file": "frontend\\components\\preview\\Magazine3D.tsx",
       "source_location": "L203",
       "id": "magazine3d_rendertocanvas",
-      "community": 18,
+      "community": 17,
       "norm_label": "rendertocanvas()"
     },
     {
@@ -3996,7 +4041,7 @@
       "source_file": "frontend\\components\\preview\\Magazine3D.tsx",
       "source_location": "L316",
       "id": "magazine3d_go",
-      "community": 18,
+      "community": 17,
       "norm_label": "go()"
     },
     {
@@ -4023,7 +4068,7 @@
       "source_file": "frontend\\components\\preview\\PageCanvasRenderer.tsx",
       "source_location": "L1",
       "id": "frontend_components_preview_pagecanvasrenderer_tsx",
-      "community": 101,
+      "community": 100,
       "norm_label": "pagecanvasrenderer.tsx"
     },
     {
@@ -4032,7 +4077,7 @@
       "source_file": "frontend\\components\\preview\\PageCanvasRenderer.tsx",
       "source_location": "L14",
       "id": "pagecanvasrenderer_pagecanvasrenderer",
-      "community": 101,
+      "community": 100,
       "norm_label": "pagecanvasrenderer()"
     },
     {
@@ -4041,7 +4086,7 @@
       "source_file": "frontend\\components\\preview\\Polaroid3D.tsx",
       "source_location": "L1",
       "id": "frontend_components_preview_polaroid3d_tsx",
-      "community": 40,
+      "community": 39,
       "norm_label": "polaroid3d.tsx"
     },
     {
@@ -4050,7 +4095,7 @@
       "source_file": "frontend\\components\\preview\\Polaroid3D.tsx",
       "source_location": "L22",
       "id": "polaroid3d_buildpolaroidcanvas",
-      "community": 40,
+      "community": 39,
       "norm_label": "buildpolaroidcanvas()"
     },
     {
@@ -4059,7 +4104,7 @@
       "source_file": "frontend\\components\\preview\\Polaroid3D.tsx",
       "source_location": "L81",
       "id": "polaroid3d_polaroidcard",
-      "community": 40,
+      "community": 39,
       "norm_label": "polaroidcard()"
     },
     {
@@ -4068,7 +4113,7 @@
       "source_file": "frontend\\components\\preview\\Polaroid3D.tsx",
       "source_location": "L143",
       "id": "polaroid3d_polaroid3d",
-      "community": 40,
+      "community": 39,
       "norm_label": "polaroid3d()"
     },
     {
@@ -4086,7 +4131,7 @@
       "source_file": "frontend\\components\\preview\\PolaroidPreviewUI.tsx",
       "source_location": "L1",
       "id": "frontend_components_preview_polaroidpreviewui_tsx",
-      "community": 10,
+      "community": 9,
       "norm_label": "polaroidpreviewui.tsx"
     },
     {
@@ -4095,7 +4140,7 @@
       "source_file": "frontend\\components\\preview\\PolaroidPreviewUI.tsx",
       "source_location": "L21",
       "id": "polaroidpreviewui_loadsettings",
-      "community": 10,
+      "community": 9,
       "norm_label": "loadsettings()"
     },
     {
@@ -4113,7 +4158,7 @@
       "source_file": "frontend\\components\\templates\\adventure-flow.tsx",
       "source_location": "L1",
       "id": "frontend_components_templates_adventure_flow_tsx",
-      "community": 32,
+      "community": 31,
       "norm_label": "adventure-flow.tsx"
     },
     {
@@ -4122,7 +4167,7 @@
       "source_file": "frontend\\components\\templates\\adventure-flow.tsx",
       "source_location": "L45",
       "id": "adventure_flow_fs",
-      "community": 32,
+      "community": 31,
       "norm_label": "fs()"
     },
     {
@@ -4131,7 +4176,7 @@
       "source_file": "frontend\\components\\templates\\adventure-flow.tsx",
       "source_location": "L291",
       "id": "adventure_flow_fn",
-      "community": 32,
+      "community": 31,
       "norm_label": "fn()"
     },
     {
@@ -4149,7 +4194,7 @@
       "source_file": "frontend\\components\\templates\\adventure-flow.tsx",
       "source_location": "L468",
       "id": "adventure_flow_handleimageupload",
-      "community": 32,
+      "community": 31,
       "norm_label": "handleimageupload()"
     },
     {
@@ -4158,7 +4203,7 @@
       "source_file": "frontend\\components\\templates\\adventure-flow.tsx",
       "source_location": "L648",
       "id": "adventure_flow_go",
-      "community": 32,
+      "community": 31,
       "norm_label": "go()"
     },
     {
@@ -4167,7 +4212,7 @@
       "source_file": "frontend\\components\\templates\\quick-builder.tsx",
       "source_location": "L1",
       "id": "frontend_components_templates_quick_builder_tsx",
-      "community": 57,
+      "community": 56,
       "norm_label": "quick-builder.tsx"
     },
     {
@@ -4185,7 +4230,7 @@
       "source_file": "frontend\\components\\templates\\quick-builder.tsx",
       "source_location": "L43",
       "id": "quick_builder_handlephotoswap",
-      "community": 57,
+      "community": 56,
       "norm_label": "handlephotoswap()"
     },
     {
@@ -4194,7 +4239,7 @@
       "source_file": "frontend\\components\\templates\\quick-builder.tsx",
       "source_location": "L60",
       "id": "quick_builder_handletextchange",
-      "community": 57,
+      "community": 56,
       "norm_label": "handletextchange()"
     },
     {
@@ -4203,7 +4248,7 @@
       "source_file": "frontend\\components\\templates\\templates-showcase.tsx",
       "source_location": "L1",
       "id": "frontend_components_templates_templates_showcase_tsx",
-      "community": 41,
+      "community": 40,
       "norm_label": "templates-showcase.tsx"
     },
     {
@@ -4212,7 +4257,7 @@
       "source_file": "frontend\\components\\templates\\templates-showcase.tsx",
       "source_location": "L115",
       "id": "templates_showcase_getmeta",
-      "community": 41,
+      "community": 40,
       "norm_label": "getmeta()"
     },
     {
@@ -4221,7 +4266,7 @@
       "source_file": "frontend\\components\\templates\\templates-showcase.tsx",
       "source_location": "L146",
       "id": "templates_showcase_fn",
-      "community": 41,
+      "community": 40,
       "norm_label": "fn()"
     },
     {
@@ -4230,7 +4275,7 @@
       "source_file": "frontend\\components\\templates\\templates-showcase.tsx",
       "source_location": "L287",
       "id": "templates_showcase_onmove",
-      "community": 41,
+      "community": 40,
       "norm_label": "onmove()"
     },
     {
@@ -4239,7 +4284,7 @@
       "source_file": "frontend\\components\\ui\\accordion.tsx",
       "source_location": "L1",
       "id": "frontend_components_ui_accordion_tsx",
-      "community": 42,
+      "community": 41,
       "norm_label": "accordion.tsx"
     },
     {
@@ -4248,7 +4293,7 @@
       "source_file": "frontend\\components\\ui\\accordion.tsx",
       "source_location": "L9",
       "id": "accordion_accordion",
-      "community": 42,
+      "community": 41,
       "norm_label": "accordion()"
     },
     {
@@ -4257,7 +4302,7 @@
       "source_file": "frontend\\components\\ui\\accordion.tsx",
       "source_location": "L15",
       "id": "accordion_accordionitem",
-      "community": 42,
+      "community": 41,
       "norm_label": "accordionitem()"
     },
     {
@@ -4266,7 +4311,7 @@
       "source_file": "frontend\\components\\ui\\accordion.tsx",
       "source_location": "L28",
       "id": "accordion_accordiontrigger",
-      "community": 42,
+      "community": 41,
       "norm_label": "accordiontrigger()"
     },
     {
@@ -4275,7 +4320,7 @@
       "source_file": "frontend\\components\\ui\\alert-dialog.tsx",
       "source_location": "L1",
       "id": "frontend_components_ui_alert_dialog_tsx",
-      "community": 43,
+      "community": 42,
       "norm_label": "alert-dialog.tsx"
     },
     {
@@ -4284,7 +4329,7 @@
       "source_file": "frontend\\components\\ui\\alert-dialog.tsx",
       "source_location": "L9",
       "id": "alert_dialog_alertdialog",
-      "community": 43,
+      "community": 42,
       "norm_label": "alertdialog()"
     },
     {
@@ -4293,7 +4338,7 @@
       "source_file": "frontend\\components\\ui\\alert-dialog.tsx",
       "source_location": "L56",
       "id": "alert_dialog_cn",
-      "community": 43,
+      "community": 42,
       "norm_label": "cn()"
     },
     {
@@ -4302,7 +4347,7 @@
       "source_file": "frontend\\components\\ui\\alert-dialog.tsx",
       "source_location": "L108",
       "id": "alert_dialog_alertdialogdescription",
-      "community": 43,
+      "community": 42,
       "norm_label": "alertdialogdescription()"
     },
     {
@@ -4338,7 +4383,7 @@
       "source_file": "frontend\\components\\ui\\aspect-ratio.tsx",
       "source_location": "L1",
       "id": "frontend_components_ui_aspect_ratio_tsx",
-      "community": 102,
+      "community": 101,
       "norm_label": "aspect-ratio.tsx"
     },
     {
@@ -4347,7 +4392,7 @@
       "source_file": "frontend\\components\\ui\\aspect-ratio.tsx",
       "source_location": "L5",
       "id": "aspect_ratio_aspectratio",
-      "community": 102,
+      "community": 101,
       "norm_label": "aspectratio()"
     },
     {
@@ -4356,7 +4401,7 @@
       "source_file": "frontend\\components\\ui\\avatar.tsx",
       "source_location": "L1",
       "id": "frontend_components_ui_avatar_tsx",
-      "community": 58,
+      "community": 57,
       "norm_label": "avatar.tsx"
     },
     {
@@ -4365,7 +4410,7 @@
       "source_file": "frontend\\components\\ui\\avatar.tsx",
       "source_location": "L8",
       "id": "avatar_avatar",
-      "community": 58,
+      "community": 57,
       "norm_label": "avatar()"
     },
     {
@@ -4374,7 +4419,7 @@
       "source_file": "frontend\\components\\ui\\avatar.tsx",
       "source_location": "L37",
       "id": "avatar_avatarfallback",
-      "community": 58,
+      "community": 57,
       "norm_label": "avatarfallback()"
     },
     {
@@ -4383,7 +4428,7 @@
       "source_file": "frontend\\components\\ui\\badge.tsx",
       "source_location": "L1",
       "id": "frontend_components_ui_badge_tsx",
-      "community": 103,
+      "community": 102,
       "norm_label": "badge.tsx"
     },
     {
@@ -4392,7 +4437,7 @@
       "source_file": "frontend\\components\\ui\\badge.tsx",
       "source_location": "L28",
       "id": "badge_badge",
-      "community": 103,
+      "community": 102,
       "norm_label": "badge()"
     },
     {
@@ -4464,7 +4509,7 @@
       "source_file": "frontend\\components\\ui\\button-group.tsx",
       "source_location": "L1",
       "id": "frontend_components_ui_button_group_tsx",
-      "community": 104,
+      "community": 103,
       "norm_label": "button-group.tsx"
     },
     {
@@ -4473,7 +4518,7 @@
       "source_file": "frontend\\components\\ui\\button-group.tsx",
       "source_location": "L24",
       "id": "button_group_buttongroup",
-      "community": 104,
+      "community": 103,
       "norm_label": "buttongroup()"
     },
     {
@@ -4482,7 +4527,7 @@
       "source_file": "frontend\\components\\ui\\button.tsx",
       "source_location": "L1",
       "id": "frontend_components_ui_button_tsx",
-      "community": 105,
+      "community": 104,
       "norm_label": "button.tsx"
     },
     {
@@ -4491,7 +4536,7 @@
       "source_file": "frontend\\components\\ui\\button.tsx",
       "source_location": "L54",
       "id": "button_cn",
-      "community": 105,
+      "community": 104,
       "norm_label": "cn()"
     },
     {
@@ -4500,7 +4545,7 @@
       "source_file": "frontend\\components\\ui\\calendar.tsx",
       "source_location": "L1",
       "id": "frontend_components_ui_calendar_tsx",
-      "community": 106,
+      "community": 105,
       "norm_label": "calendar.tsx"
     },
     {
@@ -4509,7 +4554,7 @@
       "source_file": "frontend\\components\\ui\\calendar.tsx",
       "source_location": "L203",
       "id": "calendar_cn",
-      "community": 106,
+      "community": 105,
       "norm_label": "cn()"
     },
     {
@@ -4518,7 +4563,7 @@
       "source_file": "frontend\\components\\ui\\card.tsx",
       "source_location": "L1",
       "id": "frontend_components_ui_card_tsx",
-      "community": 44,
+      "community": 43,
       "norm_label": "card.tsx"
     },
     {
@@ -4527,7 +4572,7 @@
       "source_file": "frontend\\components\\ui\\card.tsx",
       "source_location": "L9",
       "id": "card_cn",
-      "community": 44,
+      "community": 43,
       "norm_label": "cn()"
     },
     {
@@ -4536,7 +4581,7 @@
       "source_file": "frontend\\components\\ui\\card.tsx",
       "source_location": "L41",
       "id": "card_carddescription",
-      "community": 44,
+      "community": 43,
       "norm_label": "carddescription()"
     },
     {
@@ -4545,7 +4590,7 @@
       "source_file": "frontend\\components\\ui\\card.tsx",
       "source_location": "L74",
       "id": "card_cardfooter",
-      "community": 44,
+      "community": 43,
       "norm_label": "cardfooter()"
     },
     {
@@ -4554,7 +4599,7 @@
       "source_file": "frontend\\components\\ui\\carousel.tsx",
       "source_location": "L1",
       "id": "frontend_components_ui_carousel_tsx",
-      "community": 33,
+      "community": 32,
       "norm_label": "carousel.tsx"
     },
     {
@@ -4563,7 +4608,7 @@
       "source_file": "frontend\\components\\ui\\carousel.tsx",
       "source_location": "L35",
       "id": "carousel_usecarousel",
-      "community": 33,
+      "community": 32,
       "norm_label": "usecarousel()"
     },
     {
@@ -4572,7 +4617,7 @@
       "source_file": "frontend\\components\\ui\\carousel.tsx",
       "source_location": "L45",
       "id": "carousel_carousel",
-      "community": 33,
+      "community": 32,
       "norm_label": "carousel()"
     },
     {
@@ -4581,7 +4626,7 @@
       "source_file": "frontend\\components\\ui\\carousel.tsx",
       "source_location": "L145",
       "id": "carousel_cn",
-      "community": 33,
+      "community": 32,
       "norm_label": "cn()"
     },
     {
@@ -4590,7 +4635,7 @@
       "source_file": "frontend\\components\\ui\\carousel.tsx",
       "source_location": "L204",
       "id": "carousel_carouselnext",
-      "community": 33,
+      "community": 32,
       "norm_label": "carouselnext()"
     },
     {
@@ -4599,7 +4644,7 @@
       "source_file": "frontend\\components\\ui\\chart.tsx",
       "source_location": "L1",
       "id": "frontend_components_ui_chart_tsx",
-      "community": 59,
+      "community": 58,
       "norm_label": "chart.tsx"
     },
     {
@@ -4608,7 +4653,7 @@
       "source_file": "frontend\\components\\ui\\chart.tsx",
       "source_location": "L27",
       "id": "chart_usechart",
-      "community": 59,
+      "community": 58,
       "norm_label": "usechart()"
     },
     {
@@ -4617,7 +4662,7 @@
       "source_file": "frontend\\components\\ui\\chart.tsx",
       "source_location": "L57",
       "id": "chart_cn",
-      "community": 59,
+      "community": 58,
       "norm_label": "cn()"
     },
     {
@@ -4626,7 +4671,7 @@
       "source_file": "frontend\\components\\ui\\checkbox.tsx",
       "source_location": "L1",
       "id": "frontend_components_ui_checkbox_tsx",
-      "community": 107,
+      "community": 106,
       "norm_label": "checkbox.tsx"
     },
     {
@@ -4635,7 +4680,7 @@
       "source_file": "frontend\\components\\ui\\checkbox.tsx",
       "source_location": "L9",
       "id": "checkbox_checkbox",
-      "community": 107,
+      "community": 106,
       "norm_label": "checkbox()"
     },
     {
@@ -4644,7 +4689,7 @@
       "source_file": "frontend\\components\\ui\\collapsible.tsx",
       "source_location": "L1",
       "id": "frontend_components_ui_collapsible_tsx",
-      "community": 108,
+      "community": 107,
       "norm_label": "collapsible.tsx"
     },
     {
@@ -4653,7 +4698,7 @@
       "source_file": "frontend\\components\\ui\\collapsible.tsx",
       "source_location": "L5",
       "id": "collapsible_collapsible",
-      "community": 108,
+      "community": 107,
       "norm_label": "collapsible()"
     },
     {
@@ -4662,7 +4707,7 @@
       "source_file": "frontend\\components\\ui\\command.tsx",
       "source_location": "L1",
       "id": "frontend_components_ui_command_tsx",
-      "community": 60,
+      "community": 59,
       "norm_label": "command.tsx"
     },
     {
@@ -4671,7 +4716,7 @@
       "source_file": "frontend\\components\\ui\\command.tsx",
       "source_location": "L23",
       "id": "command_cn",
-      "community": 60,
+      "community": 59,
       "norm_label": "cn()"
     },
     {
@@ -4680,7 +4725,7 @@
       "source_file": "frontend\\components\\ui\\command.tsx",
       "source_location": "L142",
       "id": "command_commanditem",
-      "community": 60,
+      "community": 59,
       "norm_label": "commanditem()"
     },
     {
@@ -4689,7 +4734,7 @@
       "source_file": "frontend\\components\\ui\\context-menu.tsx",
       "source_location": "L1",
       "id": "frontend_components_ui_context_menu_tsx",
-      "community": 34,
+      "community": 33,
       "norm_label": "context-menu.tsx"
     },
     {
@@ -4698,7 +4743,7 @@
       "source_file": "frontend\\components\\ui\\context-menu.tsx",
       "source_location": "L9",
       "id": "context_menu_contextmenu",
-      "community": 34,
+      "community": 33,
       "norm_label": "contextmenu()"
     },
     {
@@ -4707,7 +4752,7 @@
       "source_file": "frontend\\components\\ui\\context-menu.tsx",
       "source_location": "L87",
       "id": "context_menu_cn",
-      "community": 34,
+      "community": 33,
       "norm_label": "cn()"
     },
     {
@@ -4716,7 +4761,7 @@
       "source_file": "frontend\\components\\ui\\context-menu.tsx",
       "source_location": "L163",
       "id": "context_menu_contextmenuradioitem",
-      "community": 34,
+      "community": 33,
       "norm_label": "contextmenuradioitem()"
     },
     {
@@ -4725,7 +4770,7 @@
       "source_file": "frontend\\components\\ui\\context-menu.tsx",
       "source_location": "L187",
       "id": "context_menu_contextmenulabel",
-      "community": 34,
+      "community": 33,
       "norm_label": "contextmenulabel()"
     },
     {
@@ -4734,7 +4779,7 @@
       "source_file": "frontend\\components\\ui\\dialog.tsx",
       "source_location": "L1",
       "id": "frontend_components_ui_dialog_tsx",
-      "community": 24,
+      "community": 23,
       "norm_label": "dialog.tsx"
     },
     {
@@ -4743,7 +4788,7 @@
       "source_file": "frontend\\components\\ui\\dialog.tsx",
       "source_location": "L9",
       "id": "dialog_dialog",
-      "community": 24,
+      "community": 23,
       "norm_label": "dialog()"
     },
     {
@@ -4752,7 +4797,7 @@
       "source_file": "frontend\\components\\ui\\dialog.tsx",
       "source_location": "L15",
       "id": "dialog_dialogtrigger",
-      "community": 24,
+      "community": 23,
       "norm_label": "dialogtrigger()"
     },
     {
@@ -4761,7 +4806,7 @@
       "source_file": "frontend\\components\\ui\\dialog.tsx",
       "source_location": "L21",
       "id": "dialog_dialogportal",
-      "community": 24,
+      "community": 23,
       "norm_label": "dialogportal()"
     },
     {
@@ -4770,7 +4815,7 @@
       "source_file": "frontend\\components\\ui\\dialog.tsx",
       "source_location": "L27",
       "id": "dialog_dialogclose",
-      "community": 24,
+      "community": 23,
       "norm_label": "dialogclose()"
     },
     {
@@ -4779,7 +4824,7 @@
       "source_file": "frontend\\components\\ui\\dialog.tsx",
       "source_location": "L33",
       "id": "dialog_dialogoverlay",
-      "community": 24,
+      "community": 23,
       "norm_label": "dialogoverlay()"
     },
     {
@@ -4788,7 +4833,7 @@
       "source_file": "frontend\\components\\ui\\drawer.tsx",
       "source_location": "L1",
       "id": "frontend_components_ui_drawer_tsx",
-      "community": 15,
+      "community": 14,
       "norm_label": "drawer.tsx"
     },
     {
@@ -4797,7 +4842,7 @@
       "source_file": "frontend\\components\\ui\\drawer.tsx",
       "source_location": "L8",
       "id": "drawer_drawer",
-      "community": 15,
+      "community": 14,
       "norm_label": "drawer()"
     },
     {
@@ -4806,7 +4851,7 @@
       "source_file": "frontend\\components\\ui\\drawer.tsx",
       "source_location": "L14",
       "id": "drawer_drawertrigger",
-      "community": 15,
+      "community": 14,
       "norm_label": "drawertrigger()"
     },
     {
@@ -4815,7 +4860,7 @@
       "source_file": "frontend\\components\\ui\\drawer.tsx",
       "source_location": "L20",
       "id": "drawer_drawerportal",
-      "community": 15,
+      "community": 14,
       "norm_label": "drawerportal()"
     },
     {
@@ -4824,7 +4869,7 @@
       "source_file": "frontend\\components\\ui\\drawer.tsx",
       "source_location": "L26",
       "id": "drawer_drawerclose",
-      "community": 15,
+      "community": 14,
       "norm_label": "drawerclose()"
     },
     {
@@ -4833,7 +4878,7 @@
       "source_file": "frontend\\components\\ui\\drawer.tsx",
       "source_location": "L32",
       "id": "drawer_draweroverlay",
-      "community": 15,
+      "community": 14,
       "norm_label": "draweroverlay()"
     },
     {
@@ -4842,7 +4887,7 @@
       "source_file": "frontend\\components\\ui\\drawer.tsx",
       "source_location": "L79",
       "id": "drawer_cn",
-      "community": 15,
+      "community": 14,
       "norm_label": "cn()"
     },
     {
@@ -4851,7 +4896,7 @@
       "source_file": "frontend\\components\\ui\\drawer.tsx",
       "source_location": "L98",
       "id": "drawer_drawertitle",
-      "community": 15,
+      "community": 14,
       "norm_label": "drawertitle()"
     },
     {
@@ -4860,7 +4905,7 @@
       "source_file": "frontend\\components\\ui\\drawer.tsx",
       "source_location": "L111",
       "id": "drawer_drawerdescription",
-      "community": 15,
+      "community": 14,
       "norm_label": "drawerdescription()"
     },
     {
@@ -4869,7 +4914,7 @@
       "source_file": "frontend\\components\\ui\\dropdown-menu.tsx",
       "source_location": "L1",
       "id": "frontend_components_ui_dropdown_menu_tsx",
-      "community": 45,
+      "community": 44,
       "norm_label": "dropdown-menu.tsx"
     },
     {
@@ -4878,7 +4923,7 @@
       "source_file": "frontend\\components\\ui\\dropdown-menu.tsx",
       "source_location": "L9",
       "id": "dropdown_menu_dropdownmenu",
-      "community": 45,
+      "community": 44,
       "norm_label": "dropdownmenu()"
     },
     {
@@ -4887,7 +4932,7 @@
       "source_file": "frontend\\components\\ui\\dropdown-menu.tsx",
       "source_location": "L94",
       "id": "dropdown_menu_cn",
-      "community": 45,
+      "community": 44,
       "norm_label": "cn()"
     },
     {
@@ -4896,7 +4941,7 @@
       "source_file": "frontend\\components\\ui\\dropdown-menu.tsx",
       "source_location": "L225",
       "id": "dropdown_menu_dropdownmenusubcontent",
-      "community": 45,
+      "community": 44,
       "norm_label": "dropdownmenusubcontent()"
     },
     {
@@ -4905,7 +4950,7 @@
       "source_file": "frontend\\components\\ui\\empty.tsx",
       "source_location": "L1",
       "id": "frontend_components_ui_empty_tsx",
-      "community": 109,
+      "community": 108,
       "norm_label": "empty.tsx"
     },
     {
@@ -4914,7 +4959,7 @@
       "source_file": "frontend\\components\\ui\\empty.tsx",
       "source_location": "L9",
       "id": "empty_cn",
-      "community": 109,
+      "community": 108,
       "norm_label": "cn()"
     },
     {
@@ -4923,7 +4968,7 @@
       "source_file": "frontend\\components\\ui\\field.tsx",
       "source_location": "L1",
       "id": "frontend_components_ui_field_tsx",
-      "community": 110,
+      "community": 109,
       "norm_label": "field.tsx"
     },
     {
@@ -4932,7 +4977,7 @@
       "source_file": "frontend\\components\\ui\\field.tsx",
       "source_location": "L14",
       "id": "field_cn",
-      "community": 110,
+      "community": 109,
       "norm_label": "cn()"
     },
     {
@@ -4941,7 +4986,7 @@
       "source_file": "frontend\\components\\ui\\form.tsx",
       "source_location": "L1",
       "id": "frontend_components_ui_form_tsx",
-      "community": 35,
+      "community": 34,
       "norm_label": "form.tsx"
     },
     {
@@ -4950,7 +4995,7 @@
       "source_file": "frontend\\components\\ui\\form.tsx",
       "source_location": "L100",
       "id": "form_cn",
-      "community": 35,
+      "community": 34,
       "norm_label": "cn()"
     },
     {
@@ -4959,7 +5004,7 @@
       "source_file": "frontend\\components\\ui\\form.tsx",
       "source_location": "L107",
       "id": "form_formcontrol",
-      "community": 35,
+      "community": 34,
       "norm_label": "formcontrol()"
     },
     {
@@ -4968,7 +5013,7 @@
       "source_file": "frontend\\components\\ui\\form.tsx",
       "source_location": "L125",
       "id": "form_formdescription",
-      "community": 35,
+      "community": 34,
       "norm_label": "formdescription()"
     },
     {
@@ -4977,7 +5022,7 @@
       "source_file": "frontend\\components\\ui\\form.tsx",
       "source_location": "L138",
       "id": "form_formmessage",
-      "community": 35,
+      "community": 34,
       "norm_label": "formmessage()"
     },
     {
@@ -4986,7 +5031,7 @@
       "source_file": "frontend\\components\\ui\\hover-card.tsx",
       "source_location": "L1",
       "id": "frontend_components_ui_hover_card_tsx",
-      "community": 111,
+      "community": 110,
       "norm_label": "hover-card.tsx"
     },
     {
@@ -4995,7 +5040,7 @@
       "source_file": "frontend\\components\\ui\\hover-card.tsx",
       "source_location": "L8",
       "id": "hover_card_hovercard",
-      "community": 111,
+      "community": 110,
       "norm_label": "hovercard()"
     },
     {
@@ -5004,7 +5049,7 @@
       "source_file": "frontend\\components\\ui\\input-group.tsx",
       "source_location": "L1",
       "id": "frontend_components_ui_input_group_tsx",
-      "community": 112,
+      "community": 111,
       "norm_label": "input-group.tsx"
     },
     {
@@ -5013,7 +5058,7 @@
       "source_file": "frontend\\components\\ui\\input-group.tsx",
       "source_location": "L15",
       "id": "input_group_cn",
-      "community": 112,
+      "community": 111,
       "norm_label": "cn()"
     },
     {
@@ -5022,7 +5067,7 @@
       "source_file": "frontend\\components\\ui\\input-otp.tsx",
       "source_location": "L1",
       "id": "frontend_components_ui_input_otp_tsx",
-      "community": 46,
+      "community": 45,
       "norm_label": "input-otp.tsx"
     },
     {
@@ -5031,7 +5076,7 @@
       "source_file": "frontend\\components\\ui\\input-otp.tsx",
       "source_location": "L9",
       "id": "input_otp_inputotp",
-      "community": 46,
+      "community": 45,
       "norm_label": "inputotp()"
     },
     {
@@ -5040,7 +5085,7 @@
       "source_file": "frontend\\components\\ui\\input-otp.tsx",
       "source_location": "L29",
       "id": "input_otp_inputotpgroup",
-      "community": 46,
+      "community": 45,
       "norm_label": "inputotpgroup()"
     },
     {
@@ -5049,7 +5094,7 @@
       "source_file": "frontend\\components\\ui\\input-otp.tsx",
       "source_location": "L53",
       "id": "input_otp_cn",
-      "community": 46,
+      "community": 45,
       "norm_label": "cn()"
     },
     {
@@ -5058,7 +5103,7 @@
       "source_file": "frontend\\components\\ui\\input.tsx",
       "source_location": "L1",
       "id": "frontend_components_ui_input_tsx",
-      "community": 113,
+      "community": 112,
       "norm_label": "input.tsx"
     },
     {
@@ -5067,7 +5112,7 @@
       "source_file": "frontend\\components\\ui\\input.tsx",
       "source_location": "L5",
       "id": "input_input",
-      "community": 113,
+      "community": 112,
       "norm_label": "input()"
     },
     {
@@ -5076,7 +5121,7 @@
       "source_file": "frontend\\components\\ui\\item.tsx",
       "source_location": "L1",
       "id": "frontend_components_ui_item_tsx",
-      "community": 47,
+      "community": 46,
       "norm_label": "item.tsx"
     },
     {
@@ -5085,7 +5130,7 @@
       "source_file": "frontend\\components\\ui\\item.tsx",
       "source_location": "L8",
       "id": "item_itemgroup",
-      "community": 47,
+      "community": 46,
       "norm_label": "itemgroup()"
     },
     {
@@ -5094,7 +5139,7 @@
       "source_file": "frontend\\components\\ui\\item.tsx",
       "source_location": "L19",
       "id": "item_itemseparator",
-      "community": 47,
+      "community": 46,
       "norm_label": "itemseparator()"
     },
     {
@@ -5103,7 +5148,7 @@
       "source_file": "frontend\\components\\ui\\item.tsx",
       "source_location": "L110",
       "id": "item_cn",
-      "community": 47,
+      "community": 46,
       "norm_label": "cn()"
     },
     {
@@ -5112,7 +5157,7 @@
       "source_file": "frontend\\components\\ui\\kbd.tsx",
       "source_location": "L1",
       "id": "frontend_components_ui_kbd_tsx",
-      "community": 114,
+      "community": 113,
       "norm_label": "kbd.tsx"
     },
     {
@@ -5121,7 +5166,7 @@
       "source_file": "frontend\\components\\ui\\kbd.tsx",
       "source_location": "L7",
       "id": "kbd_cn",
-      "community": 114,
+      "community": 113,
       "norm_label": "cn()"
     },
     {
@@ -5130,7 +5175,7 @@
       "source_file": "frontend\\components\\ui\\label.tsx",
       "source_location": "L1",
       "id": "frontend_components_ui_label_tsx",
-      "community": 115,
+      "community": 114,
       "norm_label": "label.tsx"
     },
     {
@@ -5139,7 +5184,7 @@
       "source_file": "frontend\\components\\ui\\label.tsx",
       "source_location": "L8",
       "id": "label_label",
-      "community": 115,
+      "community": 114,
       "norm_label": "label()"
     },
     {
@@ -5148,7 +5193,7 @@
       "source_file": "frontend\\components\\ui\\menubar.tsx",
       "source_location": "L1",
       "id": "frontend_components_ui_menubar_tsx",
-      "community": 25,
+      "community": 24,
       "norm_label": "menubar.tsx"
     },
     {
@@ -5157,7 +5202,7 @@
       "source_file": "frontend\\components\\ui\\menubar.tsx",
       "source_location": "L37",
       "id": "menubar_menubarportal",
-      "community": 25,
+      "community": 24,
       "norm_label": "menubarportal()"
     },
     {
@@ -5166,7 +5211,7 @@
       "source_file": "frontend\\components\\ui\\menubar.tsx",
       "source_location": "L81",
       "id": "menubar_cn",
-      "community": 25,
+      "community": 24,
       "norm_label": "cn()"
     },
     {
@@ -5175,7 +5220,7 @@
       "source_file": "frontend\\components\\ui\\menubar.tsx",
       "source_location": "L140",
       "id": "menubar_menubarradioitem",
-      "community": 25,
+      "community": 24,
       "norm_label": "menubarradioitem()"
     },
     {
@@ -5184,7 +5229,7 @@
       "source_file": "frontend\\components\\ui\\menubar.tsx",
       "source_location": "L164",
       "id": "menubar_menubarlabel",
-      "community": 25,
+      "community": 24,
       "norm_label": "menubarlabel()"
     },
     {
@@ -5193,7 +5238,7 @@
       "source_file": "frontend\\components\\ui\\menubar.tsx",
       "source_location": "L243",
       "id": "menubar_menubarsubcontent",
-      "community": 25,
+      "community": 24,
       "norm_label": "menubarsubcontent()"
     },
     {
@@ -5202,7 +5247,7 @@
       "source_file": "frontend\\components\\ui\\navigation-menu.tsx",
       "source_location": "L1",
       "id": "frontend_components_ui_navigation_menu_tsx",
-      "community": 48,
+      "community": 47,
       "norm_label": "navigation-menu.tsx"
     },
     {
@@ -5211,7 +5256,7 @@
       "source_file": "frontend\\components\\ui\\navigation-menu.tsx",
       "source_location": "L39",
       "id": "navigation_menu_cn",
-      "community": 48,
+      "community": 47,
       "norm_label": "cn()"
     },
     {
@@ -5220,7 +5265,7 @@
       "source_file": "frontend\\components\\ui\\navigation-menu.tsx",
       "source_location": "L65",
       "id": "navigation_menu_navigationmenutrigger",
-      "community": 48,
+      "community": 47,
       "norm_label": "navigationmenutrigger()"
     },
     {
@@ -5229,7 +5274,7 @@
       "source_file": "frontend\\components\\ui\\navigation-menu.tsx",
       "source_location": "L85",
       "id": "navigation_menu_navigationmenucontent",
-      "community": 48,
+      "community": 47,
       "norm_label": "navigationmenucontent()"
     },
     {
@@ -5301,7 +5346,7 @@
       "source_file": "frontend\\components\\ui\\popover.tsx",
       "source_location": "L1",
       "id": "frontend_components_ui_popover_tsx",
-      "community": 61,
+      "community": 60,
       "norm_label": "popover.tsx"
     },
     {
@@ -5310,7 +5355,7 @@
       "source_file": "frontend\\components\\ui\\popover.tsx",
       "source_location": "L8",
       "id": "popover_popover",
-      "community": 61,
+      "community": 60,
       "norm_label": "popover()"
     },
     {
@@ -5319,7 +5364,7 @@
       "source_file": "frontend\\components\\ui\\popover.tsx",
       "source_location": "L14",
       "id": "popover_popovertrigger",
-      "community": 61,
+      "community": 60,
       "norm_label": "popovertrigger()"
     },
     {
@@ -5337,7 +5382,7 @@
       "source_file": "frontend\\components\\ui\\radio-group.tsx",
       "source_location": "L1",
       "id": "frontend_components_ui_radio_group_tsx",
-      "community": 62,
+      "community": 61,
       "norm_label": "radio-group.tsx"
     },
     {
@@ -5346,7 +5391,7 @@
       "source_file": "frontend\\components\\ui\\radio-group.tsx",
       "source_location": "L9",
       "id": "radio_group_radiogroup",
-      "community": 62,
+      "community": 61,
       "norm_label": "radiogroup()"
     },
     {
@@ -5355,7 +5400,7 @@
       "source_file": "frontend\\components\\ui\\radio-group.tsx",
       "source_location": "L22",
       "id": "radio_group_radiogroupitem",
-      "community": 62,
+      "community": 61,
       "norm_label": "radiogroupitem()"
     },
     {
@@ -5373,7 +5418,7 @@
       "source_file": "frontend\\components\\ui\\scroll-area.tsx",
       "source_location": "L1",
       "id": "frontend_components_ui_scroll_area_tsx",
-      "community": 63,
+      "community": 62,
       "norm_label": "scroll-area.tsx"
     },
     {
@@ -5382,7 +5427,7 @@
       "source_file": "frontend\\components\\ui\\scroll-area.tsx",
       "source_location": "L8",
       "id": "scroll_area_scrollarea",
-      "community": 63,
+      "community": 62,
       "norm_label": "scrollarea()"
     },
     {
@@ -5391,7 +5436,7 @@
       "source_file": "frontend\\components\\ui\\scroll-area.tsx",
       "source_location": "L31",
       "id": "scroll_area_scrollbar",
-      "community": 63,
+      "community": 62,
       "norm_label": "scrollbar()"
     },
     {
@@ -5400,7 +5445,7 @@
       "source_file": "frontend\\components\\ui\\select.tsx",
       "source_location": "L1",
       "id": "frontend_components_ui_select_tsx",
-      "community": 16,
+      "community": 15,
       "norm_label": "select.tsx"
     },
     {
@@ -5418,7 +5463,7 @@
       "source_file": "frontend\\components\\ui\\select.tsx",
       "source_location": "L15",
       "id": "select_selectgroup",
-      "community": 16,
+      "community": 15,
       "norm_label": "selectgroup()"
     },
     {
@@ -5427,7 +5472,7 @@
       "source_file": "frontend\\components\\ui\\select.tsx",
       "source_location": "L21",
       "id": "select_selectvalue",
-      "community": 16,
+      "community": 15,
       "norm_label": "selectvalue()"
     },
     {
@@ -5436,7 +5481,7 @@
       "source_file": "frontend\\components\\ui\\select.tsx",
       "source_location": "L27",
       "id": "select_selecttrigger",
-      "community": 16,
+      "community": 15,
       "norm_label": "selecttrigger()"
     },
     {
@@ -5445,7 +5490,7 @@
       "source_file": "frontend\\components\\ui\\select.tsx",
       "source_location": "L88",
       "id": "select_selectlabel",
-      "community": 16,
+      "community": 15,
       "norm_label": "selectlabel()"
     },
     {
@@ -5454,7 +5499,7 @@
       "source_file": "frontend\\components\\ui\\select.tsx",
       "source_location": "L101",
       "id": "select_selectitem",
-      "community": 16,
+      "community": 15,
       "norm_label": "selectitem()"
     },
     {
@@ -5463,7 +5508,7 @@
       "source_file": "frontend\\components\\ui\\select.tsx",
       "source_location": "L125",
       "id": "select_selectseparator",
-      "community": 16,
+      "community": 15,
       "norm_label": "selectseparator()"
     },
     {
@@ -5472,7 +5517,7 @@
       "source_file": "frontend\\components\\ui\\select.tsx",
       "source_location": "L138",
       "id": "select_selectscrollupbutton",
-      "community": 16,
+      "community": 15,
       "norm_label": "selectscrollupbutton()"
     },
     {
@@ -5481,7 +5526,7 @@
       "source_file": "frontend\\components\\ui\\select.tsx",
       "source_location": "L156",
       "id": "select_selectscrolldownbutton",
-      "community": 16,
+      "community": 15,
       "norm_label": "selectscrolldownbutton()"
     },
     {
@@ -5490,7 +5535,7 @@
       "source_file": "frontend\\components\\ui\\separator.tsx",
       "source_location": "L1",
       "id": "frontend_components_ui_separator_tsx",
-      "community": 116,
+      "community": 115,
       "norm_label": "separator.tsx"
     },
     {
@@ -5499,7 +5544,7 @@
       "source_file": "frontend\\components\\ui\\separator.tsx",
       "source_location": "L8",
       "id": "separator_separator",
-      "community": 116,
+      "community": 115,
       "norm_label": "separator()"
     },
     {
@@ -5508,7 +5553,7 @@
       "source_file": "frontend\\components\\ui\\sheet.tsx",
       "source_location": "L1",
       "id": "frontend_components_ui_sheet_tsx",
-      "community": 13,
+      "community": 12,
       "norm_label": "sheet.tsx"
     },
     {
@@ -5517,7 +5562,7 @@
       "source_file": "frontend\\components\\ui\\sheet.tsx",
       "source_location": "L9",
       "id": "sheet_sheet",
-      "community": 13,
+      "community": 12,
       "norm_label": "sheet()"
     },
     {
@@ -5526,7 +5571,7 @@
       "source_file": "frontend\\components\\ui\\sheet.tsx",
       "source_location": "L13",
       "id": "sheet_sheettrigger",
-      "community": 13,
+      "community": 12,
       "norm_label": "sheettrigger()"
     },
     {
@@ -5535,7 +5580,7 @@
       "source_file": "frontend\\components\\ui\\sheet.tsx",
       "source_location": "L19",
       "id": "sheet_sheetclose",
-      "community": 13,
+      "community": 12,
       "norm_label": "sheetclose()"
     },
     {
@@ -5544,7 +5589,7 @@
       "source_file": "frontend\\components\\ui\\sheet.tsx",
       "source_location": "L25",
       "id": "sheet_sheetportal",
-      "community": 13,
+      "community": 12,
       "norm_label": "sheetportal()"
     },
     {
@@ -5553,7 +5598,7 @@
       "source_file": "frontend\\components\\ui\\sheet.tsx",
       "source_location": "L31",
       "id": "sheet_sheetoverlay",
-      "community": 13,
+      "community": 12,
       "norm_label": "sheetoverlay()"
     },
     {
@@ -5562,7 +5607,7 @@
       "source_file": "frontend\\components\\ui\\sheet.tsx",
       "source_location": "L84",
       "id": "sheet_sheetheader",
-      "community": 13,
+      "community": 12,
       "norm_label": "sheetheader()"
     },
     {
@@ -5571,7 +5616,7 @@
       "source_file": "frontend\\components\\ui\\sheet.tsx",
       "source_location": "L94",
       "id": "sheet_sheetfooter",
-      "community": 13,
+      "community": 12,
       "norm_label": "sheetfooter()"
     },
     {
@@ -5580,7 +5625,7 @@
       "source_file": "frontend\\components\\ui\\sheet.tsx",
       "source_location": "L104",
       "id": "sheet_sheettitle",
-      "community": 13,
+      "community": 12,
       "norm_label": "sheettitle()"
     },
     {
@@ -5589,7 +5634,7 @@
       "source_file": "frontend\\components\\ui\\sheet.tsx",
       "source_location": "L117",
       "id": "sheet_sheetdescription",
-      "community": 13,
+      "community": 12,
       "norm_label": "sheetdescription()"
     },
     {
@@ -5598,7 +5643,7 @@
       "source_file": "frontend\\components\\ui\\sidebar.tsx",
       "source_location": "L1",
       "id": "frontend_components_ui_sidebar_tsx",
-      "community": 14,
+      "community": 13,
       "norm_label": "sidebar.tsx"
     },
     {
@@ -5607,7 +5652,7 @@
       "source_file": "frontend\\components\\ui\\sidebar.tsx",
       "source_location": "L47",
       "id": "sidebar_usesidebar",
-      "community": 14,
+      "community": 13,
       "norm_label": "usesidebar()"
     },
     {
@@ -5616,7 +5661,7 @@
       "source_file": "frontend\\components\\ui\\sidebar.tsx",
       "source_location": "L98",
       "id": "sidebar_handlekeydown",
-      "community": 14,
+      "community": 13,
       "norm_label": "handlekeydown()"
     },
     {
@@ -5625,7 +5670,7 @@
       "source_file": "frontend\\components\\ui\\sidebar.tsx",
       "source_location": "L141",
       "id": "sidebar_cn",
-      "community": 14,
+      "community": 13,
       "norm_label": "cn()"
     },
     {
@@ -5634,7 +5679,7 @@
       "source_file": "frontend\\components\\ui\\sidebar.tsx",
       "source_location": "L335",
       "id": "sidebar_sidebarheader",
-      "community": 14,
+      "community": 13,
       "norm_label": "sidebarheader()"
     },
     {
@@ -5643,7 +5688,7 @@
       "source_file": "frontend\\components\\ui\\sidebar.tsx",
       "source_location": "L346",
       "id": "sidebar_sidebarfooter",
-      "community": 14,
+      "community": 13,
       "norm_label": "sidebarfooter()"
     },
     {
@@ -5652,7 +5697,7 @@
       "source_file": "frontend\\components\\ui\\sidebar.tsx",
       "source_location": "L357",
       "id": "sidebar_sidebarseparator",
-      "community": 14,
+      "community": 13,
       "norm_label": "sidebarseparator()"
     },
     {
@@ -5661,7 +5706,7 @@
       "source_file": "frontend\\components\\ui\\sidebar.tsx",
       "source_location": "L454",
       "id": "sidebar_sidebarmenu",
-      "community": 14,
+      "community": 13,
       "norm_label": "sidebarmenu()"
     },
     {
@@ -5670,7 +5715,7 @@
       "source_file": "frontend\\components\\ui\\sidebar.tsx",
       "source_location": "L465",
       "id": "sidebar_sidebarmenuitem",
-      "community": 14,
+      "community": 13,
       "norm_label": "sidebarmenuitem()"
     },
     {
@@ -5679,7 +5724,7 @@
       "source_file": "frontend\\components\\ui\\sidebar.tsx",
       "source_location": "L498",
       "id": "sidebar_sidebarmenubutton",
-      "community": 14,
+      "community": 13,
       "norm_label": "sidebarmenubutton()"
     },
     {
@@ -5688,7 +5733,7 @@
       "source_file": "frontend\\components\\ui\\skeleton.tsx",
       "source_location": "L1",
       "id": "frontend_components_ui_skeleton_tsx",
-      "community": 117,
+      "community": 116,
       "norm_label": "skeleton.tsx"
     },
     {
@@ -5697,7 +5742,7 @@
       "source_file": "frontend\\components\\ui\\skeleton.tsx",
       "source_location": "L3",
       "id": "skeleton_skeleton",
-      "community": 117,
+      "community": 116,
       "norm_label": "skeleton()"
     },
     {
@@ -5706,7 +5751,7 @@
       "source_file": "frontend\\components\\ui\\slider.tsx",
       "source_location": "L1",
       "id": "frontend_components_ui_slider_tsx",
-      "community": 64,
+      "community": 63,
       "norm_label": "slider.tsx"
     },
     {
@@ -5715,7 +5760,7 @@
       "source_file": "frontend\\components\\ui\\slider.tsx",
       "source_location": "L8",
       "id": "slider_slider",
-      "community": 64,
+      "community": 63,
       "norm_label": "slider()"
     },
     {
@@ -5724,7 +5769,7 @@
       "source_file": "frontend\\components\\ui\\slider.tsx",
       "source_location": "L33",
       "id": "slider_cn",
-      "community": 64,
+      "community": 63,
       "norm_label": "cn()"
     },
     {
@@ -5733,7 +5778,7 @@
       "source_file": "frontend\\components\\ui\\sonner.tsx",
       "source_location": "L1",
       "id": "frontend_components_ui_sonner_tsx",
-      "community": 118,
+      "community": 117,
       "norm_label": "sonner.tsx"
     },
     {
@@ -5742,7 +5787,7 @@
       "source_file": "frontend\\components\\ui\\sonner.tsx",
       "source_location": "L6",
       "id": "sonner_toaster",
-      "community": 118,
+      "community": 117,
       "norm_label": "toaster()"
     },
     {
@@ -5751,7 +5796,7 @@
       "source_file": "frontend\\components\\ui\\spinner.tsx",
       "source_location": "L1",
       "id": "frontend_components_ui_spinner_tsx",
-      "community": 119,
+      "community": 118,
       "norm_label": "spinner.tsx"
     },
     {
@@ -5760,7 +5805,7 @@
       "source_file": "frontend\\components\\ui\\spinner.tsx",
       "source_location": "L5",
       "id": "spinner_spinner",
-      "community": 119,
+      "community": 118,
       "norm_label": "spinner()"
     },
     {
@@ -5769,7 +5814,7 @@
       "source_file": "frontend\\components\\ui\\switch.tsx",
       "source_location": "L1",
       "id": "frontend_components_ui_switch_tsx",
-      "community": 120,
+      "community": 119,
       "norm_label": "switch.tsx"
     },
     {
@@ -5778,7 +5823,7 @@
       "source_file": "frontend\\components\\ui\\switch.tsx",
       "source_location": "L8",
       "id": "switch_switch",
-      "community": 120,
+      "community": 119,
       "norm_label": "switch()"
     },
     {
@@ -5787,7 +5832,7 @@
       "source_file": "frontend\\components\\ui\\table.tsx",
       "source_location": "L1",
       "id": "frontend_components_ui_table_tsx",
-      "community": 36,
+      "community": 35,
       "norm_label": "table.tsx"
     },
     {
@@ -5796,7 +5841,7 @@
       "source_file": "frontend\\components\\ui\\table.tsx",
       "source_location": "L7",
       "id": "table_table",
-      "community": 36,
+      "community": 35,
       "norm_label": "table()"
     },
     {
@@ -5805,7 +5850,7 @@
       "source_file": "frontend\\components\\ui\\table.tsx",
       "source_location": "L22",
       "id": "table_tableheader",
-      "community": 36,
+      "community": 35,
       "norm_label": "tableheader()"
     },
     {
@@ -5814,7 +5859,7 @@
       "source_file": "frontend\\components\\ui\\table.tsx",
       "source_location": "L32",
       "id": "table_tablebody",
-      "community": 36,
+      "community": 35,
       "norm_label": "tablebody()"
     },
     {
@@ -5823,7 +5868,7 @@
       "source_file": "frontend\\components\\ui\\table.tsx",
       "source_location": "L46",
       "id": "table_cn",
-      "community": 36,
+      "community": 35,
       "norm_label": "cn()"
     },
     {
@@ -5832,7 +5877,7 @@
       "source_file": "frontend\\components\\ui\\tabs.tsx",
       "source_location": "L1",
       "id": "frontend_components_ui_tabs_tsx",
-      "community": 65,
+      "community": 64,
       "norm_label": "tabs.tsx"
     },
     {
@@ -5841,7 +5886,7 @@
       "source_file": "frontend\\components\\ui\\tabs.tsx",
       "source_location": "L8",
       "id": "tabs_tabs",
-      "community": 65,
+      "community": 64,
       "norm_label": "tabs()"
     },
     {
@@ -5850,7 +5895,7 @@
       "source_file": "frontend\\components\\ui\\tabs.tsx",
       "source_location": "L44",
       "id": "tabs_cn",
-      "community": 65,
+      "community": 64,
       "norm_label": "cn()"
     },
     {
@@ -5859,7 +5904,7 @@
       "source_file": "frontend\\components\\ui\\textarea.tsx",
       "source_location": "L1",
       "id": "frontend_components_ui_textarea_tsx",
-      "community": 121,
+      "community": 120,
       "norm_label": "textarea.tsx"
     },
     {
@@ -5868,7 +5913,7 @@
       "source_file": "frontend\\components\\ui\\textarea.tsx",
       "source_location": "L9",
       "id": "textarea_cn",
-      "community": 121,
+      "community": 120,
       "norm_label": "cn()"
     },
     {
@@ -5895,7 +5940,7 @@
       "source_file": "frontend\\components\\ui\\toggle-group.tsx",
       "source_location": "L1",
       "id": "frontend_components_ui_toggle_group_tsx",
-      "community": 49,
+      "community": 48,
       "norm_label": "toggle-group.tsx"
     },
     {
@@ -5904,7 +5949,7 @@
       "source_file": "frontend\\components\\ui\\toggle-group.tsx",
       "source_location": "L17",
       "id": "toggle_group_togglegroup",
-      "community": 49,
+      "community": 48,
       "norm_label": "togglegroup()"
     },
     {
@@ -5913,7 +5958,7 @@
       "source_file": "frontend\\components\\ui\\toggle-group.tsx",
       "source_location": "L43",
       "id": "toggle_group_togglegroupitem",
-      "community": 49,
+      "community": 48,
       "norm_label": "togglegroupitem()"
     },
     {
@@ -5922,7 +5967,7 @@
       "source_file": "frontend\\components\\ui\\toggle-group.tsx",
       "source_location": "L58",
       "id": "toggle_group_cn",
-      "community": 49,
+      "community": 48,
       "norm_label": "cn()"
     },
     {
@@ -5940,7 +5985,7 @@
       "source_file": "frontend\\components\\ui\\tooltip.tsx",
       "source_location": "L1",
       "id": "frontend_components_ui_tooltip_tsx",
-      "community": 122,
+      "community": 121,
       "norm_label": "tooltip.tsx"
     },
     {
@@ -5949,7 +5994,7 @@
       "source_file": "frontend\\components\\ui\\tooltip.tsx",
       "source_location": "L37",
       "id": "tooltip_tooltipcontent",
-      "community": 122,
+      "community": 121,
       "norm_label": "tooltipcontent()"
     },
     {
@@ -5958,7 +6003,7 @@
       "source_file": "frontend\\components\\ui\\use-mobile.tsx",
       "source_location": "L1",
       "id": "frontend_components_ui_use_mobile_tsx",
-      "community": 66,
+      "community": 65,
       "norm_label": "use-mobile.tsx"
     },
     {
@@ -5967,7 +6012,7 @@
       "source_file": "frontend\\hooks\\use-mobile.ts",
       "source_location": "L5",
       "id": "use_mobile_useismobile",
-      "community": 66,
+      "community": 65,
       "norm_label": "useismobile()"
     },
     {
@@ -5976,7 +6021,7 @@
       "source_file": "frontend\\components\\ui\\use-toast.ts",
       "source_location": "L1",
       "id": "frontend_components_ui_use_toast_ts",
-      "community": 19,
+      "community": 18,
       "norm_label": "use-toast.ts"
     },
     {
@@ -5985,7 +6030,7 @@
       "source_file": "frontend\\hooks\\use-toast.ts",
       "source_location": "L27",
       "id": "use_toast_genid",
-      "community": 19,
+      "community": 18,
       "norm_label": "genid()"
     },
     {
@@ -5994,7 +6039,7 @@
       "source_file": "frontend\\hooks\\use-toast.ts",
       "source_location": "L58",
       "id": "use_toast_addtoremovequeue",
-      "community": 19,
+      "community": 18,
       "norm_label": "addtoremovequeue()"
     },
     {
@@ -6003,7 +6048,7 @@
       "source_file": "frontend\\hooks\\use-toast.ts",
       "source_location": "L74",
       "id": "use_toast_reducer",
-      "community": 19,
+      "community": 18,
       "norm_label": "reducer()"
     },
     {
@@ -6012,7 +6057,7 @@
       "source_file": "frontend\\hooks\\use-toast.ts",
       "source_location": "L133",
       "id": "use_toast_dispatch",
-      "community": 19,
+      "community": 18,
       "norm_label": "dispatch()"
     },
     {
@@ -6021,7 +6066,7 @@
       "source_file": "frontend\\hooks\\use-toast.ts",
       "source_location": "L142",
       "id": "use_toast_toast",
-      "community": 19,
+      "community": 18,
       "norm_label": "toast()"
     },
     {
@@ -6030,7 +6075,7 @@
       "source_file": "frontend\\hooks\\use-toast.ts",
       "source_location": "L171",
       "id": "use_toast_usetoast",
-      "community": 19,
+      "community": 18,
       "norm_label": "usetoast()"
     },
     {
@@ -6039,7 +6084,7 @@
       "source_file": "frontend\\hooks\\use-mobile.ts",
       "source_location": "L1",
       "id": "frontend_hooks_use_mobile_ts",
-      "community": 66,
+      "community": 65,
       "norm_label": "use-mobile.ts"
     },
     {
@@ -6048,7 +6093,7 @@
       "source_file": "frontend\\hooks\\use-toast.ts",
       "source_location": "L1",
       "id": "frontend_hooks_use_toast_ts",
-      "community": 19,
+      "community": 18,
       "norm_label": "use-toast.ts"
     },
     {
@@ -6057,7 +6102,7 @@
       "source_file": "frontend\\lib\\album-order-utils.ts",
       "source_location": "L1",
       "id": "frontend_lib_album_order_utils_ts",
-      "community": 23,
+      "community": 19,
       "norm_label": "album-order-utils.ts"
     },
     {
@@ -6066,7 +6111,7 @@
       "source_file": "frontend\\lib\\album-order-utils.ts",
       "source_location": "L4",
       "id": "album_order_utils_spreadstoflipbookpages",
-      "community": 23,
+      "community": 19,
       "norm_label": "spreadstoflipbookpages()"
     },
     {
@@ -6111,7 +6156,7 @@
       "source_file": "frontend\\lib\\google-drive.ts",
       "source_location": "L1",
       "id": "frontend_lib_google_drive_ts",
-      "community": 8,
+      "community": 1,
       "norm_label": "google-drive.ts"
     },
     {
@@ -6120,7 +6165,7 @@
       "source_file": "frontend\\lib\\google-drive.ts",
       "source_location": "L25",
       "id": "google_drive_loadgooglescripts",
-      "community": 8,
+      "community": 1,
       "norm_label": "loadgooglescripts()"
     },
     {
@@ -6129,7 +6174,7 @@
       "source_file": "frontend\\lib\\google-drive.ts",
       "source_location": "L48",
       "id": "google_drive_authenticategoogledrive",
-      "community": 8,
+      "community": 1,
       "norm_label": "authenticategoogledrive()"
     },
     {
@@ -6138,7 +6183,7 @@
       "source_file": "frontend\\lib\\magazine-templates.ts",
       "source_location": "L1",
       "id": "frontend_lib_magazine_templates_ts",
-      "community": 123,
+      "community": 122,
       "norm_label": "magazine-templates.ts"
     },
     {
@@ -6147,7 +6192,7 @@
       "source_file": "frontend\\lib\\magazine-templates.ts",
       "source_location": "L197",
       "id": "magazine_templates_clonetemplatespreads",
-      "community": 123,
+      "community": 122,
       "norm_label": "clonetemplatespreads()"
     },
     {
@@ -6183,7 +6228,7 @@
       "source_file": "frontend\\lib\\product-type.ts",
       "source_location": "L1",
       "id": "frontend_lib_product_type_ts",
-      "community": 37,
+      "community": 36,
       "norm_label": "product-type.ts"
     },
     {
@@ -6192,7 +6237,7 @@
       "source_file": "frontend\\lib\\product-type.ts",
       "source_location": "L3",
       "id": "product_type_isproducttype",
-      "community": 37,
+      "community": 36,
       "norm_label": "isproducttype()"
     },
     {
@@ -6201,7 +6246,7 @@
       "source_file": "frontend\\lib\\product-type.ts",
       "source_location": "L7",
       "id": "product_type_inferalbumproducttype",
-      "community": 37,
+      "community": 36,
       "norm_label": "inferalbumproducttype()"
     },
     {
@@ -6210,7 +6255,7 @@
       "source_file": "frontend\\lib\\product-type.ts",
       "source_location": "L25",
       "id": "product_type_infertemplateproducttype",
-      "community": 37,
+      "community": 36,
       "norm_label": "infertemplateproducttype()"
     },
     {
@@ -6219,7 +6264,7 @@
       "source_file": "frontend\\lib\\product-type.ts",
       "source_location": "L32",
       "id": "product_type_producttypelabel",
-      "community": 37,
+      "community": 36,
       "norm_label": "producttypelabel()"
     },
     {
@@ -6327,7 +6372,7 @@
       "source_file": "frontend\\lib\\utils.ts",
       "source_location": "L1",
       "id": "frontend_lib_utils_ts",
-      "community": 124,
+      "community": 123,
       "norm_label": "utils.ts"
     },
     {
@@ -6336,7 +6381,7 @@
       "source_file": "frontend\\lib\\utils.ts",
       "source_location": "L4",
       "id": "utils_cn",
-      "community": 124,
+      "community": 123,
       "norm_label": "cn()"
     },
     {
@@ -6876,7 +6921,7 @@
       "source_file": "frontend\\lib\\actions\\settings.ts",
       "source_location": "L1",
       "id": "frontend_lib_actions_settings_ts",
-      "community": 10,
+      "community": 9,
       "norm_label": "settings.ts"
     },
     {
@@ -6885,7 +6930,7 @@
       "source_file": "frontend\\lib\\actions\\settings.ts",
       "source_location": "L8",
       "id": "settings_getsystemsettings",
-      "community": 10,
+      "community": 9,
       "norm_label": "getsystemsettings()"
     },
     {
@@ -6894,7 +6939,7 @@
       "source_file": "frontend\\lib\\actions\\settings.ts",
       "source_location": "L26",
       "id": "settings_validatepromocode",
-      "community": 10,
+      "community": 9,
       "norm_label": "validatepromocode()"
     },
     {
@@ -6903,7 +6948,7 @@
       "source_file": "frontend\\lib\\supabase\\admin.ts",
       "source_location": "L1",
       "id": "frontend_lib_supabase_admin_ts",
-      "community": 23,
+      "community": 19,
       "norm_label": "admin.ts"
     },
     {
@@ -6912,7 +6957,7 @@
       "source_file": "frontend\\lib\\supabase\\admin.ts",
       "source_location": "L3",
       "id": "admin_createadminclient",
-      "community": 23,
+      "community": 19,
       "norm_label": "createadminclient()"
     },
     {
@@ -6921,7 +6966,7 @@
       "source_file": "frontend\\lib\\supabase\\client.ts",
       "source_location": "L1",
       "id": "frontend_lib_supabase_client_ts",
-      "community": 125,
+      "community": 124,
       "norm_label": "client.ts"
     },
     {
@@ -6930,7 +6975,7 @@
       "source_file": "frontend\\lib\\supabase\\client.ts",
       "source_location": "L3",
       "id": "client_createclient",
-      "community": 125,
+      "community": 124,
       "norm_label": "createclient()"
     },
     {
@@ -6984,7 +7029,7 @@
       "source_file": "frontend\\types\\page-flip.d.ts",
       "source_location": "L1",
       "id": "frontend_types_page_flip_d_ts",
-      "community": 126,
+      "community": 125,
       "norm_label": "page-flip.d.ts"
     },
     {
@@ -6993,7 +7038,7 @@
       "source_file": "frontend\\types\\page-flip.d.ts",
       "source_location": "L2",
       "id": "page_flip_d_pageflip",
-      "community": 126,
+      "community": 125,
       "norm_label": "pageflip"
     }
   ],
@@ -7105,6 +7150,18 @@
       "_tgt": "add_updated_at_run",
       "source": "index_query",
       "target": "add_updated_at_run"
+    },
+    {
+      "relation": "calls",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "backend\\src\\scratch\\check-artists-table.ts",
+      "source_location": "L6",
+      "weight": 1.0,
+      "_src": "check_artists_table_check",
+      "_tgt": "index_query",
+      "source": "index_query",
+      "target": "check_artists_table_check"
     },
     {
       "relation": "calls",
@@ -7277,6 +7334,18 @@
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
+      "source_file": "backend\\src\\scratch\\check-artists-table.ts",
+      "source_location": "L3",
+      "weight": 1.0,
+      "_src": "backend_src_scratch_check_artists_table_ts",
+      "_tgt": "check_artists_table_check",
+      "source": "backend_src_scratch_check_artists_table_ts",
+      "target": "check_artists_table_check",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
       "source_file": "backend\\src\\scratch\\check-db.ts",
       "source_location": "L3",
       "weight": 1.0,
@@ -7321,6 +7390,54 @@
       "_tgt": "printprocessor_processprintjob",
       "source": "test_print_export_runtest",
       "target": "printprocessor_processprintjob"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "backend\\src\\scratch\\test-published-endpoint.ts",
+      "source_location": "L4",
+      "weight": 1.0,
+      "_src": "backend_src_scratch_test_published_endpoint_ts",
+      "_tgt": "test_published_endpoint_test",
+      "source": "backend_src_scratch_test_published_endpoint_ts",
+      "target": "test_published_endpoint_test",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "backend\\src\\utils\\pricing.ts",
+      "source_location": "L46",
+      "weight": 1.0,
+      "_src": "pricing_validatepostalcode",
+      "_tgt": "test_published_endpoint_test",
+      "source": "test_published_endpoint_test",
+      "target": "pricing_validatepostalcode"
+    },
+    {
+      "relation": "calls",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "backend\\src\\utils\\pricing.ts",
+      "source_location": "L82",
+      "weight": 1.0,
+      "_src": "pricing_getshippingaddresserrors",
+      "_tgt": "test_published_endpoint_test",
+      "source": "test_published_endpoint_test",
+      "target": "pricing_getshippingaddresserrors"
+    },
+    {
+      "relation": "calls",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "frontend\\app\\(dashboard)\\dashboard\\templates\\editor\\[id]\\page.tsx",
+      "source_location": "L13",
+      "weight": 1.0,
+      "_src": "page_isuuid",
+      "_tgt": "test_published_endpoint_test",
+      "source": "test_published_endpoint_test",
+      "target": "page_isuuid"
     },
     {
       "relation": "contains",
@@ -11994,7 +12111,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "frontend\\components\\events\\guest-list.tsx",
-      "source_location": "L65",
+      "source_location": "L63",
       "weight": 1.0,
       "_src": "frontend_components_events_guest_list_tsx",
       "_tgt": "guest_list_copycode",
@@ -12006,7 +12123,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "frontend\\components\\events\\guest-list.tsx",
-      "source_location": "L72",
+      "source_location": "L70",
       "weight": 1.0,
       "_src": "frontend_components_events_guest_list_tsx",
       "_tgt": "guest_list_copylink",
@@ -12018,7 +12135,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "frontend\\components\\events\\guest-list.tsx",
-      "source_location": "L79",
+      "source_location": "L77",
       "weight": 1.0,
       "_src": "frontend_components_events_guest_list_tsx",
       "_tgt": "guest_list_copycolcode",
@@ -12030,7 +12147,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "frontend\\components\\events\\guest-list.tsx",
-      "source_location": "L86",
+      "source_location": "L84",
       "weight": 1.0,
       "_src": "frontend_components_events_guest_list_tsx",
       "_tgt": "guest_list_copycollink",
@@ -12042,7 +12159,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "frontend\\components\\events\\guest-list.tsx",
-      "source_location": "L93",
+      "source_location": "L91",
       "weight": 1.0,
       "_src": "frontend_components_events_guest_list_tsx",
       "_tgt": "guest_list_handlegeneratecolcode",
@@ -12054,7 +12171,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "frontend\\components\\events\\guest-list.tsx",
-      "source_location": "L99",
+      "source_location": "L97",
       "weight": 1.0,
       "_src": "frontend_components_events_guest_list_tsx",
       "_tgt": "guest_list_handleremove",
