@@ -110,7 +110,7 @@ export function DashboardNav({ user, profile }: DashboardNavProps) {
                   <Link href="/dashboard/admin" className="text-primary font-semibold">Admin Panel</Link>
                 </DropdownMenuItem>
               )}
-              {(profile?.role === 'artist' || user.email === 'artist@folio.com') && (
+              {((profile as any)?.role === 'artist' || user.email === 'artist@folio.com') && (
                 <DropdownMenuItem asChild>
                   <Link href="/dashboard/artist" className="text-[#B85C38] dark:text-[#D4845E] font-semibold">Artist Studio</Link>
                 </DropdownMenuItem>
