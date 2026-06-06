@@ -7113,8 +7113,8 @@
       "source_file": "backend\\src\\scratch\\check-db.ts",
       "source_location": "L5",
       "weight": 1.0,
-      "_src": "check_db_check",
-      "_tgt": "index_query",
+      "_src": "index_query",
+      "_tgt": "check_db_check",
       "source": "index_query",
       "target": "check_db_check"
     },
