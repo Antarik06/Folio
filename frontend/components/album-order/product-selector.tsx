@@ -2,40 +2,63 @@
 
 import React from 'react'
 import { Check, BookOpen } from 'lucide-react'
-import { PRODUCT_LABELS, UNIT_PRICE_CENTS, MAX_PAGES, MIN_PAGES, formatPrice } from '@/lib/pricing'
+import { PRODUCT_LABELS, formatPrice } from '@/lib/pricing'
 
 interface ProductSelectorProps {
   value: 'softcover' | 'hardcover'
   onChange: (value: 'softcover' | 'hardcover') => void
   disabled?: boolean
+  /** Unit prices in paise, keyed by product type, from system_settings. */
+  pricing?: Record<string, number>
+  /** Maximum pages per product type, from system_settings. */
+  pageLimits?: Record<string, number>
+  /** Minimum pages for any printed book, from system_settings. */
+  minPages?: number
 }
 
-const PRODUCT_DETAILS = {
+const PRODUCT_COPY = {
   softcover: {
     label: PRODUCT_LABELS.softcover,
-    price: formatPrice(UNIT_PRICE_CENTS.softcover),
     paper: 'Premium matte paper',
     binding: 'Perfect binding',
-    pageRange: `${MIN_PAGES}–${MAX_PAGES.softcover} pages`,
     description: 'A beautiful, lightweight book perfect for everyday memories.',
   },
   hardcover: {
     label: PRODUCT_LABELS.hardcover,
-    price: formatPrice(UNIT_PRICE_CENTS.hardcover),
     paper: 'Lustre photo paper',
     binding: 'Layflat hardcover',
-    pageRange: `${MIN_PAGES}–${MAX_PAGES.hardcover} pages`,
     description: 'Premium quality with lay-flat pages — our finest offering.',
   },
 } as const
 
-export function ProductSelector({ value, onChange, disabled = false }: ProductSelectorProps) {
+export function ProductSelector({
+  value,
+  onChange,
+  disabled = false,
+  pricing,
+  pageLimits,
+  minPages,
+}: ProductSelectorProps) {
+  // Prices and page ranges come from system_settings, the same source the server
+  // charges from. They used to be hardcoded constants, so any price the admin
+  // set in the dashboard was quoted incorrectly on this screen.
+  const priceFor = (type: 'softcover' | 'hardcover') =>
+    pricing?.[type] ?? (type === 'softcover' ? 89900 : 149900)
+  const maxPagesFor = (type: 'softcover' | 'hardcover') =>
+    pageLimits?.[type] ?? (type === 'softcover' ? 80 : 120)
+  const minPageCount = minPages ?? 24
+
   return (
     <div className="space-y-4">
       <label className="block text-sm font-medium text-foreground">Product Type</label>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {(['softcover', 'hardcover'] as const).map((type) => {
-          const details = PRODUCT_DETAILS[type]
+          const copy = PRODUCT_COPY[type]
+          const details = {
+            ...copy,
+            price: formatPrice(priceFor(type)),
+            pageRange: `${minPageCount}–${maxPagesFor(type)} pages`,
+          }
           const isSelected = value === type
 
           return (

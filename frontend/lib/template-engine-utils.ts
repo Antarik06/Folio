@@ -83,8 +83,9 @@ interface AutoFillPhoto {
 
 /**
  * Groups and sorts photos chronologically using EXIF or created date.
+ * Module-private: only autoFillAlbum consumes it.
  */
-export function smartSortPhotos(photos: AutoFillPhoto[]): AutoFillPhoto[] {
+function smartSortPhotos(photos: AutoFillPhoto[]): AutoFillPhoto[] {
   return [...photos].sort((a, b) => {
     const timeA = new Date(a.taken_at || a.exif_data?.DateTimeOriginal || a.created_at || 0).getTime()
     const timeB = new Date(b.taken_at || b.exif_data?.DateTimeOriginal || b.created_at || 0).getTime()

@@ -1,6 +1,7 @@
 import { query } from '../db'
 import { supabaseAdmin } from './supabaseClient'
 import { getRelativePath } from './storage'
+import { SCRATCH_DIR } from './paths'
 import sharp from 'sharp'
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib'
 import fs from 'fs'
@@ -116,6 +117,11 @@ export async function processPrintJob(orderId: string, logCallback: (msg: string
   const pdfDoc = await PDFDocument.create()
   const helveticaFont = await pdfDoc.embedFont(StandardFonts.Helvetica)
 
+  // Tracked so the preflight report shows when artwork silently fell back to
+  // placeholder boxes instead of reporting a clean success.
+  let imagesEmbedded = 0
+  let imagesFailed = 0
+
   // Scale factors from Konva coordinate space (700x1000) to points
   const scaleX = pageWidthPoints / SPREAD_WIDTH
   const scaleY = pageHeightPoints / SPREAD_HEIGHT
@@ -197,14 +203,14 @@ export async function processPrintJob(orderId: string, logCallback: (msg: string
             const imgBuffer = Buffer.from(arrayBuffer)
 
             // Crop & convert using sharp
-            let processed = sharp(imgBuffer)
+            let processed = sharp(imgBuffer, { failOn: 'none' }).rotate()
             if (el.crop) {
               const meta = await processed.metadata()
               const imgW = meta.width || 0
               const imgH = meta.height || 0
               if (imgW && imgH) {
-                const left = Math.round((el.crop.x || 0) * imgW)
-                const top = Math.round((el.crop.y || 0) * imgH)
+                const left = Math.max(0, Math.round((el.crop.x || 0) * imgW))
+                const top = Math.max(0, Math.round((el.crop.y || 0) * imgH))
                 const width = Math.round((el.crop.width || 1) * imgW)
                 const height = Math.round((el.crop.height || 1) * imgH)
                 if (width > 0 && height > 0 && left + width <= imgW && top + height <= imgH) {
@@ -213,9 +219,16 @@ export async function processPrintJob(orderId: string, logCallback: (msg: string
               }
             }
 
-            // Convert to CMYK space
-            processed = processed.toColourspace('cmyk')
-            const outBuffer = await processed.toBuffer()
+            // Encode as a baseline RGB JPEG. Two things were wrong before:
+            // toBuffer() without a format kept the source encoding (a PNG would
+            // then be handed to embedJpg), and pdf-lib cannot embed CMYK JPEGs
+            // at all — so every image fell through to the placeholder box.
+            // Ghostscript performs the CMYK conversion later, during the PDF/X-4
+            // step, which is the correct place for it.
+            const outBuffer = await processed
+              .toColourspace('srgb')
+              .jpeg({ quality: 92, chromaSubsampling: '4:4:4', mozjpeg: false })
+              .toBuffer()
 
             // Embed & Draw
             const embeddedImg = await pdfDoc.embedJpg(outBuffer)
@@ -225,8 +238,10 @@ export async function processPrintJob(orderId: string, logCallback: (msg: string
               width: elW,
               height: elH
             })
+            imagesEmbedded++
             logCallback(`Successfully rendered image: ${el.name || el.id}`)
           } catch (imgErr: any) {
+            imagesFailed++
             logCallback(`Error processing image ${el.id}: ${imgErr.message}`)
             // Fallback: draw placeholder box
             page.drawRectangle({
@@ -246,10 +261,17 @@ export async function processPrintJob(orderId: string, logCallback: (msg: string
           }
         } else if (el.type === 'text' && el.text) {
           logCallback(`Drawing text: ${el.text}`)
+          const fontSize = (el.fontSize || 12) * scaleY
+          // drawText positions the baseline of the first line, while element
+          // coordinates describe the top-left of the text box. Without this
+          // offset every text block sat one box-height too low.
+          const baselineY = pdfY + elH - fontSize
           page.drawText(el.text, {
             x: pdfX,
-            y: pdfY,
-            size: (el.fontSize || 12) * scaleY,
+            y: baselineY,
+            size: fontSize,
+            lineHeight: fontSize * 1.2,
+            maxWidth: elW,
             font: helveticaFont,
             color: hexToRgb(el.fill || '#000000')
           })
@@ -260,7 +282,7 @@ export async function processPrintJob(orderId: string, logCallback: (msg: string
 
   // 3. Save PDF locally, then attempt PDF/X-4 GS compilation
   const pdfBytes = await pdfDoc.save()
-  const tempDir = path.join(process.cwd(), 'backend', 'scratch')
+  const tempDir = SCRATCH_DIR
   if (!fs.existsSync(tempDir)) {
     fs.mkdirSync(tempDir, { recursive: true })
   }
@@ -341,7 +363,12 @@ export async function processPrintJob(orderId: string, logCallback: (msg: string
       success: true,
       preflight: preflightSuccess ? 'passed' : 'warning',
       ghostscript: gsMessage,
-      pageCount: spreads.length * 2, // approximation
+      // Real page count from the document, not spreads * 2: covers contribute
+      // one page and a trailing spread may only have a front.
+      pageCount: pdfDoc.getPageCount(),
+      spreadCount: spreads.length,
+      imagesEmbedded,
+      imagesFailed,
       timestamp: new Date().toISOString()
     }
   }

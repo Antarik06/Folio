@@ -3,7 +3,9 @@ import cors from 'cors'
 import dotenv from 'dotenv'
 import apiRoutes from './routes'
 import errorMiddleware from './middlewares/errorMiddleware'
-import { query } from './db'
+import { query, pool } from './db'
+import { startPrintQueueDaemon } from './services/printQueue'
+import { SCRATCH_DIR } from './utils/paths'
 
 dotenv.config()
 
@@ -51,11 +53,13 @@ async function ensureAdminProfile() {
       console.warn('Note: auth.users table not found; skipping auth user seeding.')
     }
 
+    // The role column is what authorizes admin/artist access, so the seed must
+    // set it — DO NOTHING would leave a pre-existing row on the default role.
     try {
       await query(`
-        INSERT INTO public.profiles (id, email, full_name, avatar_url)
-        VALUES ($1, $2, $3, '')
-        ON CONFLICT (id) DO NOTHING
+        INSERT INTO public.profiles (id, email, full_name, avatar_url, role)
+        VALUES ($1, $2, $3, '', 'admin')
+        ON CONFLICT (id) DO UPDATE SET role = 'admin'
       `, [adminId, 'admin@folio.com', 'Super Admin'])
       console.log('Super Admin profile verified/created in database.')
     } catch (err) {
@@ -64,9 +68,9 @@ async function ensureAdminProfile() {
 
     try {
       await query(`
-        INSERT INTO public.profiles (id, email, full_name, avatar_url)
-        VALUES ($1, $2, $3, '')
-        ON CONFLICT (id) DO NOTHING
+        INSERT INTO public.profiles (id, email, full_name, avatar_url, role)
+        VALUES ($1, $2, $3, '', 'artist')
+        ON CONFLICT (id) DO UPDATE SET role = 'artist'
       `, [artistId, 'artist@folio.com', 'Independent Artist'])
       console.log('Independent Artist profile verified/created in database.')
     } catch (err) {
@@ -76,7 +80,6 @@ async function ensureAdminProfile() {
     console.error('Error ensuring mock profiles:', err)
   }
 }
-ensureAdminProfile()
 
 const app = express()
 const PORT = process.env.PORT || 5000
@@ -124,11 +127,9 @@ app.use(cors({
 }))
 
 
-import path from 'path'
-
 app.use(express.json({ limit: '10mb' }))
 app.use(express.urlencoded({ extended: true, limit: '10mb' }))
-app.use('/scratch', express.static(path.join(process.cwd(), 'backend', 'scratch')))
+app.use('/scratch', express.static(SCRATCH_DIR))
 
 // Mount the modular routes
 app.use('/api', apiRoutes)
@@ -138,18 +139,38 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date() })
 })
 
-import { startPrintQueueDaemon } from './services/printQueue'
+// Unknown API paths should 404 as JSON rather than fall through to the error
+// handler with an HTML body.
+app.use('/api', (req, res) => {
+  res.status(404).json({ error: `Not found: ${req.method} ${req.originalUrl}` })
+})
 
 // Centralized error handling middleware
 app.use(errorMiddleware)
 
-// Start listening
-app.listen(PORT, () => {
-  console.log(`==========================================`)
-  console.log(`Folio Modular Backend running on port ${PORT}`)
-  console.log(`Active CORS origins: ${allowedOrigins.join(', ')}`)
-  console.log(`==========================================`)
-  
-  // Start background print queue worker daemon
-  startPrintQueueDaemon()
-})
+// Seed the staff accounts before accepting traffic, then start listening.
+ensureAdminProfile()
+  .catch((err) => console.error('Startup seeding failed:', err))
+  .finally(() => {
+    const server = app.listen(PORT, () => {
+      console.log(`==========================================`)
+      console.log(`Folio Modular Backend running on port ${PORT}`)
+      console.log(`Active CORS origins: ${allowedOrigins.join(', ')}`)
+      console.log(`==========================================`)
+
+      // Start background print queue worker daemon
+      startPrintQueueDaemon()
+    })
+
+    const shutdown = (signal: string) => {
+      console.log(`\nReceived ${signal}, shutting down gracefully...`)
+      server.close(() => {
+        pool.end().finally(() => process.exit(0))
+      })
+      // Do not hang forever on a stuck connection.
+      setTimeout(() => process.exit(1), 10000).unref()
+    }
+
+    process.on('SIGTERM', () => shutdown('SIGTERM'))
+    process.on('SIGINT', () => shutdown('SIGINT'))
+  })

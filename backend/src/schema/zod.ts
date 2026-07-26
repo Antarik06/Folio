@@ -23,13 +23,50 @@ export const shippingAddressSchema = z.object({
   phone: z.string().min(1, 'Phone number is required.').regex(/^[+]?[0-9\s-]{10,15}$/, 'Please enter a valid phone number (10-15 digits).'),
 })
 
-export const createOrderSchema = z.object({
-  albumId: z.string().uuid('Invalid album ID.'),
-  productType: z.enum(['softcover', 'hardcover']),
-  size: z.enum(['small', 'large']),
-  quantity: z.number().int().min(1).max(10),
-  shippingAddress: shippingAddressSchema,
+/**
+ * Polaroid images must be durable http(s) URLs. The studio used to hand over
+ * `blob:` object URLs, which resolve only inside the tab that created them — so
+ * orders were stored with references no server, printer or other device could
+ * ever fetch.
+ */
+const durableImageUrl = z
+  .string()
+  .refine((v) => /^https?:\/\//i.test(v), {
+    message: 'Photos must be uploaded before ordering.',
+  })
+
+export const polaroidMetadataSchema = z.object({
+  images: z.array(durableImageUrl).default([]),
+  frame: z.string().optional(),
+  quantities: z.array(z.number().int().min(0)).default([]),
 })
+
+export const createOrderSchema = z
+  .object({
+    // Polaroid orders are not tied to an album, so albumId is optional here and
+    // required conditionally below.
+    albumId: z.string().uuid('Invalid album ID.').optional(),
+    productType: z.enum(['softcover', 'hardcover', 'polaroid']),
+    size: z.enum(['small', 'large']),
+    // Upper bound is enforced server-side against the min_max_copies setting.
+    quantity: z.number().int().min(1),
+    shippingAddress: shippingAddressSchema,
+    promoCode: z.string().trim().min(1).max(64).optional(),
+    metadata: polaroidMetadataSchema.optional(),
+  })
+  .refine((data) => data.productType === 'polaroid' || Boolean(data.albumId), {
+    message: 'Album ID is required.',
+    path: ['albumId'],
+  })
+  .refine(
+    (data) =>
+      data.productType !== 'polaroid' ||
+      (data.metadata?.images?.length ?? 0) > 0,
+    {
+      message: 'Select at least one photo for your polaroid prints.',
+      path: ['metadata'],
+    }
+  )
 
 export const renameAlbumSchema = z.object({
   title: z.string().min(1, 'Album name cannot be empty.'),

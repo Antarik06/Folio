@@ -459,10 +459,30 @@ function Editor({ pages, edits, setEdits, onPreview }: {
 }) {
   const [activeIdx, setActiveIdx] = useState(0)
 
+  // Every object URL minted here is held until explicitly revoked. Replacing a
+  // page image used to strand the previous blob in memory for the lifetime of
+  // the document, which adds up fast with multi-megabyte photos.
+  const objectUrlsRef = useRef<Set<string>>(new Set())
+
+  useEffect(() => {
+    const urls = objectUrlsRef.current
+    return () => {
+      urls.forEach((url) => URL.revokeObjectURL(url))
+      urls.clear()
+    }
+  }, [])
+
   const update = (field: keyof EditedPage, val: string) => {
     const next = [...edits]
+    const previous = next[activeIdx]?.[field]
     next[activeIdx] = { ...next[activeIdx], [field]: val }
     setEdits(next)
+
+    // Release the value being replaced, if we created it.
+    if (typeof previous === 'string' && objectUrlsRef.current.has(previous)) {
+      URL.revokeObjectURL(previous)
+      objectUrlsRef.current.delete(previous)
+    }
   }
 
   const handleImageUpload = (field: 'photo' | 'photo2') => {
@@ -472,6 +492,7 @@ function Editor({ pages, edits, setEdits, onPreview }: {
       const file = input.files?.[0]
       if (!file) return
       const url = URL.createObjectURL(file)
+      objectUrlsRef.current.add(url)
       update(field, url)
     }
     input.click()

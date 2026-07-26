@@ -1,26 +1,33 @@
 import { query } from '../db'
-import { eventService } from './eventService'
+import { eventService, PHOTO_COLUMNS, EVENT_PHOTO_LIMIT } from './eventService'
+import { deleteStorageObjects } from '../utils/storage'
 
 export const photoService = {
   /**
    * For guest: returns approved photos + their own uploads.
    * For manager: returns all photos.
    */
-  async getEventPhotos(eventId: string, userId: string): Promise<any[]> {
+  async getEventPhotos(eventId: string, userId: string, limit = EVENT_PHOTO_LIMIT, offset = 0): Promise<any[]> {
     const isManager = await eventService.assertManager(eventId, userId)
+    const safeLimit = Math.min(Math.max(1, limit), EVENT_PHOTO_LIMIT)
+    const safeOffset = Math.max(0, offset)
 
     if (isManager) {
       const photosRes = await query(
-        'SELECT * FROM public.photos WHERE event_id = $1 ORDER BY created_at DESC',
-        [eventId]
+        `SELECT ${PHOTO_COLUMNS} FROM public.photos
+         WHERE event_id = $1
+         ORDER BY created_at DESC
+         LIMIT $2 OFFSET $3`,
+        [eventId, safeLimit, safeOffset]
       )
       return photosRes.rows
     } else {
       const photosRes = await query(
-        `SELECT * FROM public.photos 
+        `SELECT ${PHOTO_COLUMNS} FROM public.photos
          WHERE event_id = $1 AND (uploader_id = $2 OR (status = 'approved' AND is_shared = TRUE))
-         ORDER BY created_at DESC`,
-        [eventId, userId]
+         ORDER BY created_at DESC
+         LIMIT $3 OFFSET $4`,
+        [eventId, userId, safeLimit, safeOffset]
       )
       return photosRes.rows
     }
@@ -83,7 +90,10 @@ export const photoService = {
    * Rejects (deletes) a pending guest photo. Manager only.
    */
   async rejectPhoto(photoId: string, userId: string): Promise<void> {
-    const photoRes = await query('SELECT event_id FROM public.photos WHERE id = $1', [photoId])
+    const photoRes = await query(
+      'SELECT event_id, blob_pathname, blob_url, thumbnail_url FROM public.photos WHERE id = $1',
+      [photoId]
+    )
     const photo = photoRes.rows[0]
     if (!photo) {
       throw new Error('Photo not found.')
@@ -95,26 +105,34 @@ export const photoService = {
     }
 
     await query('DELETE FROM public.photos WHERE id = $1', [photoId])
+    await deleteStorageObjects([photo.blob_pathname, photo.blob_url, photo.thumbnail_url])
   },
 
   /**
    * Deletes a photo. Managers can delete all, guests can delete only their own.
    */
   async deletePhoto(photoId: string, userId: string): Promise<void> {
-    const photoRes = await query('SELECT event_id, uploader_id FROM public.photos WHERE id = $1', [photoId])
+    const photoRes = await query(
+      'SELECT event_id, uploader_id, blob_pathname, blob_url, thumbnail_url FROM public.photos WHERE id = $1',
+      [photoId]
+    )
     const photo = photoRes.rows[0]
     if (!photo) {
       throw new Error('Photo not found.')
     }
 
-    const isManager = await eventService.assertManager(photo.event_id, userId)
     const isUploader = photo.uploader_id === userId
+    // Skip the role lookup entirely when the caller owns the photo.
+    const isManager = isUploader ? false : await eventService.assertManager(photo.event_id, userId)
 
     if (!isManager && !isUploader) {
       throw new Error('Not authorized.')
     }
 
     await query('DELETE FROM public.photos WHERE id = $1', [photoId])
+    // Drop the underlying objects too, otherwise the bucket keeps growing with
+    // files no row references any more.
+    await deleteStorageObjects([photo.blob_pathname, photo.blob_url, photo.thumbnail_url])
   },
 
   /**
@@ -130,23 +148,39 @@ export const photoService = {
     fileSize?: number
     width?: number
     height?: number
-    isHostPhoto?: boolean
-    status?: 'pending' | 'approved' | 'rejected'
     folderId?: string | null
   }): Promise<any> {
-    // If uploader is manager, auto-approve photo. Else it goes in as pending or defaults.
+    // If uploader is manager, auto-approve photo. Else it goes in as pending
+    // unless the host enabled auto-approval for guest uploads.
     const isManager = await eventService.assertManager(input.eventId, input.uploaderId)
+
+    let finalStatus: 'pending' | 'approved' | 'rejected' = 'approved'
+
     if (!isManager) {
       const eventRes = await query('SELECT settings FROM public.events WHERE id = $1', [input.eventId])
       const event = eventRes.rows[0]
-      const settings = event?.settings || {}
+      if (!event) {
+        throw new Error('Event not found.')
+      }
+
+      // Only participants may upload at all.
+      const roleInfo = await eventService.getUserEventRole(input.eventId, input.uploaderId)
+      if (!roleInfo.role) {
+        throw new Error('You are not a participant of this event.')
+      }
+
+      const settings = event.settings && typeof event.settings === 'object' ? event.settings : {}
       const allowGuestUploads = settings.allow_guest_uploads ?? false
       if (!allowGuestUploads) {
         throw new Error('Only event hosts and collaborators can upload photos.')
       }
+
+      // The moderation state is decided here, never by the client: a guest was
+      // previously able to post status:'approved' and skip review entirely.
+      const autoApprove = settings.auto_approve_guest_uploads === true
+      finalStatus = autoApprove ? 'approved' : 'pending'
     }
 
-    const finalStatus = input.status ?? (isManager ? 'approved' : 'pending')
     const uploadedRole = isManager ? 'host' : 'guest'
 
     const insertRes = await query(
@@ -164,7 +198,7 @@ export const photoService = {
         input.fileSize || 0,
         input.width || 0,
         input.height || 0,
-        input.isHostPhoto ?? isManager,
+        isManager,
         finalStatus,
         uploadedRole,
         input.folderId || null

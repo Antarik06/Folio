@@ -11,12 +11,9 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.107.0",
-    "@upstash/redis": "^1.37.0",
     "adm-zip": "^0.5.17",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
-    "drizzle-kit": "^0.31.10",
-    "drizzle-orm": "^0.45.2",
     "express": "^4.21.1",
     "fast-xml-parser": "^5.8.0",
     "jsonwebtoken": "^9.0.2",

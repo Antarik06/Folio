@@ -1,4 +1,5 @@
 import { Response } from 'express'
+import { sendError } from '../utils/httpError'
 import { AuthenticatedRequest } from '../middlewares/authMiddleware'
 import { settingsService } from '../services/settingsService'
 
@@ -30,7 +31,7 @@ export const settingsController = {
         min_max_copies: all.min_max_copies || { min: 1, max: 10 }
       })
     } catch (err: any) {
-      res.status(500).json({ error: err.message })
+      sendError(res, err)
     }
   },
 
@@ -43,7 +44,7 @@ export const settingsController = {
       const all = await settingsService.getAllSettings()
       res.json(all)
     } catch (err: any) {
-      res.status(500).json({ error: err.message })
+      sendError(res, err)
     }
   },
 
@@ -64,7 +65,7 @@ export const settingsController = {
 
       res.json({ success: true, message: 'Settings updated successfully' })
     } catch (err: any) {
-      res.status(500).json({ error: err.message })
+      sendError(res, err)
     }
   },
 
@@ -77,7 +78,7 @@ export const settingsController = {
       const promos = await settingsService.getPromoCodes()
       res.json(promos)
     } catch (err: any) {
-      res.status(500).json({ error: err.message })
+      sendError(res, err)
     }
   },
 
@@ -101,7 +102,7 @@ export const settingsController = {
       })
       res.json(newPromo)
     } catch (err: any) {
-      res.status(500).json({ error: err.message })
+      sendError(res, err)
     }
   },
 
@@ -119,7 +120,7 @@ export const settingsController = {
         res.status(404).json({ error: 'Promo code not found.' })
       }
     } catch (err: any) {
-      res.status(500).json({ error: err.message })
+      sendError(res, err)
     }
   },
 
@@ -136,7 +137,7 @@ export const settingsController = {
       const result = await settingsService.validatePromoCode(code as string, orderAmount)
       res.json(result)
     } catch (err: any) {
-      res.status(500).json({ error: err.message })
+      sendError(res, err)
     }
   }
 }

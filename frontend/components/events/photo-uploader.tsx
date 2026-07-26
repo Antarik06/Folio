@@ -121,6 +121,54 @@ async function convertHeicToJpeg(blob: Blob): Promise<Blob> {
   return converted
 }
 
+const THUMBNAIL_MAX_EDGE = 640
+const MAX_UPLOAD_MB = 50
+const MAX_UPLOAD_BYTES = MAX_UPLOAD_MB * 1024 * 1024
+
+/** HEIC/TIFF often arrive with an empty or generic MIME type, so allow by extension too. */
+const ALLOWED_EXTENSIONS = /\.(jpe?g|png|gif|webp|avif|bmp|heic|heif|tiff?)$/i
+
+function isAcceptableUpload(file: File): boolean {
+  if (file.size === 0 || file.size > MAX_UPLOAD_BYTES) return false
+  if (file.type.startsWith('image/')) return true
+  return ALLOWED_EXTENSIONS.test(file.name)
+}
+
+/**
+ * Downscales an image blob to a JPEG thumbnail in the browser, and reports the
+ * source dimensions so they can be persisted alongside the photo.
+ */
+async function createThumbnail(
+  source: Blob
+): Promise<{ blob: Blob; width: number; height: number }> {
+  const bitmap = await createImageBitmap(source)
+  try {
+    const { width, height } = bitmap
+    const scale = Math.min(1, THUMBNAIL_MAX_EDGE / Math.max(width, height))
+    const targetW = Math.max(1, Math.round(width * scale))
+    const targetH = Math.max(1, Math.round(height * scale))
+
+    const canvas = document.createElement('canvas')
+    canvas.width = targetW
+    canvas.height = targetH
+    const ctx = canvas.getContext('2d')
+    if (!ctx) throw new Error('Could not initialize canvas context')
+    ctx.drawImage(bitmap, 0, 0, targetW, targetH)
+
+    const blob = await new Promise<Blob>((resolve, reject) => {
+      canvas.toBlob(
+        (b) => (b ? resolve(b) : reject(new Error('Failed to encode thumbnail'))),
+        'image/jpeg',
+        0.82
+      )
+    })
+
+    return { blob, width, height }
+  } finally {
+    bitmap.close?.()
+  }
+}
+
 export function PhotoUploader({
   eventId,
   isManager = false,
@@ -184,11 +232,14 @@ export function PhotoUploader({
             const { data: { user: verifiedUser } } = await supabase.auth.getUser()
             if (!verifiedUser) throw new Error('Not authenticated')
             const { data: { session } } = await supabase.auth.getSession()
+            // The Google token travels in a header, not the query string, so it
+            // does not end up in server access logs or browser history.
             const response = await fetch(
-              `${BACKEND_URL}/api/photos/proxy-google-drive?fileId=${driveFile.id}&token=${item.token}`,
+              `${BACKEND_URL}/api/photos/proxy-google-drive?fileId=${encodeURIComponent(driveFile.id)}`,
               {
                 headers: {
                   Authorization: `Bearer ${session?.access_token || ''}`,
+                  'X-Google-Token': item.token || '',
                 },
               }
             )
@@ -243,8 +294,13 @@ export function PhotoUploader({
             }
           }
 
-          // Generate file path
-          const randomString = Math.random().toString(36).substring(2, 15)
+          // Generate file path. crypto.randomUUID avoids the collision risk of
+          // Math.random(), which would make a concurrent upload fail on an
+          // already-existing object name.
+          const randomString =
+            typeof crypto !== 'undefined' && 'randomUUID' in crypto
+              ? crypto.randomUUID()
+              : `${Date.now()}-${Math.random().toString(36).slice(2, 11)}`
           const filePath = `${eventId}/${randomString}.${fileExt}`
 
           setUploadQueue(prev =>
@@ -267,12 +323,38 @@ export function PhotoUploader({
           // Fetch public URL
           const { data: { publicUrl } } = supabase.storage.from('photos').getPublicUrl(filePath)
 
-          // Insert photo record in db
+          // Generate and upload a thumbnail. Without one the gallery fell back
+          // to blob_url and every grid tile downloaded the full-resolution
+          // original — several MB per photo.
+          let thumbnailUrl: string | undefined
+          let dimensions: { width: number; height: number } | undefined
+          try {
+            const thumb = await createThumbnail(uploadPayload)
+            dimensions = { width: thumb.width, height: thumb.height }
+            const thumbPath = `${eventId}/thumbs/${randomString}.jpg`
+            const { error: thumbErr } = await supabase.storage
+              .from('photos')
+              .upload(thumbPath, thumb.blob, { contentType: 'image/jpeg' })
+            if (!thumbErr) {
+              thumbnailUrl = supabase.storage.from('photos').getPublicUrl(thumbPath).data.publicUrl
+            }
+          } catch (thumbErr) {
+            // Non-fatal: the backend falls back to the full image.
+            console.warn('Thumbnail generation failed, using original:', thumbErr)
+          }
+
+          // Insert photo record in db.
+          // Moderation status is decided server-side from the uploader's role
+          // and the event settings, so it is deliberately not sent here.
           await apiClient.post('/api/photos', {
             eventId,
             blobUrl: publicUrl,
-            status: isManager ? 'approved' : 'pending',
-            originalFilename: finalName
+            blobPathname: filePath,
+            thumbnailUrl,
+            originalFilename: finalName,
+            fileSize: (uploadPayload as any).size ?? 0,
+            width: dimensions?.width,
+            height: dimensions?.height
           })
 
           setUploadQueue(prev =>
@@ -309,7 +391,22 @@ export function PhotoUploader({
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) throw new Error('Not authenticated')
 
-      const newItems = Array.from(files).map((file, idx) => ({
+      // Reject oversized or non-image files up front rather than after a long
+      // upload that the storage bucket would refuse anyway.
+      const selected = Array.from(files)
+      const rejected = selected.filter((f) => !isAcceptableUpload(f))
+      const accepted = selected.filter(isAcceptableUpload)
+
+      if (rejected.length > 0) {
+        alert(
+          `Skipped ${rejected.length} file(s). Photos must be images under ${MAX_UPLOAD_MB} MB:\n` +
+            rejected.slice(0, 5).map((f) => `• ${f.name}`).join('\n')
+        )
+      }
+
+      if (accepted.length === 0) return
+
+      const newItems = accepted.map((file, idx) => ({
         id: `local-${Date.now()}-${idx}-${Math.random().toString(36).substring(2, 6)}`,
         name: file.name,
         progress: 0,
@@ -318,7 +415,7 @@ export function PhotoUploader({
       }))
 
       setUploadQueue(prev => [...prev, ...newItems])
-      
+
       // Start batch upload
       await runUploadBatch(newItems)
     } catch (err: any) {

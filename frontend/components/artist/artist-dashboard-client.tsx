@@ -312,17 +312,6 @@ export function ArtistDashboardClient({
       const supabase = createClient()
       const { data } = await supabase.auth.getSession()
       token = data?.session?.access_token || ''
-      
-      if (!token && typeof document !== 'undefined') {
-        const cookies = document.cookie.split(';')
-        const artistCookie = cookies.find(c => c.trim().startsWith('artist_session='))
-        const adminCookie = cookies.find(c => c.trim().startsWith('admin_session='))
-        if (artistCookie) {
-          token = artistCookie.split('=')[1].trim()
-        } else if (adminCookie) {
-          token = adminCookie.split('=')[1].trim()
-        }
-      }
     } catch (err) {
       console.warn('Failed to retrieve session token for PDF proxy:', err)
     }
@@ -384,17 +373,6 @@ export function ArtistDashboardClient({
       const supabase = createClient()
       const { data } = await supabase.auth.getSession()
       token = data?.session?.access_token || ''
-      
-      if (!token && typeof document !== 'undefined') {
-        const cookies = document.cookie.split(';')
-        const artistCookie = cookies.find(c => c.trim().startsWith('artist_session='))
-        const adminCookie = cookies.find(c => c.trim().startsWith('admin_session='))
-        if (artistCookie) {
-          token = artistCookie.split('=')[1].trim()
-        } else if (adminCookie) {
-          token = adminCookie.split('=')[1].trim()
-        }
-      }
     } catch (err) {
       console.warn('Failed to retrieve session token for proxy:', err)
     }

@@ -25,50 +25,28 @@ export const BACKEND_URL = getSanitizedBackendUrl()
 export async function clientFetch(path: string, options: RequestInit = {}) {
   const supabase = createBrowserClient()
 
-  let user = null
+  // getSession() reads (and transparently refreshes) the locally stored session
+  // without a network round-trip on every call. The token itself is verified
+  // server-side by the backend on each request, so an extra getUser() hop here
+  // would only add latency to every single API call.
   let session = null
-
-  try {
-    const { data } = await supabase.auth.getUser()
-    user = data?.user
-  } catch (err) {
-    console.warn('clientFetch: supabase.auth.getUser network error, falling back to local session:', err)
-  }
-
   try {
     const { data } = await supabase.auth.getSession()
     session = data?.session
-    if (!user && session) {
-      user = session.user
-    }
   } catch (err) {
     console.error('clientFetch: Failed to get session:', err)
   }
 
-  let token = session?.access_token || null
+  const token = session?.access_token || null
 
-  if (!token && typeof document !== 'undefined') {
-    const cookies = document.cookie.split(';')
-    const artistCookie = cookies.find(c => c.trim().startsWith('artist_session='))
-    const adminCookie = cookies.find(c => c.trim().startsWith('admin_session='))
-    if (artistCookie) {
-      token = artistCookie.split('=')[1].trim()
-    } else if (adminCookie) {
-      token = adminCookie.split('=')[1].trim()
-    }
-  }
-
-  if (!user && !token) {
+  if (!token) {
     throw new Error('Not authenticated')
   }
 
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
-    ...(options.headers as Record<string, string> || {})
-  }
-
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`
+    ...(options.headers as Record<string, string> || {}),
+    Authorization: `Bearer ${token}`
   }
 
   const response = await fetch(`${BACKEND_URL}${path}`, {

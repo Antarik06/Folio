@@ -76,9 +76,3 @@ export interface AlbumSpread {
   back?: AlbumPageSide
 }
 
-export interface AlbumState {
-  spreads: AlbumSpread[]
-  activeSpreadId: string | null
-  selection: string[] // array of selected element ids
-  zoom: number
-}

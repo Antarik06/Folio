@@ -1,11 +1,9 @@
-import { cookies } from 'next/headers'
 import { redirect, notFound } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
 import { AlbumEditor } from '@/components/album-editor'
 import { ALL_MAGAZINE_TEMPLATES } from '@/lib/magazine-templates'
 import { serverFetch } from '@/lib/api-client'
 import { autoFillAlbum } from '@/lib/template-engine-utils'
-import { getUser } from '@/lib/actions/auth'
+import { getUser, getAuthToken } from '@/lib/actions/auth'
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 
@@ -28,18 +26,7 @@ export default async function SimpleTemplateEditorPage({ params }: Props) {
     redirect('/auth/login')
   }
 
-  // Get authentication token (checking mock cookies first, then Supabase session)
-  const cookieStore = await cookies()
-  let token: string | null = null
-  if (cookieStore.get('artist_session')?.value === 'artist-secret-token') {
-    token = 'artist-secret-token'
-  } else if (cookieStore.get('admin_session')?.value === 'admin-secret-token') {
-    token = 'admin-secret-token'
-  } else {
-    const supabase = await createClient()
-    const { data: { session } } = await supabase.auth.getSession()
-    token = session?.access_token || null
-  }
+  const token = await getAuthToken()
 
   let album: any = null
   try {

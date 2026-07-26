@@ -1,4 +1,5 @@
 import { Response } from 'express'
+import { sendError } from '../utils/httpError'
 import { AuthenticatedRequest } from '../middlewares/authMiddleware'
 import { photoService } from '../services/photoService'
 
@@ -18,7 +19,7 @@ export const photoController = {
       const photos = await photoService.getEventPhotos(eventId, userId)
       res.json(photos)
     } catch (error: any) {
-      res.status(500).json({ error: error.message })
+      sendError(res, error)
     }
   },
 
@@ -41,8 +42,6 @@ export const photoController = {
         fileSize,
         width,
         height,
-        isHostPhoto,
-        status,
         folderId
       } = req.body
 
@@ -50,6 +49,9 @@ export const photoController = {
         return res.status(400).json({ error: 'Event ID and Blob URL are required.' })
       }
 
+      // `status` and `isHostPhoto` are deliberately not read from the body:
+      // moderation state is decided server-side from the uploader's role and
+      // the event's auto-approval setting.
       const photo = await photoService.registerPhoto({
         eventId,
         uploaderId: userId,
@@ -60,14 +62,12 @@ export const photoController = {
         fileSize,
         width,
         height,
-        isHostPhoto,
-        status,
         folderId
       })
 
       res.status(201).json({ success: true, photo })
     } catch (error: any) {
-      res.status(500).json({ error: error.message })
+      sendError(res, error)
     }
   },
 
@@ -86,7 +86,7 @@ export const photoController = {
       const isShared = await photoService.togglePhotoShared(photoId, userId)
       res.json({ success: true, isShared })
     } catch (error: any) {
-      res.status(500).json({ error: error.message })
+      sendError(res, error)
     }
   },
 
@@ -105,7 +105,7 @@ export const photoController = {
       await photoService.shareAllPhotos(eventId, userId)
       res.json({ success: true })
     } catch (error: any) {
-      res.status(500).json({ error: error.message })
+      sendError(res, error)
     }
   },
 
@@ -124,7 +124,7 @@ export const photoController = {
       await photoService.approvePhoto(photoId, userId)
       res.json({ success: true })
     } catch (error: any) {
-      res.status(500).json({ error: error.message })
+      sendError(res, error)
     }
   },
 
@@ -143,7 +143,7 @@ export const photoController = {
       await photoService.rejectPhoto(photoId, userId)
       res.json({ success: true })
     } catch (error: any) {
-      res.status(500).json({ error: error.message })
+      sendError(res, error)
     }
   },
 
@@ -162,7 +162,7 @@ export const photoController = {
       await photoService.deletePhoto(photoId, userId)
       res.json({ success: true })
     } catch (error: any) {
-      res.status(500).json({ error: error.message })
+      sendError(res, error)
     }
   },
 
@@ -182,7 +182,7 @@ export const photoController = {
       const photo = await photoService.movePhoto(photoId, folderId || null, userId)
       res.json({ success: true, photo })
     } catch (error: any) {
-      res.status(500).json({ error: error.message })
+      sendError(res, error)
     }
   },
 
@@ -205,7 +205,7 @@ export const photoController = {
       const photo = await photoService.updatePhotoTags(photoId, peopleTags, userId)
       res.json({ success: true, photo })
     } catch (error: any) {
-      res.status(500).json({ error: error.message })
+      sendError(res, error)
     }
   },
 
@@ -225,7 +225,7 @@ export const photoController = {
       const photo = await photoService.updatePhotoLocation(photoId, location || null, userId)
       res.json({ success: true, photo })
     } catch (error: any) {
-      res.status(500).json({ error: error.message })
+      sendError(res, error)
     }
   },
 
@@ -234,14 +234,27 @@ export const photoController = {
    */
   async proxyGoogleDrive(req: AuthenticatedRequest, res: Response) {
     try {
-      const fileId = req.query.fileId as string
-      const token = req.query.token as string
+      const fileId = (req.query.fileId as string) || (req.body?.fileId as string)
+      // Prefer the header: an OAuth token in the query string ends up in access
+      // logs, browser history and any Referer sent onward. The query parameter
+      // is still accepted so older clients keep working.
+      const headerToken = req.headers['x-google-token']
+      const token =
+        (typeof headerToken === 'string' ? headerToken : undefined) ||
+        (req.body?.token as string) ||
+        (req.query.token as string)
 
       if (!fileId || !token) {
-        return res.status(400).json({ error: 'fileId and token are required query parameters.' })
+        return res.status(400).json({ error: 'fileId and a Google access token are required.' })
       }
 
-      console.log(`[Proxy] Fetching Google Drive file: ${fileId} with token: ...${token.substring(Math.max(0, token.length - 8))}`)
+      // Google Drive file ids are opaque but always URL-safe; reject anything
+      // else so the id cannot alter the request path.
+      if (!/^[A-Za-z0-9_-]{10,200}$/.test(fileId)) {
+        return res.status(400).json({ error: 'Invalid Google Drive file id.' })
+      }
+
+      console.log(`[Proxy] Fetching Google Drive file: ${fileId}`)
 
       const googleResponse = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, {
         headers: {
@@ -263,7 +276,7 @@ export const photoController = {
       res.send(buffer)
     } catch (error: any) {
       console.error('[Proxy] Google Drive proxy failed:', error)
-      res.status(500).json({ error: error.message })
+      sendError(res, error)
     }
   }
 }

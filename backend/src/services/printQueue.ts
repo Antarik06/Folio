@@ -17,15 +17,25 @@ export async function processNextJob() {
   }
 
   try {
-    // 1. Fetch next queued job
+    // 1 + 2. Claim the next queued job atomically.
+    // The previous read-then-update sequence, guarded only by a module-level
+    // boolean, let two server instances (or a restarted process) pick up the
+    // same job and render it twice. FOR UPDATE SKIP LOCKED makes the claim
+    // exclusive across every worker sharing the database.
     const jobRes = await query(
-      `SELECT id, order_id FROM public.print_jobs 
-       WHERE status = 'queued' 
-       ORDER BY queued_at ASC LIMIT 1`
+      `UPDATE public.print_jobs
+       SET status = 'processing', started_at = NOW()
+       WHERE id = (
+         SELECT id FROM public.print_jobs
+         WHERE status = 'queued'
+         ORDER BY queued_at ASC
+         FOR UPDATE SKIP LOCKED
+         LIMIT 1
+       )
+       RETURNING id, order_id`
     )
 
     if (jobRes.rows.length === 0) {
-      isProcessing = false
       return
     }
 
@@ -33,15 +43,7 @@ export async function processNextJob() {
     jobId = job.id
     orderId = job.order_id
 
-    addLog(`Found queued job ${jobId} for order ${orderId}`)
-
-    // 2. Lock job
-    await query(
-      `UPDATE public.print_jobs 
-       SET status = 'processing', started_at = NOW() 
-       WHERE id = $1`,
-      [jobId]
-    )
+    addLog(`Claimed queued job ${jobId} for order ${orderId}`)
 
     // 3. Process
     const { pdfPath, report } = await processPrintJob(orderId!, addLog)
@@ -54,12 +56,19 @@ export async function processNextJob() {
       [jobId, pdfPath, JSON.stringify(report), logs.join('\n')]
     )
 
-    // 5. Update order to sent-to-print
+    // 5. Update order to sent-to-print.
+    // preflight_report_path previously stored the PDF url; the report itself
+    // lives on the print job, so point at that instead of duplicating the PDF.
     await query(
-      `UPDATE public.orders 
-       SET status = 'sent-to-print', print_ready_pdf_path = $2, preflight_report_path = $3, print_job_id = $1, updated_at = NOW()
+      `UPDATE public.orders
+       SET status = 'sent-to-print',
+           print_ready_pdf_path = $2,
+           preflight_report_path = $3,
+           print_job_id = $1,
+           tracking_status = 'printed',
+           updated_at = NOW()
        WHERE id = $4`,
-      [jobId, pdfPath, pdfPath, orderId]
+      [jobId, pdfPath, `print_jobs/${jobId}`, orderId]
     )
 
     addLog(`Job ${jobId} finished successfully`)
@@ -93,12 +102,27 @@ export async function processNextJob() {
 }
 
 export function startPrintQueueDaemon(intervalMs: number = 15000) {
+  if (process.env.DISABLE_PRINT_QUEUE === 'true') {
+    console.log('[PrintQueue] Daemon disabled via DISABLE_PRINT_QUEUE.')
+    return
+  }
+
   console.log('[PrintQueue] Print queue daemon started.')
-  setInterval(async () => {
+
+  // A self-rescheduling timeout rather than setInterval: a job that takes
+  // longer than the interval no longer stacks up pending ticks behind it.
+  const tick = async () => {
     try {
       await processNextJob()
     } catch (err: any) {
       console.error('[PrintQueue] Unexpected loop error:', err.message)
+    } finally {
+      timer = setTimeout(tick, intervalMs)
+      // Do not hold the event loop open just for the poller.
+      timer.unref?.()
     }
-  }, intervalMs)
+  }
+
+  let timer = setTimeout(tick, intervalMs)
+  timer.unref?.()
 }

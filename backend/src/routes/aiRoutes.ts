@@ -4,11 +4,11 @@ import authMiddleware from '../middlewares/authMiddleware'
 
 const router = Router()
 
-// Public search route for stocks assets
-router.get('/elements/search', aiController.searchGraphics)
-
-// Public/proxied Gemini assistant (open, but can be protected if desired)
-router.post('/assistant', aiController.geminiAssistant)
+// These proxy calls to third-party APIs using this server's own keys, so they
+// must not be open to the internet — an unauthenticated endpoint here is a
+// direct billing and quota liability.
+router.get('/elements/search', authMiddleware, aiController.searchGraphics)
+router.post('/assistant', authMiddleware, aiController.geminiAssistant)
 
 // Private face enroll (requires active JWT)
 router.post('/events/:eventId/enroll-face', authMiddleware, aiController.enrollFace)

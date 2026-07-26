@@ -1,4 +1,5 @@
 import { Response } from 'express'
+import { sendError } from '../utils/httpError'
 import { AuthenticatedRequest } from '../middlewares/authMiddleware'
 import { albumService } from '../services/albumService'
 import { createAlbumShareToken } from '../utils/shareToken'
@@ -20,7 +21,7 @@ export const albumController = {
       const albums = await albumService.listAlbums(userId)
       res.json(albums)
     } catch (error: any) {
-      res.status(500).json({ error: error.message })
+      sendError(res, error)
     }
   },
 
@@ -39,7 +40,7 @@ export const albumController = {
       const album = await albumService.getAlbum(albumId, userId)
       res.json(album)
     } catch (error: any) {
-      res.status(500).json({ error: error.message })
+      sendError(res, error)
     }
   },
 
@@ -69,7 +70,7 @@ export const albumController = {
 
       res.status(201).json(album)
     } catch (error: any) {
-      res.status(500).json({ error: error.message })
+      sendError(res, error)
     }
   },
 
@@ -93,7 +94,7 @@ export const albumController = {
       const album = await albumService.updateAlbumLayout(albumId, layout, field || 'layout_data', userId)
       res.json({ success: true, album })
     } catch (error: any) {
-      res.status(500).json({ error: error.message })
+      sendError(res, error)
     }
   },
 
@@ -117,7 +118,7 @@ export const albumController = {
       const album = await albumService.renameAlbum(albumId, parsed.data.title, userId)
       res.json({ success: true, album })
     } catch (error: any) {
-      res.status(500).json({ error: error.message })
+      sendError(res, error)
     }
   },
 
@@ -141,7 +142,7 @@ export const albumController = {
       const album = await albumService.updateAlbumCoverPhoto(albumId, parsed.data.coverPhotoId, userId)
       res.json({ success: true, album })
     } catch (error: any) {
-      res.status(500).json({ error: error.message })
+      sendError(res, error)
     }
   },
 
@@ -160,7 +161,7 @@ export const albumController = {
       await albumService.deleteAlbum(albumId, userId)
       res.json({ success: true })
     } catch (error: any) {
-      res.status(500).json({ error: error.message })
+      sendError(res, error)
     }
   },
 
@@ -191,12 +192,16 @@ export const albumController = {
 
       const token = createAlbumShareToken(tokenPayload)
       const path = `/album/share/${token}`
-      const origin = req.headers.origin || 'http://localhost:3000'
+      // Build the link from the configured site URL. The Origin header is
+      // attacker-controlled and absent on non-CORS requests, which produced
+      // share links pointing at localhost in production.
+      const configuredOrigin = (process.env.FRONTEND_URL || '').split(',')[0].trim().replace(/\/$/, '')
+      const origin = configuredOrigin || 'http://localhost:3000'
       const shareUrl = `${origin}${path}`
 
       res.json({ shareUrl, expiresInHours: DEFAULT_EXPIRY_HOURS })
     } catch (error: any) {
-      res.status(500).json({ error: error.message })
+      sendError(res, error)
     }
   },
 
@@ -209,7 +214,7 @@ export const albumController = {
       const sharedData = await albumService.getSharedAlbumByToken(token)
       res.json(sharedData)
     } catch (error: any) {
-      res.status(400).json({ error: error.message })
+      sendError(res, error)
     }
   },
 
@@ -229,7 +234,7 @@ export const albumController = {
       const album = await albumService.updateDeliveryInstructions(albumId, deliveryInstructions || null, userId)
       res.json({ success: true, album })
     } catch (error: any) {
-      res.status(500).json({ error: error.message })
+      sendError(res, error)
     }
   },
 
@@ -249,7 +254,7 @@ export const albumController = {
       const album = await albumService.updatePublishStatus(albumId, !!isPublished, userId)
       res.json({ success: true, album })
     } catch (error: any) {
-      res.status(500).json({ error: error.message })
+      sendError(res, error)
     }
   },
 
@@ -261,7 +266,7 @@ export const albumController = {
       const albums = await albumService.listPublishedAlbums()
       res.json(albums)
     } catch (error: any) {
-      res.status(500).json({ error: error.message })
+      sendError(res, error)
     }
   }
 }

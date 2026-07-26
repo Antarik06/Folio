@@ -1,28 +1,9 @@
 'use server'
 
 import { serverFetch } from '@/lib/api-client'
-import { createClient } from '@/lib/supabase/server'
+import { getAuthToken } from '@/lib/actions/auth'
 import { revalidatePath } from 'next/cache'
-import { cookies } from 'next/headers'
 
-async function getAuthToken() {
-  const cookieStore = await cookies()
-  const isAdmin = cookieStore.get('admin_session')?.value === 'admin-secret-token'
-  if (isAdmin) {
-    return 'admin-secret-token'
-  }
-  const isArtist = cookieStore.get('artist_session')?.value === 'artist-secret-token'
-  if (isArtist) {
-    return 'artist-secret-token'
-  }
-  const supabase = await createClient()
-  // Verify user identity with the Auth server (prevents session spoofing)
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return null
-  // Get session only for the access token
-  const { data: { session } } = await supabase.auth.getSession()
-  return session?.access_token || null
-}
 
 export async function createOrder(input: any) {
   try {

@@ -1,4 +1,5 @@
 import { Response } from 'express'
+import { sendError } from '../utils/httpError'
 import { AuthenticatedRequest } from '../middlewares/authMiddleware'
 import { adminService } from '../services/adminService'
 
@@ -23,7 +24,7 @@ export const adminController = {
       const users = await adminService.getAllUsers()
       res.json(users)
     } catch (error: any) {
-      res.status(500).json({ error: error.message })
+      sendError(res, error)
     }
   },
 
@@ -37,7 +38,7 @@ export const adminController = {
       const events = await adminService.getUserEvents(userId)
       res.json(events)
     } catch (error: any) {
-      res.status(500).json({ error: error.message })
+      sendError(res, error)
     }
   },
 
@@ -51,7 +52,7 @@ export const adminController = {
       const photos = await adminService.getEventPhotos(eventId)
       res.json(photos)
     } catch (error: any) {
-      res.status(500).json({ error: error.message })
+      sendError(res, error)
     }
   },
 
@@ -65,7 +66,7 @@ export const adminController = {
       const albums = await adminService.getEventAlbums(eventId)
       res.json(albums)
     } catch (error: any) {
-      res.status(500).json({ error: error.message })
+      sendError(res, error)
     }
   },
 
@@ -78,7 +79,7 @@ export const adminController = {
       const orders = await adminService.getAllOrders()
       res.json(orders)
     } catch (error: any) {
-      res.status(500).json({ error: error.message })
+      sendError(res, error)
     }
   },
 
@@ -96,7 +97,7 @@ export const adminController = {
       const updatedOrder = await adminService.updateOrderStatus(orderId, status)
       res.json({ success: true, order: updatedOrder })
     } catch (error: any) {
-      res.status(400).json({ error: error.message })
+      sendError(res, error)
     }
   },
 
@@ -114,7 +115,7 @@ export const adminController = {
       const updatedProfile = await adminService.toggleUserBan(userId, isBanned)
       res.json({ success: true, user: updatedProfile })
     } catch (error: any) {
-      res.status(400).json({ error: error.message })
+      sendError(res, error)
     }
   },
 
@@ -127,7 +128,7 @@ export const adminController = {
       const artists = await adminService.listArtists()
       res.json(artists)
     } catch (error: any) {
-      res.status(500).json({ error: error.message })
+      sendError(res, error)
     }
   },
 
@@ -142,7 +143,7 @@ export const adminController = {
       const updatedOrder = await adminService.assignArtistToOrder(orderId, artistId || null)
       res.json({ success: true, order: updatedOrder })
     } catch (error: any) {
-      res.status(400).json({ error: error.message })
+      sendError(res, error)
     }
   },
 
@@ -157,7 +158,7 @@ export const adminController = {
       const updatedProject = await adminService.assignArtistToPremiumProject(projectId, artistId || null)
       res.json({ success: true, project: updatedProject })
     } catch (error: any) {
-      res.status(400).json({ error: error.message })
+      sendError(res, error)
     }
   }
 }

@@ -1,5 +1,3 @@
-import { createClient } from '@/lib/supabase/server'
-import { cookies } from 'next/headers'
 import { notFound, redirect } from 'next/navigation'
 import { EventHeader } from '@/components/events/event-header'
 import { PhotoGrid } from '@/components/events/photo-grid'
@@ -11,7 +9,7 @@ import { TemplateSelector } from '@/components/events/template-selector'
 import { serverFetch } from '@/lib/api-client'
 import { createAlbumAction } from '@/lib/actions/events'
 import { CreateAlbumFlow } from '@/components/events/create-album-flow'
-import { getUser } from '@/lib/actions/auth'
+import { getUser, getAuthToken } from '@/lib/actions/auth'
 
 
 interface Props {
@@ -24,18 +22,7 @@ export default async function EventDetailPage({ params }: Props) {
   if (!user) redirect('/auth/login')
 
   // Get authentication token (checking mock cookies first, then Supabase session)
-  const cookieStore = await cookies()
-  let token: string | null = null
-
-  if (cookieStore.get('artist_session')?.value === 'artist-secret-token') {
-    token = 'artist-secret-token'
-  } else if (cookieStore.get('admin_session')?.value === 'admin-secret-token') {
-    token = 'admin-secret-token'
-  } else {
-    const supabase = await createClient()
-    const { data: { session } } = await supabase.auth.getSession()
-    token = session?.access_token || null
-  }
+  const token = await getAuthToken()
 
   // Fetch event details from backend
   let details: any = null

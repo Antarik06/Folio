@@ -1,31 +1,17 @@
 import { Router, Response } from 'express'
-import authMiddleware, { AuthenticatedRequest } from '../middlewares/authMiddleware'
+import authMiddleware, { AuthenticatedRequest, requireRole } from '../middlewares/authMiddleware'
 import { query } from '../db'
 import { parseIDML } from '../utils/idmlParser'
 import { getSignedUrl } from '../utils/storage'
+import { assertSafeExternalUrl, fetchWithLimits } from '../utils/safeFetch'
+import { notificationService } from '../services/notificationService'
 
 const router = Router()
 
-// Helper to enforce that only artists can access these routes
-async function assertArtist(req: AuthenticatedRequest, res: Response, next: any) {
-  const userId = req.user?.id
-  if (!userId) {
-    return res.status(401).json({ error: 'Unauthenticated' })
-  }
-
-  // Double check user role in profiles
-  const profileRes = await query('SELECT role FROM public.profiles WHERE id = $1', [userId])
-  const role = profileRes.rows[0]?.role
-
-  if (role !== 'artist' && req.user?.role !== 'artist') {
-    return res.status(403).json({ error: 'Access Denied: Artist privileges required.' })
-  }
-
-  next()
-}
-
 router.use(authMiddleware)
-router.use(assertArtist)
+// req.user.role is resolved from profiles.role by authMiddleware, so no extra
+// per-request profile lookup is needed here.
+router.use(requireRole('artist'))
 
 /**
  * GET /api/artists/stats
@@ -159,21 +145,20 @@ router.get('/templates/proxy-pdf', async (req: AuthenticatedRequest, res: Respon
       return res.status(400).json({ error: 'URL parameter is required.' })
     }
 
-    if (!url.startsWith('http://') && !url.startsWith('https://')) {
-      return res.status(400).json({ error: 'Invalid URL. Only HTTP and HTTPS protocols are supported.' })
-    }
+    // Reject loopback/private targets before issuing any server-side request.
+    const parsedUrl = await assertSafeExternalUrl(url)
+    const targetUrl = parsedUrl.toString()
 
-    let targetUrl = url
     console.log(`[PDF Proxy] Fetching external PDF: ${targetUrl}`)
-    let response = await fetch(targetUrl)
+    let { response, buffer: responseBuffer } = await fetchWithLimits(targetUrl)
 
     // Check if this is a Google Drive URL and we got an HTML warning/login page
-    const isGoogleDrive = targetUrl.includes('drive.google.com') || targetUrl.includes('docs.google.com')
-    let contentType = response.headers.get('content-type') || ''
-    
+    const isGoogleDrive = parsedUrl.hostname.endsWith('drive.google.com') || parsedUrl.hostname.endsWith('docs.google.com')
+    const contentType = response.headers.get('content-type') || ''
+
     if (isGoogleDrive && contentType.includes('text/html') && response.ok) {
-      const htmlText = await response.text()
-      
+      const htmlText = responseBuffer.toString('utf-8')
+
       // Parse hidden input elements from the warning HTML form
       const inputs: Record<string, string> = {}
       const inputRegex = /<input[^>]*type=["']hidden["'][^>]*>/gi
@@ -223,14 +208,15 @@ router.get('/templates/proxy-pdf', async (req: AuthenticatedRequest, res: Respon
         }
 
         const confirmUrl = `${actionUrl}?${urlParams.toString()}`
-        
+
         // Follow redirect or issue next request
-        response = await fetch(confirmUrl)
-        contentType = response.headers.get('content-type') || ''
+        await assertSafeExternalUrl(confirmUrl)
+        const confirmed = await fetchWithLimits(confirmUrl)
+        response = confirmed.response
+        responseBuffer = confirmed.buffer
       } else {
         // Not a warning page (e.g. folder or custom HTML)
-        const buffer = Buffer.from(htmlText)
-        return validateAndSendBuffer(buffer, res)
+        return validateAndSendBuffer(responseBuffer, res)
       }
     }
 
@@ -238,10 +224,7 @@ router.get('/templates/proxy-pdf', async (req: AuthenticatedRequest, res: Respon
       return res.status(response.status).json({ error: `External server returned status: ${response.statusText} (${response.status})` })
     }
 
-    // Read response bytes
-    const arrayBuffer = await response.arrayBuffer()
-    const buffer = Buffer.from(arrayBuffer)
-    return validateAndSendBuffer(buffer, res)
+    return validateAndSendBuffer(responseBuffer, res)
   } catch (error: any) {
     console.error('[PDF Proxy Error]', error)
     res.status(500).json({ error: error.message || 'Failed to proxy PDF file' })
@@ -428,8 +411,6 @@ router.get('/orders', async (req: AuthenticatedRequest, res: Response) => {
  * POST /api/artists/orders/:id/review
  * Approves, requests changes, or escalates an order
  */
-import { notificationService } from '../services/notificationService'
-
 router.post('/orders/:id/review', async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { id } = req.params
@@ -449,16 +430,42 @@ router.post('/orders/:id/review', async (req: AuthenticatedRequest, res: Respons
       return res.status(403).json({ error: 'Not authorized to review this order.' })
     }
 
+    if (order.payment_status !== 'paid') {
+      return res.status(400).json({ error: 'This order has not been paid for yet.' })
+    }
+
     let nextStatus = order.status
     if (action === 'approve') {
+      if (order.status === 'approved') {
+        return res.status(409).json({ error: 'This order has already been approved.' })
+      }
       nextStatus = 'approved'
-      
-      // Auto queue print job!
-      await query(
+
+      // Auto queue print job — only if this order has no live job already, so a
+      // double submit cannot enqueue the same order twice.
+      const queued = await query(
         `INSERT INTO public.print_jobs (order_id, status)
-         VALUES ($1, 'queued')`,
+         SELECT $1, 'queued'
+         WHERE NOT EXISTS (
+           SELECT 1 FROM public.print_jobs
+           WHERE order_id = $1 AND status IN ('queued', 'processing', 'completed')
+         )
+         RETURNING id`,
         [id]
       )
+      if (queued.rowCount === 0) {
+        console.warn(`[ArtistReview] Print job for order ${id} already exists; skipping enqueue.`)
+      }
+
+      // Release this order from the artist's workload. current_order_count was
+      // only ever incremented, so round-robin assignment drifted permanently
+      // towards whoever joined most recently.
+      if (order.artist_id) {
+        await query(
+          'UPDATE public.artists SET current_order_count = GREATEST(0, current_order_count - 1) WHERE user_id = $1',
+          [order.artist_id]
+        )
+      }
 
       // Notify User: Approved
       await notificationService.sendNotification(
@@ -466,7 +473,7 @@ router.post('/orders/:id/review', async (req: AuthenticatedRequest, res: Respons
         'layout_approved',
         'Layout Approved',
         `Great news! Your layout for order #${id} has been approved and sent to print.`
-      )
+      ).catch(e => console.error('Failed to send approval notification:', e))
     } else if (action === 'request-changes') {
       nextStatus = 'changes-requested'
 
@@ -476,17 +483,21 @@ router.post('/orders/:id/review', async (req: AuthenticatedRequest, res: Respons
         'changes_requested',
         'Changes Requested on Layout',
         `The design artist has requested some revisions on your layout for order #${id}. Comment: "${comment || ''}"`
-      )
+      ).catch(e => console.error('Failed to send changes-requested notification:', e))
     }
 
-    // Insert Revision Round record
-    const roundCountRes = await query('SELECT COUNT(*)::int as count FROM public.revision_rounds WHERE order_id = $1', [id])
-    const roundNumber = (roundCountRes.rows[0]?.count || 0) + 1
+    // Insert Revision Round record. Deriving the round number from MAX() rather
+    // than COUNT() keeps numbering monotonic if an older round is ever removed.
+    const roundCountRes = await query(
+      'SELECT COALESCE(MAX(round_number), 0)::int as last FROM public.revision_rounds WHERE order_id = $1',
+      [id]
+    )
+    const roundNumber = (roundCountRes.rows[0]?.last || 0) + 1
 
     await query(
       `INSERT INTO public.revision_rounds (order_id, round_number, artist_comment, status)
        VALUES ($1, $2, $3, $4)`,
-      [id, roundNumber, comment || '', action === 'approve' ? 'approved' : 'changes-requested']
+      [id, roundNumber, comment || '', action === 'approve' ? 'approved' : action === 'request-changes' ? 'changes-requested' : 'pending']
     )
 
     // Update order status

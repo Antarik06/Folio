@@ -105,12 +105,15 @@ export function DashboardNav({ user, profile }: DashboardNavProps) {
               <DropdownMenuItem asChild>
                 <Link href="/dashboard/premium">Premium Concierge</Link>
               </DropdownMenuItem>
-              {user.email === 'admin@folio.com' && (
+              {/* Role comes from public.profiles, which is also what the backend
+                  authorizes against — matching on an email address made these
+                  links appear for anyone who happened to use that address. */}
+              {(profile as any)?.role === 'admin' && (
                 <DropdownMenuItem asChild>
                   <Link href="/dashboard/admin" className="text-primary font-semibold">Admin Panel</Link>
                 </DropdownMenuItem>
               )}
-              {((profile as any)?.role === 'artist' || user.email === 'artist@folio.com') && (
+              {(profile as any)?.role === 'artist' && (
                 <DropdownMenuItem asChild>
                   <Link href="/dashboard/artist" className="text-[#B85C38] dark:text-[#D4845E] font-semibold">Artist Studio</Link>
                 </DropdownMenuItem>

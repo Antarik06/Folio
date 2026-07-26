@@ -9,6 +9,8 @@ import adminRoutes from './adminRoutes'
 import artistRoutes from './artistRoutes'
 import premiumRoutes from './premiumRoutes'
 import { settingsController } from '../controllers/settingsController'
+import { aiController } from '../controllers/aiController'
+import authMiddleware from '../middlewares/authMiddleware'
 
 const router = Router()
 
@@ -28,7 +30,9 @@ router.get('/promo-codes/validate', settingsController.validatePromoCode)
 // Map AI sub routes
 router.use('/ai', aiRoutes)
 
-// Map /api/elements/search directly for client compat
-router.use('/', aiRoutes)
+// Legacy alias kept for older clients that call /api/elements/search directly.
+// Mounting the whole aiRoutes router at '/' made every unmatched API request
+// walk its stack, and exposed /api/assistant as a second, undocumented path.
+router.get('/elements/search', authMiddleware, aiController.searchGraphics)
 
 export default router

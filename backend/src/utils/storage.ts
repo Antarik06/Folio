@@ -22,6 +22,33 @@ export function getRelativePath(url: string): string {
 }
 
 /**
+ * Removes objects from the photos bucket. Accepts public/signed URLs or raw
+ * paths. Never throws: storage cleanup must not fail the DB operation that
+ * triggered it.
+ */
+export async function deleteStorageObjects(pathsOrUrls: (string | null | undefined)[]): Promise<void> {
+  const paths = Array.from(
+    new Set(
+      pathsOrUrls
+        .filter((p): p is string => Boolean(p))
+        .map(getRelativePath)
+        .filter((p) => Boolean(p) && !p.startsWith('http'))
+    )
+  )
+
+  if (paths.length === 0) return
+
+  try {
+    const { error } = await supabaseAdmin.storage.from(BUCKET_NAME).remove(paths)
+    if (error) {
+      console.warn('Failed to remove storage objects:', error.message)
+    }
+  } catch (err: any) {
+    console.warn('Failed to remove storage objects:', err?.message || err)
+  }
+}
+
+/**
  * Generates a time-limited signed URL for private files in the photos bucket.
  */
 export async function getSignedUrl(pathOrUrl: string, expiresInSeconds: number = 3600): Promise<string> {

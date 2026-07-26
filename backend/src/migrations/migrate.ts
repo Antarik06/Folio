@@ -1,56 +1,78 @@
 import fs from 'fs'
 import path from 'path'
-import { getClient } from '../db'
+import { getClient, pool } from '../db'
 import dotenv from 'dotenv'
 
 dotenv.config()
 
+/**
+ * Migrations are applied in filename order and recorded in
+ * public.schema_migrations, so re-running only applies what is new. Each file
+ * runs in its own transaction: one failure no longer rolls back the whole set.
+ */
 async function runMigrations() {
   console.log('Starting migrations...')
   const client = await getClient()
 
-  const sqlFiles = [
-    '001_schema.sql',
-    '002_seed_templates.sql',
-    '003_guest_face_enrollment.sql',
-    '004_profiles_rls.sql',
-    '005_photo_approval.sql',
-    '006_guest_photo_deletion.sql',
-    '007_folders_and_tagging.sql',
-    '008_delivery_instructions.sql',
-    '009_album_status.sql',
-    '010_payment_tracking.sql',
-    '011_admin_settings.sql',
-    '012_enable_rls.sql',
-    '013_template_system_extensions.sql'
-  ]
-
   try {
-    await client.query('BEGIN')
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS public.schema_migrations (
+        filename TEXT PRIMARY KEY,
+        applied_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      )
+    `)
 
-    for (const file of sqlFiles) {
-      const filePath = path.join(__dirname, file)
-      console.log(`Running migration: ${file}`)
+    const migrationsDir = __dirname
+    const sqlFiles = fs
+      .readdirSync(migrationsDir)
+      .filter((f) => f.endsWith('.sql'))
+      .sort()
 
-      if (!fs.existsSync(filePath)) {
-        throw new Error(`Migration file not found: ${filePath}`)
-      }
-
-      const sql = fs.readFileSync(filePath, 'utf8')
-      await client.query(sql)
-      console.log(`Successfully completed migration: ${file}`)
+    if (sqlFiles.length === 0) {
+      throw new Error(`No .sql migration files found in ${migrationsDir}`)
     }
 
-    await client.query('COMMIT')
-    console.log('All migrations executed successfully!')
+    const appliedRes = await client.query('SELECT filename FROM public.schema_migrations')
+    const applied = new Set<string>(appliedRes.rows.map((r) => r.filename))
+
+    let ran = 0
+    for (const file of sqlFiles) {
+      if (applied.has(file)) {
+        console.log(`Skipping already-applied migration: ${file}`)
+        continue
+      }
+
+      const sql = fs.readFileSync(path.join(migrationsDir, file), 'utf8')
+      console.log(`Running migration: ${file}`)
+
+      try {
+        await client.query('BEGIN')
+        await client.query(sql)
+        await client.query(
+          'INSERT INTO public.schema_migrations (filename) VALUES ($1) ON CONFLICT DO NOTHING',
+          [file]
+        )
+        await client.query('COMMIT')
+        ran++
+        console.log(`Successfully completed migration: ${file}`)
+      } catch (error) {
+        await client.query('ROLLBACK')
+        console.error(`Migration ${file} failed, rolled back that file:`, error)
+        throw error
+      }
+    }
+
+    console.log(ran === 0 ? 'Database already up to date.' : `Applied ${ran} migration(s) successfully!`)
   } catch (error) {
-    await client.query('ROLLBACK')
-    console.error('Migration failed, rolled back changes:', error)
-    process.exit(1)
-  } finally {
+    console.error('Migration run aborted:', error)
     client.release()
-    process.exit(0)
+    await pool.end()
+    process.exit(1)
   }
+
+  client.release()
+  await pool.end()
+  process.exit(0)
 }
 
 runMigrations()

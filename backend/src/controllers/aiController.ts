@@ -1,4 +1,5 @@
 import { Response, Request } from 'express'
+import { sendError } from '../utils/httpError'
 import { AuthenticatedRequest } from '../middlewares/authMiddleware'
 import { aiService } from '../services/aiService'
 
@@ -17,7 +18,7 @@ export const aiController = {
       const result = await aiService.askGemini(prompt, image, task)
       res.json({ result })
     } catch (error: any) {
-      res.status(500).json({ error: error.message || 'Gemini API process failed' })
+      sendError(res, error instanceof Error ? error : new Error('Gemini API process failed'))
     }
   },
 
@@ -35,7 +36,7 @@ export const aiController = {
       const result = await aiService.searchGraphics(q, source, page, perPage, category)
       res.json(result)
     } catch (error: any) {
-      res.status(500).json({ error: error.message || 'Stock elements lookup failed' })
+      sendError(res, error instanceof Error ? error : new Error('Stock elements lookup failed'))
     }
   },
 
@@ -59,7 +60,7 @@ export const aiController = {
       await aiService.enrollFace(eventId, selfieUrl, userId)
       res.json({ success: true })
     } catch (error: any) {
-      res.status(500).json({ error: error.message || 'Face enrollment database update failed' })
+      sendError(res, error instanceof Error ? error : new Error('Face enrollment database update failed'))
     }
   }
 }

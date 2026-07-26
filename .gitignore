@@ -20,7 +20,7 @@ graphify-out
 public/textures
 inspo/
 .opencode/
-
+.claude/
 /graphify-out/*
 !graph.html
 !graph_report.md

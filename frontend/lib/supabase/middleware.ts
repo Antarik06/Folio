@@ -41,14 +41,20 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser()
 
-  if (
-    // if the user is not logged in and the app path, in this case, /protected, is accessed, redirect to the login page
-    request.nextUrl.pathname.startsWith('/protected') &&
-    !user
-  ) {
-    // no user, potentially respond by redirecting the user to the login page
+  // Gate the authenticated areas of the app. The original check pointed at
+  // "/protected", a path this app never had, so /dashboard and /editor were
+  // reachable while signed out and only failed later, deep in a data fetch.
+  const protectedPrefixes = ['/dashboard', '/editor', '/events', '/templates', '/polaroid']
+  const { pathname } = request.nextUrl
+  const isProtected = protectedPrefixes.some(
+    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)
+  )
+
+  if (isProtected && !user) {
     const url = request.nextUrl.clone()
     url.pathname = '/auth/login'
+    // Send the user back where they were headed once they sign in.
+    url.searchParams.set('next', pathname + request.nextUrl.search)
     return NextResponse.redirect(url)
   }
 

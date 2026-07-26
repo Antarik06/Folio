@@ -1,4 +1,5 @@
 import { Response } from 'express'
+import { sendError } from '../utils/httpError'
 import { AuthenticatedRequest } from '../middlewares/authMiddleware'
 import { eventService } from '../services/eventService'
 import { updateEventSettingsSchema } from '../schema/zod'
@@ -19,7 +20,7 @@ export const eventController = {
       const roleInfo = await eventService.getUserEventRole(eventId, userId)
       res.json(roleInfo)
     } catch (error: any) {
-      res.status(500).json({ error: error.message })
+      sendError(res, error)
     }
   },
 
@@ -43,7 +44,7 @@ export const eventController = {
       const event = await eventService.updateEventSettings(eventId, userId, parsedBody.data)
       res.json({ success: true, event })
     } catch (error: any) {
-      res.status(500).json({ error: error.message })
+      sendError(res, error)
     }
   },
 
@@ -66,7 +67,7 @@ export const eventController = {
       const result = await eventService.joinEvent(inviteCode, userId)
       res.json(result)
     } catch (error: any) {
-      res.status(400).json({ error: error.message })
+      sendError(res, error)
     }
   },
 
@@ -88,7 +89,7 @@ export const eventController = {
 
       res.json(event)
     } catch (error: any) {
-      res.status(500).json({ error: error.message })
+      sendError(res, error)
     }
   },
 
@@ -107,7 +108,7 @@ export const eventController = {
       const code = await eventService.generateCollaboratorCode(eventId, userId)
       res.json({ success: true, code })
     } catch (error: any) {
-      res.status(500).json({ error: error.message })
+      sendError(res, error)
     }
   },
 
@@ -127,7 +128,7 @@ export const eventController = {
       await eventService.removeGuest(guestId, eventId, userId)
       res.json({ success: true })
     } catch (error: any) {
-      res.status(500).json({ error: error.message })
+      sendError(res, error)
     }
   },
 
@@ -144,7 +145,7 @@ export const eventController = {
       const events = await eventService.getEventsList(userId)
       res.json(events)
     } catch (error: any) {
-      res.status(500).json({ error: error.message })
+      sendError(res, error)
     }
   },
 
@@ -162,7 +163,7 @@ export const eventController = {
       const details = await eventService.getEventDetails(eventId, userId)
       res.json(details)
     } catch (error: any) {
-      res.status(500).json({ error: error.message })
+      sendError(res, error)
     }
   },
 
@@ -184,7 +185,7 @@ export const eventController = {
       const event = await eventService.createEvent({ title, description, eventDate, settings }, userId)
       res.status(201).json(event)
     } catch (error: any) {
-      res.status(500).json({ error: error.message })
+      sendError(res, error)
     }
   },
 
@@ -201,7 +202,7 @@ export const eventController = {
       const dashboardData = await eventService.getDashboardData(userId)
       res.json(dashboardData)
     } catch (error: any) {
-      res.status(500).json({ error: error.message })
+      sendError(res, error)
     }
   },
 
@@ -220,7 +221,7 @@ export const eventController = {
       await eventService.deleteEvent(eventId, userId)
       res.json({ success: true })
     } catch (error: any) {
-      res.status(500).json({ error: error.message })
+      sendError(res, error)
     }
   },
 
@@ -244,7 +245,7 @@ export const eventController = {
       const guest = await eventService.updateGuestRole(eventId, guestId, role, userId)
       res.json({ success: true, guest })
     } catch (error: any) {
-      res.status(500).json({ error: error.message })
+      sendError(res, error)
     }
   },
 
@@ -267,7 +268,7 @@ export const eventController = {
       const folder = await eventService.createFolder(eventId, parentId || null, name, userId)
       res.status(201).json({ success: true, folder })
     } catch (error: any) {
-      res.status(500).json({ error: error.message })
+      sendError(res, error)
     }
   },
 
@@ -286,7 +287,7 @@ export const eventController = {
       const folders = await eventService.getEventFolders(eventId, userId)
       res.json(folders)
     } catch (error: any) {
-      res.status(500).json({ error: error.message })
+      sendError(res, error)
     }
   },
 
@@ -306,7 +307,7 @@ export const eventController = {
       await eventService.deleteFolder(folderId, eventId, userId)
       res.json({ success: true })
     } catch (error: any) {
-      res.status(500).json({ error: error.message })
+      sendError(res, error)
     }
   }
 }

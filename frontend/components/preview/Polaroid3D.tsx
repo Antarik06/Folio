@@ -87,11 +87,23 @@ function PolaroidCard({ src, frameId, position, rotation, isFocused, onClick }: 
   const [texture, setTexture] = useState<THREE.Texture | null>(null)
 
   useEffect(() => {
+    // Cancellable + disposed: switching frame style rebuilds this texture, and
+    // the previous one was never released.
+    let cancelled = false
+    let created: THREE.Texture | null = null
+
     buildPolaroidCanvas(src, frame.hex, frame.isLight).then((canvas) => {
+      if (cancelled) return
       const tex = new THREE.CanvasTexture(canvas)
       tex.colorSpace = THREE.SRGBColorSpace
+      created = tex
       setTexture(tex)
     })
+
+    return () => {
+      cancelled = true
+      created?.dispose()
+    }
   }, [src, frame.hex, frame.isLight])
 
   const cardGeo = useMemo(() => new THREE.BoxGeometry(CARD_W, CARD_H, CARD_D), [])

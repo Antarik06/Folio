@@ -1,17 +1,9 @@
 'use server'
 
 import { serverFetch } from '@/lib/api-client'
-import { cookies } from 'next/headers'
+import { getAuthToken } from '@/lib/actions/auth'
 import { revalidatePath } from 'next/cache'
 
-async function getAuthToken() {
-  const cookieStore = await cookies()
-  const isAdmin = cookieStore.get('admin_session')?.value === 'admin-secret-token'
-  if (isAdmin) {
-    return 'admin-secret-token'
-  }
-  return null
-}
 
 export async function getAdminUsers() {
   try {

@@ -47,6 +47,39 @@ const TEMPLATES: Template[] = [
 
 const PRICE_PER_PRINT = 199
 const MAX_IMAGES = 10
+const MAX_POLAROID_BYTES = 50 * 1024 * 1024
+
+/**
+ * Uploads one polaroid source photo to the photos bucket and returns its public
+ * URL. Orders must carry a durable URL: a blob: reference only resolves inside
+ * the tab that created it.
+ */
+async function uploadPolaroid(file: File): Promise<string> {
+  if (file.size === 0 || file.size > MAX_POLAROID_BYTES) {
+    throw new Error(`"${file.name}" must be an image under ${MAX_POLAROID_BYTES / 1024 / 1024} MB.`)
+  }
+
+  const { createClient } = await import('@/lib/supabase/client')
+  const supabase = createClient()
+
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('Please sign in before uploading photos.')
+
+  const ext = file.name.split('.').pop()?.toLowerCase() || 'jpg'
+  const id =
+    typeof crypto !== 'undefined' && 'randomUUID' in crypto
+      ? crypto.randomUUID()
+      : `${Date.now()}-${Math.random().toString(36).slice(2, 11)}`
+  const path = `polaroids/${user.id}/${id}.${ext}`
+
+  const { error } = await supabase.storage
+    .from('photos')
+    .upload(path, file, { contentType: file.type || 'image/jpeg' })
+
+  if (error) throw new Error(error.message)
+
+  return supabase.storage.from('photos').getPublicUrl(path).data.publicUrl
+}
 
 export function PolaroidStudio() {
   const router = useRouter()
@@ -61,7 +94,12 @@ export function PolaroidStudio() {
     }
     return 'upload'
   })
-  const [images, setImages] = useState<string[]>([])           // object URLs
+  const [images, setImages] = useState<string[]>([])           // object URLs (local preview only)
+  // Uploaded storage URLs, parallel to `images`. The order must reference these:
+  // a blob: URL is meaningless outside this browser tab.
+  const [remoteUrls, setRemoteUrls] = useState<(string | null)[]>([])
+  const [uploadingCount, setUploadingCount] = useState(0)
+  const [uploadError, setUploadError] = useState<string | null>(null)
   const [quantities, setQuantities] = useState<number[]>([])   // qty per print
   const [activeIdx, setActiveIdx] = useState(0)                // thumbnail focus
   const [selectedTemplate, setSelectedTemplate] = useState<Template>(TEMPLATES[0])
@@ -85,31 +123,67 @@ export function PolaroidStudio() {
 
     // Redirect to unified checkout if user navigated to step=order
     if (step === 'order') {
+      // Hand off the uploaded storage URLs; blob: previews are useless to the
+      // order and to the print pipeline.
+      const uploaded = remoteUrls.filter((u): u is string => Boolean(u))
+      if (uploaded.length !== images.length) return
+
       sessionStorage.setItem(
         'polaroid-preview-state',
-        JSON.stringify({ images, frame: selectedTemplate.id, quantities })
+        JSON.stringify({ images: uploaded, frame: selectedTemplate.id, quantities })
       )
       router.push('/dashboard/orders/checkout?type=polaroid')
     }
-  }, [step, images, selectedTemplate.id, quantities, router])
+  }, [step, images, remoteUrls, selectedTemplate.id, quantities, router])
 
   // --- helpers ---
   const addFiles = useCallback((files: FileList | null) => {
     if (!files) return
-    const urls = Array.from(files)
-      .slice(0, MAX_IMAGES - images.length)
-      .map((f) => URL.createObjectURL(f))
-    if (urls.length === 0) return
+    const picked = Array.from(files).slice(0, MAX_IMAGES - images.length)
+    if (picked.length === 0) return
+
+    const urls = picked.map((f) => URL.createObjectURL(f))
+    const startIndex = images.length
+
     setImages((prev) => [...prev, ...urls])
+    setRemoteUrls((prev) => [...prev, ...urls.map(() => null)])
     setQuantities((prev) => [...prev, ...urls.map(() => 1)])
-    setActiveIdx(images.length)   // focus first new one
+    setActiveIdx(startIndex)   // focus first new one
     setStep('template')
+
+    // Persist each photo to storage in the background. Previously nothing was
+    // ever uploaded, so the order recorded blob: URLs that no server, printer
+    // or other device could resolve.
+    setUploadError(null)
+    setUploadingCount((n) => n + picked.length)
+
+    picked.forEach((file, i) => {
+      void (async () => {
+        try {
+          const remote = await uploadPolaroid(file)
+          setRemoteUrls((prev) => {
+            const next = [...prev]
+            next[startIndex + i] = remote
+            return next
+          })
+        } catch (err: any) {
+          console.error('Polaroid upload failed:', err)
+          setUploadError(err?.message || 'A photo failed to upload. Please remove it and try again.')
+        } finally {
+          setUploadingCount((n) => Math.max(0, n - 1))
+        }
+      })()
+    })
   }, [images.length])
 
   const removeImage = (idx: number) => {
+    const removed = images[idx]
     setImages((prev) => prev.filter((_, i) => i !== idx))
+    setRemoteUrls((prev) => prev.filter((_, i) => i !== idx))
     setQuantities((prev) => prev.filter((_, i) => i !== idx))
     setActiveIdx((prev) => Math.max(0, prev >= idx ? prev - 1 : prev))
+    // Release the preview blob; removing an image used to leak it.
+    if (removed) URL.revokeObjectURL(removed)
     if (images.length === 1) setStep('upload')
   }
 
@@ -121,9 +195,14 @@ export function PolaroidStudio() {
 
   const goTo3DPreview = () => {
     if (images.length === 0) return
+    // The 3D preview lives on another route, so it needs the uploaded URLs too:
+    // a blob: reference does not survive a hard navigation or a refresh.
+    const uploaded = remoteUrls.filter((u): u is string => Boolean(u))
+    if (uploaded.length !== images.length) return
+
     sessionStorage.setItem(
       'polaroid-preview-state',
-      JSON.stringify({ images, frame: selectedTemplate.id, quantities })
+      JSON.stringify({ images: uploaded, frame: selectedTemplate.id, quantities })
     )
     router.push('/preview/polaroid')
   }
@@ -131,10 +210,15 @@ export function PolaroidStudio() {
   const reset = () => {
     images.forEach((url) => URL.revokeObjectURL(url))
     setImages([])
+    setRemoteUrls([])
     setQuantities([])
     setActiveIdx(0)
+    setUploadError(null)
     setStep('upload')
   }
+
+  const isUploading = uploadingCount > 0
+  const allUploaded = images.length > 0 && remoteUrls.every((u) => Boolean(u))
 
   // --- step bar ---
   const STEPS = [
@@ -443,54 +527,46 @@ export function PolaroidStudio() {
                 <Button
                   className="flex-1 bg-ink text-white hover:bg-ink/90"
                   onClick={goTo3DPreview}
+                  disabled={!allUploaded}
+                  title={!allUploaded ? 'Waiting for photo uploads to finish' : undefined}
                 >
                   <Eye className="w-4 h-4 mr-2" />
-                  View in 3D Preview
+                  {allUploaded ? 'View in 3D Preview' : 'Uploading photos…'}
                 </Button>
               </div>
             </div>
           </div>
         )}
 
-        {/* ── ORDER ── */}
+        {/* ── ORDER ──
+            This step is a hand-off: the effect above redirects to the unified
+            checkout once every photo has finished uploading. It previously
+            rendered a mock shipping/payment form whose "Confirm and Pay" button
+            only fired an alert(), telling the user an order had been placed when
+            nothing had been created. */}
         {step === 'order' && (
           <div className="p-8 md:p-12 animate-in slide-in-from-bottom duration-700 flex flex-col items-center justify-center">
             <div className="w-20 h-20 bg-secondary/20 text-secondary rounded-full flex items-center justify-center mb-8">
               <Check className="w-10 h-10" />
             </div>
             <h2 className="font-serif text-4xl mb-4 text-center">Ready to print</h2>
-            <p className="text-muted-foreground text-center max-w-sm mb-12">
-              {totalPrints} polaroid{totalPrints > 1 ? 's' : ''} ready for production. Fill in your details to complete the order.
+            <p className="text-muted-foreground text-center max-w-sm mb-4">
+              {totalPrints} polaroid{totalPrints > 1 ? 's' : ''} ready for production.
             </p>
 
-            <div className="w-full max-w-md space-y-6 bg-paper p-8 border border-border">
-              <div className="space-y-2">
-                <label className="text-xs font-mono uppercase tracking-tighter text-muted-foreground">Shipping Address</label>
-                <div className="h-10 bg-background border border-border flex items-center px-3 text-sm text-muted-foreground italic">
-                  Select from saved addresses...
-                </div>
-              </div>
-              <div className="space-y-2">
-                <label className="text-xs font-mono uppercase tracking-tighter text-muted-foreground">Payment Method</label>
-                <div className="h-10 bg-background border border-border flex items-center px-3 text-sm text-foreground">
-                  •••• •••• •••• 4242 (Visa)
-                </div>
-              </div>
-              <div className="pt-4 border-t border-border flex justify-between items-center">
-                <span className="font-serif text-lg">Total — {totalPrints} prints</span>
-                <span className="font-serif text-2xl">₹{totalPrice}</span>
-              </div>
-              <Button
-                className="w-full h-12 text-lg font-serif"
-                onClick={() => alert('Order placed! Thank you.')}
-              >
-                Confirm and Pay
-              </Button>
-            </div>
+            {uploadError ? (
+              <p className="text-sm text-destructive text-center max-w-sm mb-8">{uploadError}</p>
+            ) : (
+              <p className="text-sm text-muted-foreground text-center max-w-sm mb-8">
+                {isUploading || !allUploaded
+                  ? 'Finishing photo uploads, one moment…'
+                  : 'Taking you to checkout…'}
+              </p>
+            )}
 
             <button
               onClick={reset}
-              className="mt-8 text-sm text-muted-foreground hover:text-foreground transition-colors underline underline-offset-4"
+              className="mt-4 text-sm text-muted-foreground hover:text-foreground transition-colors underline underline-offset-4"
             >
               Start a new order
             </button>

@@ -1,6 +1,5 @@
-import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
-import { getProfile } from '@/lib/actions/auth'
+import { getAuthToken, getProfile } from '@/lib/actions/auth'
 import { serverFetch } from '@/lib/api-client'
 import { ArtistDashboardClient } from '@/components/artist/artist-dashboard-client'
 
@@ -16,11 +15,7 @@ export default async function ArtistDashboardPage() {
   }
 
   // Get authentication token
-  const cookieStore = await cookies()
-  const token = cookieStore.get('artist_session')?.value === 'artist-secret-token'
-    ? 'artist-secret-token'
-    : null
-
+  const token = await getAuthToken()
   if (!token) {
     redirect('/auth/login')
   }

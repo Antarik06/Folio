@@ -1,10 +1,13 @@
+import { createHmac, timingSafeEqual } from 'node:crypto'
 import { query } from '../db'
-import { isPageCountValid, validatePostalCode, validateShippingAddress } from '../utils/pricing'
+import { validatePostalCode, validateShippingAddress } from '../utils/pricing'
 import { razorpay } from '../utils/razorpay'
 import { v4 as uuidv4 } from 'uuid'
 import { settingsService } from './settingsService'
-
 import { notificationService } from './notificationService'
+
+/** Safety cap so a malformed polaroid basket cannot create an absurd order. */
+const MAX_POLAROID_PRINTS = 500
 
 export const orderService = {
   /**
@@ -57,8 +60,16 @@ export const orderService = {
         }
       }
 
+      if (pageCount === 0) {
+        throw new Error('This album has no pages yet. Add at least one spread before ordering.')
+      }
+
       // Validate page count limits dynamically
-      const limitsRes = await query("SELECT value FROM public.system_settings WHERE key = 'page_limits'")
+      const [limitsRes, minPagesRes] = await Promise.all([
+        query("SELECT value FROM public.system_settings WHERE key = 'page_limits'"),
+        query("SELECT value FROM public.system_settings WHERE key = 'min_pages'")
+      ])
+
       let pageLimits = { softcover: 80, hardcover: 120 }
       if (limitsRes.rows.length > 0) {
         pageLimits = limitsRes.rows[0].value
@@ -67,16 +78,51 @@ export const orderService = {
       if (pageCount > maxPages) {
         throw new Error(`This album has ${pageCount} pages, which exceeds the limit of ${maxPages} pages.`)
       }
+
+      // Binderies cannot produce a book below a minimum signature count, which
+      // is what the min_pages setting exists for. It was seeded but never
+      // checked, so under-length albums reached the printer and failed there.
+      const minPages = Number(minPagesRes.rows[0]?.value ?? 0)
+      if (minPages > 0 && pageCount < minPages) {
+        throw new Error(
+          `This album has ${pageCount} pages. A printed book needs at least ${minPages} pages — add ${minPages - pageCount} more before ordering.`
+        )
+      }
     }
 
-    // 2. Validate quantity boundaries dynamically
-    const copyLimitsRes = await query("SELECT value FROM public.system_settings WHERE key = 'min_max_copies'")
-    let copyLimits = { min: 1, max: 10 }
-    if (copyLimitsRes.rows.length > 0) {
-      copyLimits = copyLimitsRes.rows[0].value
-    }
-    if (input.quantity < copyLimits.min || input.quantity > copyLimits.max) {
-      throw new Error(`Quantity must be between ${copyLimits.min} and ${copyLimits.max}.`)
+    // 2. Validate quantity boundaries dynamically.
+    // For polaroids the billable unit is a single print, and the number of
+    // prints comes from the per-image quantities in metadata — not from
+    // `quantity`, which is the number of copies of a book.
+    let billableUnits = input.quantity
+
+    if (input.productType === 'polaroid') {
+      const quantities: number[] = Array.isArray(input.metadata?.quantities) ? input.metadata.quantities : []
+      const images: string[] = Array.isArray(input.metadata?.images) ? input.metadata.images : []
+
+      if (images.length === 0) {
+        throw new Error('Select at least one photo for your polaroid prints.')
+      }
+
+      billableUnits = quantities.length > 0
+        ? quantities.reduce((sum, q) => sum + (Number(q) || 0), 0)
+        : images.length
+
+      if (billableUnits < 1) {
+        throw new Error('Select at least one polaroid print.')
+      }
+      if (billableUnits > MAX_POLAROID_PRINTS) {
+        throw new Error(`You can order at most ${MAX_POLAROID_PRINTS} polaroid prints in a single order.`)
+      }
+    } else {
+      const copyLimitsRes = await query("SELECT value FROM public.system_settings WHERE key = 'min_max_copies'")
+      let copyLimits = { min: 1, max: 10 }
+      if (copyLimitsRes.rows.length > 0) {
+        copyLimits = copyLimitsRes.rows[0].value
+      }
+      if (input.quantity < copyLimits.min || input.quantity > copyLimits.max) {
+        throw new Error(`Quantity must be between ${copyLimits.min} and ${copyLimits.max}.`)
+      }
     }
 
     // 3. Validate shipping details
@@ -95,7 +141,7 @@ export const orderService = {
       pricing = pricingRes.rows[0].value
     }
     const unitPrice = pricing[input.productType] || (input.productType === 'softcover' ? 89900 : input.productType === 'hardcover' ? 149900 : 19900)
-    const subtotal = unitPrice * input.quantity
+    const subtotal = unitPrice * billableUnits
 
     // 5. Fetch tax and shipping configurations
     const taxShipRes = await query("SELECT value FROM public.system_settings WHERE key = 'shipping_and_tax'")
@@ -114,6 +160,8 @@ export const orderService = {
         } else if (promoCheck.discountType === 'fixed') {
           discount = promoCheck.discountValue || 0
         }
+        // A fixed discount larger than the basket must not create a credit.
+        discount = Math.min(discount, subtotal)
       } else {
         throw new Error(promoCheck.message)
       }
@@ -172,11 +220,20 @@ export const orderService = {
         albumLayout = album.layout_data
         
         // Extract image references
+        const unresolvableSources: string[] = []
         if (albumLayout) {
           const spreads = albumLayout.spreads || []
           spreads.forEach((spread: any) => {
             const checkElement = (el: any) => {
               if (el.type === 'image' && el.src) {
+                // blob:/data: sources only resolve inside the browser tab that
+                // created them. If one reaches here the printer would render a
+                // blank box, so refuse the order instead of shipping a book with
+                // missing photos.
+                if (/^(blob:|data:)/i.test(el.src)) {
+                  unresolvableSources.push(el.name || el.id || 'an image')
+                  return
+                }
                 imageReferences.push(el.src)
               }
             }
@@ -184,6 +241,13 @@ export const orderService = {
             if (spread.front?.elements) spread.front.elements.forEach(checkElement)
             if (spread.back?.elements) spread.back.elements.forEach(checkElement)
           })
+        }
+
+        if (unresolvableSources.length > 0) {
+          throw new Error(
+            `${unresolvableSources.length} photo(s) in this album were never finished uploading and cannot be printed. ` +
+            `Open the album in the editor, re-add them, and try again.`
+          )
         }
 
         if (album.template_id) {
@@ -229,7 +293,7 @@ export const orderService = {
         userId,
         input.albumId || null,
         dbProductType,
-        input.quantity,
+        billableUnits,
         unitPrice,
         grandTotal,
         'inr',
@@ -292,7 +356,8 @@ export const orderService = {
     orderId: string,
     razorpayOrderId: string,
     razorpayPaymentId: string,
-    razorpaySignature: string
+    razorpaySignature: string,
+    userId: string
   ): Promise<any> {
     const orderRes = await query('SELECT * FROM public.orders WHERE id = $1', [orderId])
     const order = orderRes.rows[0]
@@ -300,35 +365,72 @@ export const orderService = {
       throw new Error('Order not found.')
     }
 
+    // Only the buyer may settle their own order.
+    if (order.user_id !== userId) {
+      throw new Error('Not authorized to verify this order.')
+    }
+
+    // The Razorpay order id must be the one this server generated for this
+    // order — never the one the client claims — otherwise anyone could pass a
+    // fabricated "order_mock_..." id to skip signature verification.
+    if (order.razorpay_order_id !== razorpayOrderId) {
+      throw new Error('Payment reference does not match this order.')
+    }
+
+    if (order.payment_status === 'paid') {
+      return order
+    }
+
     const secret = process.env.RAZORPAY_KEY_SECRET
     const keyId = process.env.RAZORPAY_KEY_ID || 'rzp_test_mock'
-    const isMock = razorpayOrderId.startsWith('order_mock_') || keyId === 'rzp_test_mock' || !secret
+    const gatewayConfigured = Boolean(secret) && keyId !== 'rzp_test_mock'
+    // A mock order is one this server itself created in mock mode; it is
+    // decided by stored state, not by anything in the request body.
+    const isMock = String(order.razorpay_order_id || '').startsWith('order_mock_')
 
     if (!isMock) {
-      const crypto = require('crypto')
-      const body = razorpayOrderId + '|' + razorpayPaymentId
-      const expectedSignature = crypto
-        .createHmac('sha256', secret)
-        .update(body.toString())
+      if (!gatewayConfigured) {
+        throw new Error('Payment gateway is not configured on this server.')
+      }
+
+      const body = `${razorpayOrderId}|${razorpayPaymentId}`
+      const expectedSignature = createHmac('sha256', secret as string)
+        .update(body)
         .digest('hex')
 
-      if (expectedSignature !== razorpaySignature) {
+      const expectedBuffer = Buffer.from(expectedSignature)
+      const providedBuffer = Buffer.from(String(razorpaySignature || ''))
+
+      if (
+        expectedBuffer.length !== providedBuffer.length ||
+        !timingSafeEqual(expectedBuffer, providedBuffer)
+      ) {
         throw new Error('Payment signature verification failed.')
       }
+    } else if (process.env.NODE_ENV === 'production') {
+      // Refuse to settle unpaid mock orders on a production deployment.
+      throw new Error('Payment gateway is not configured on this server.')
     }
 
     const updateRes = await query(
-      `UPDATE public.orders 
-       SET payment_status = 'paid', 
+      `UPDATE public.orders
+       SET payment_status = 'paid',
            tracking_status = 'order placed',
            razorpay_payment_id = $2,
            razorpay_signature = $3,
+           amount_paid = total_price,
            updated_at = NOW()
-       WHERE id = $1
+       WHERE id = $1 AND payment_status <> 'paid'
        RETURNING *`,
       [orderId, razorpayPaymentId, razorpaySignature]
     )
     const updatedOrder = updateRes.rows[0]
+
+    if (!updatedOrder) {
+      // Another concurrent request already settled it.
+      const current = await query('SELECT * FROM public.orders WHERE id = $1', [orderId])
+      return current.rows[0]
+    }
 
     // Notify User: Order Placed
     await notificationService.sendNotification(

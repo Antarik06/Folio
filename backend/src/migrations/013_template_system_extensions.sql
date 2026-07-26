@@ -105,12 +105,16 @@ CREATE TABLE IF NOT EXISTS public.premium_packages (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Seed default premium packages
+-- Seed default premium packages.
+-- name is unique so the seed is idempotent: a bare ON CONFLICT DO NOTHING would
+-- have inserted duplicates on every re-run, since id is generated per row.
+CREATE UNIQUE INDEX IF NOT EXISTS idx_premium_packages_name ON public.premium_packages(name);
+
 INSERT INTO public.premium_packages (name, description, features, base_price, advance_percentage, estimated_turnaround_days, max_revisions)
-VALUES 
+VALUES
 ('Concierge Standard', 'Dedicated layout design by a professional artist with standard paper choices.', '["Dedicated artist", "Matte finish", "2 revision rounds"]', 249000, 50, 10, 2),
 ('Concierge Elite', 'Unlimited design adjustments and premium handcrafted Layflat paper options.', '["Dedicated artist", "Unlimited revisions", "Layflat paper", "Concierge review"]', 499000, 50, 7, 5)
-ON CONFLICT DO NOTHING;
+ON CONFLICT (name) DO NOTHING;
 
 -- 7. Create Premium Projects table
 CREATE TABLE IF NOT EXISTS public.premium_projects (
@@ -153,6 +157,7 @@ CREATE INDEX IF NOT EXISTS idx_print_jobs_order ON public.print_jobs(order_id);
 CREATE INDEX IF NOT EXISTS idx_print_jobs_status ON public.print_jobs(status);
 
 -- Triggers for updated_at on artists
+DROP TRIGGER IF EXISTS update_artists_updated_at ON public.artists;
 CREATE TRIGGER update_artists_updated_at BEFORE UPDATE ON public.artists FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 -- Enable RLS for new tables

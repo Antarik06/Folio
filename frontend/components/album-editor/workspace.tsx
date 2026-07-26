@@ -312,7 +312,9 @@ export function Workspace({
 
     const selectedNodes = simpleMode ? [] : (selectable.map((id) => stage.findOne(`#${id}`)).filter(Boolean) as Konva.Node[])
     setNodes(selectedNodes)
-  }, [selection, spread.elements])
+    // simpleMode gates whether transform handles attach at all; leaving it out
+    // of the deps left stale handles on screen after the mode changed.
+  }, [selection, spread.elements, simpleMode])
 
   const visibleElements = [...spread.elements]
     .filter((el) => !el.hidden)

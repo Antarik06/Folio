@@ -1,9 +1,10 @@
-// ─── CANONICAL PRICING ────────────────────────────────────────────────────────
-
-export const UNIT_PRICE_CENTS: Record<'softcover' | 'hardcover', number> = {
-  softcover: 89900,  // Rs. 899
-  hardcover: 149900, // Rs. 1,499
-}
+// ─── DISPLAY LABELS ───────────────────────────────────────────────────────────
+//
+// Prices, page limits and copy limits are NOT defined here. They live in
+// public.system_settings and are fetched per request, because that is the
+// source the server prices an order from. Hardcoded copies of them used to sit
+// in this file and were rendered on the product selector, so any price an admin
+// changed in the dashboard was quoted wrongly at checkout.
 
 export const PRODUCT_LABELS: Record<'softcover' | 'hardcover', string> = {
   softcover: 'Press',
@@ -15,42 +16,13 @@ export const SIZE_LABELS: Record<'small' | 'large', string> = {
   large: 'Large (30×30 cm)',
 }
 
-export const MAX_PAGES: Record<'softcover' | 'hardcover', number> = {
-  softcover: 80,
-  hardcover: 120,
-}
-
-export const MIN_PAGES = 24
-
 // ─── PURE COMPUTATION ─────────────────────────────────────────────────────────
-
-export function computePriceCents(
-  productType: 'softcover' | 'hardcover',
-  quantity: number,
-): number {
-  return UNIT_PRICE_CENTS[productType] * quantity
-}
 
 export function formatPrice(cents: number): string {
   return `Rs. ${(cents / 100).toLocaleString('en-IN')}`
 }
 
 // ─── PURE VALIDATORS ──────────────────────────────────────────────────────────
-
-export function validateQuantity(n: number): boolean {
-  return Number.isInteger(n) && n >= 1 && n <= 10
-}
-
-export function isPageCountValid(
-  productType: 'softcover' | 'hardcover',
-  pageCount: number,
-): boolean {
-  return pageCount <= MAX_PAGES[productType]
-}
-
-export function validatePostalCode(s: string): boolean {
-  return /^[a-zA-Z0-9]{4,10}$/.test(s)
-}
 
 export interface ShippingAddress {
   fullName: string
@@ -63,16 +35,9 @@ export interface ShippingAddress {
   phone: string
 }
 
-export function validateShippingAddress(addr: ShippingAddress): boolean {
-  const required = [
-    addr.fullName,
-    addr.addressLine1,
-    addr.city,
-    addr.postalCode,
-    addr.country,
-    addr.phone,
-  ]
-  return required.every((f) => f && f.trim().length > 0)
+/** Module-private: only getShippingAddressErrors needs it. */
+function validatePostalCode(s: string): boolean {
+  return /^[a-zA-Z0-9]{4,10}$/.test(s)
 }
 
 export function getShippingAddressErrors(

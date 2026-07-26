@@ -207,7 +207,7 @@ export function PhotoGrid({ photos, folders, eventId, currentUserId, isOwner, is
       prev.map(p => p.id === photoId ? { ...p, is_shared: !currentIsShared } : p)
     )
     startTransition(async () => {
-      const result = await togglePhotoShared(photoId, currentIsShared)
+      const result = await togglePhotoShared(photoId, currentIsShared, eventId)
       if (result?.error) {
         setLocalPhotos(prev =>
           prev.map(p => p.id === photoId ? { ...p, is_shared: currentIsShared } : p)
@@ -234,7 +234,7 @@ export function PhotoGrid({ photos, folders, eventId, currentUserId, isOwner, is
       prev.map(p => p.id === photoId ? { ...p, status: 'approved' } : p)
     )
     startTransition(async () => {
-      const result = await approvePhoto(photoId)
+      const result = await approvePhoto(photoId, eventId)
       if (result?.error) {
         setLocalPhotos(prev =>
           prev.map(p => p.id === photoId ? { ...p, status: 'pending' } : p)
@@ -243,23 +243,39 @@ export function PhotoGrid({ photos, folders, eventId, currentUserId, isOwner, is
     })
   }
 
+  // Restores just the removed photo on failure. Resetting to the original
+  // `photos` prop also threw away every other optimistic edit made since load.
+  function restorePhoto(removed: Photo | undefined) {
+    if (!removed) return
+    setLocalPhotos(prev =>
+      prev.some(p => p.id === removed.id)
+        ? prev
+        : [...prev, removed].sort(
+            (a, b) =>
+              new Date(b.created_at ?? 0).getTime() - new Date(a.created_at ?? 0).getTime()
+          )
+    )
+  }
+
   function handleReject(photoId: string) {
+    const removed = localPhotos.find(p => p.id === photoId)
     setLocalPhotos(prev => prev.filter(p => p.id !== photoId))
     startTransition(async () => {
-      const result = await rejectPhoto(photoId)
+      const result = await rejectPhoto(photoId, eventId)
       if (result?.error) {
-        setLocalPhotos(photos)
+        restorePhoto(removed)
       }
     })
   }
 
   function handleDelete(photoId: string) {
     if (!window.confirm("Are you sure you want to delete this photo forever?")) return
+    const removed = localPhotos.find(p => p.id === photoId)
     setLocalPhotos(prev => prev.filter(p => p.id !== photoId))
     startTransition(async () => {
-      const result = await deletePhoto(photoId)
+      const result = await deletePhoto(photoId, eventId)
       if (result?.error) {
-        setLocalPhotos(photos)
+        restorePhoto(removed)
       }
     })
   }

@@ -14,17 +14,19 @@ export interface AlbumShareTokenPayload {
 
 const DEFAULT_SECRET = 'folio-dev-share-secret-change-in-production'
 
+/**
+ * Must resolve to exactly the same value as the backend's utils/shareToken.ts,
+ * which mints these tokens. This previously also consulted NEXTAUTH_SECRET —
+ * a variable the backend never reads — so on any deployment that set it (and
+ * not ALBUM_SHARE_SECRET) the two sides derived different keys and every share
+ * link failed verification.
+ */
 function getSecret() {
   return (
     process.env.ALBUM_SHARE_SECRET ||
-    process.env.NEXTAUTH_SECRET ||
     process.env.SUPABASE_JWT_SECRET ||
     DEFAULT_SECRET
   )
-}
-
-function encodeBase64Url(input: string) {
-  return Buffer.from(input, 'utf8').toString('base64url')
 }
 
 function decodeBase64Url(input: string) {
@@ -35,11 +37,9 @@ function signPayload(payloadEncoded: string) {
   return createHmac('sha256', getSecret()).update(payloadEncoded).digest('base64url')
 }
 
-export function createAlbumShareToken(payload: AlbumShareTokenPayload) {
-  const encodedPayload = encodeBase64Url(JSON.stringify(payload))
-  const signature = signPayload(encodedPayload)
-  return `${encodedPayload}.${signature}`
-}
+// Token minting lives on the backend (POST /api/albums/:id/share-link); the
+// frontend only ever verifies. A local createAlbumShareToken() was unused and
+// would have been a second, drifting implementation of the same format.
 
 export function verifyAlbumShareToken(token: string) {
   const [encodedPayload, signature] = token.split('.')

@@ -2,7 +2,6 @@ import { createClient } from '@/lib/supabase/server'
 import { serverFetch } from '@/lib/api-client'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { cookies } from 'next/headers'
 
 export default async function DashboardPage({ searchParams }: { searchParams: Promise<{ mode?: string }> }) {
   const { mode } = (await searchParams) || {}
@@ -10,18 +9,6 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   // Verify user identity securely
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/auth/login')
-
-  // Check mock accounts first
-  const cookieStore = await cookies()
-  const isAdmin = cookieStore.get('admin_session')?.value === 'admin-secret-token' || user.email === 'admin@folio.com'
-  const isArtist = cookieStore.get('artist_session')?.value === 'artist-secret-token' || user.email === 'artist@folio.com'
-
-  if (isAdmin && mode !== 'user') {
-    redirect('/dashboard/admin')
-  }
-  if (isArtist && mode !== 'user') {
-    redirect('/dashboard/artist')
-  }
 
   // Get session only for the access token
   const { data: { session } } = await supabase.auth.getSession()

@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { getUserOrders } from '@/lib/actions/orders'
-import { getUser } from '@/lib/actions/auth'
+import { getProfile, getUser } from '@/lib/actions/auth'
 import { formatPrice } from '@/lib/pricing'
 import { Clock, CheckCircle2, ChevronRight, Package, Truck, Compass, UserCheck, Check } from 'lucide-react'
 
@@ -27,8 +27,10 @@ export default async function MyOrdersPage() {
     redirect('/auth/login')
   }
 
-  // Handle special case: Super Admin trying to access this (redirect them to Admin panel)
-  if (user.email === 'admin@folio.com') {
+  // Handle special case: Super Admin trying to access this (redirect them to
+  // Admin panel). Keyed on the profile role rather than a hardcoded address.
+  const profile = await getProfile()
+  if ((profile as any)?.role === 'admin') {
     redirect('/dashboard/admin')
   }
 

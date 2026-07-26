@@ -20,6 +20,40 @@ import type { AlbumElement, ImageElement, ShapeElement, DrawingElement } from '.
 type SidebarPanel = 'templates' | 'design' | 'elements' | 'photos' | 'uploads' | 'text' | 'ai' | 'draw' | 'projects'
 type PixabayImageType = 'all' | 'photo' | 'illustration' | 'vector'
 
+const MAX_ASSET_BYTES = 50 * 1024 * 1024
+
+/**
+ * Uploads a locally chosen file to the photos bucket and returns its public URL.
+ * Album layouts are persisted server-side and later rendered by the print
+ * pipeline, so every element src must be a durable URL rather than a blob:.
+ */
+async function uploadEditorAsset(file: File): Promise<string> {
+  if (file.size === 0 || file.size > MAX_ASSET_BYTES) {
+    throw new Error(`"${file.name}" must be under ${MAX_ASSET_BYTES / 1024 / 1024} MB.`)
+  }
+
+  const { createClient } = await import('@/lib/supabase/client')
+  const supabase = createClient()
+
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('Please sign in again before uploading.')
+
+  const ext = file.name.split('.').pop()?.toLowerCase() || 'jpg'
+  const id =
+    typeof crypto !== 'undefined' && 'randomUUID' in crypto
+      ? crypto.randomUUID()
+      : `${Date.now()}-${Math.random().toString(36).slice(2, 11)}`
+  const path = `editor-uploads/${user.id}/${id}.${ext}`
+
+  const { error } = await supabase.storage
+    .from('photos')
+    .upload(path, file, { contentType: file.type || 'image/jpeg' })
+
+  if (error) throw new Error(error.message)
+
+  return supabase.storage.from('photos').getPublicUrl(path).data.publicUrl
+}
+
 interface SidebarProps {
   activePanel: SidebarPanel
   onChangePanel: (p: SidebarPanel) => void
@@ -534,11 +568,16 @@ export function Sidebar({
   const [localUploads, setLocalUploads] = React.useState<Array<{
     id: string
     name: string
-    src: string
+    /** Durable storage URL once uploaded; null while the upload is in flight. */
+    src: string | null
+    /** Local blob: URL, used only to render the thumbnail in this panel. */
+    previewSrc: string
     width: number
     height: number
+    error?: string
   }>>([])
   const localUploadUrlsRef = React.useRef<string[]>([])
+  const [uploadError, setUploadError] = React.useState<string | null>(null)
   const [customPageColor, setCustomPageColor] = React.useState(spreadBackground)
   const [aiFillColor, setAiFillColor] = React.useState('#D54D34')
   const [aiMessage, setAiMessage] = React.useState<string | null>(null)
@@ -712,37 +751,52 @@ export function Sidebar({
     if (!files || files.length === 0) return
 
     const readFileAsImage = (file: File) =>
-      new Promise<{ id: string; name: string; src: string; width: number; height: number }>((resolve) => {
-        const src = URL.createObjectURL(file)
+      new Promise<{ id: string; name: string; previewSrc: string; width: number; height: number }>((resolve) => {
+        const previewSrc = URL.createObjectURL(file)
         const img = new Image()
 
-        img.onload = () => {
+        const done = (width: number, height: number) =>
           resolve({
             id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
             name: file.name,
-            src,
-            width: img.naturalWidth || 600,
-            height: img.naturalHeight || 400,
+            previewSrc,
+            width,
+            height,
           })
-        }
 
-        img.onerror = () => {
-          resolve({
-            id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-            name: file.name,
-            src,
-            width: 600,
-            height: 400,
-          })
-        }
-
-        img.src = src
+        img.onload = () => done(img.naturalWidth || 600, img.naturalHeight || 400)
+        img.onerror = () => done(600, 400)
+        img.src = previewSrc
       })
 
-    const nextUploads = await Promise.all(Array.from(files).map((file) => readFileAsImage(file)))
-    localUploadUrlsRef.current.push(...nextUploads.map((item) => item.src))
-    setLocalUploads((prev) => [...nextUploads, ...prev])
+    const picked = Array.from(files)
+    const nextUploads = await Promise.all(picked.map((file) => readFileAsImage(file)))
+    localUploadUrlsRef.current.push(...nextUploads.map((item) => item.previewSrc))
+    setLocalUploads((prev) => [...nextUploads.map((u) => ({ ...u, src: null })), ...prev])
     event.target.value = ''
+    setUploadError(null)
+
+    // Persist to storage and swap in the durable URL. Placing the blob: URL on
+    // the canvas (as this used to) meant the autosaved layout — and later the
+    // print job — referenced an image that exists only in this browser tab, so
+    // the photo silently vanished on reload and printed as a blank box.
+    await Promise.all(
+      nextUploads.map(async (item, i) => {
+        try {
+          const remote = await uploadEditorAsset(picked[i])
+          setLocalUploads((prev) =>
+            prev.map((u) => (u.id === item.id ? { ...u, src: remote } : u))
+          )
+        } catch (err: any) {
+          console.error('Editor asset upload failed:', err)
+          const message = err?.message || 'Upload failed.'
+          setUploadError(message)
+          setLocalUploads((prev) =>
+            prev.map((u) => (u.id === item.id ? { ...u, error: message } : u))
+          )
+        }
+      })
+    )
   }, [])
 
   const addSelectedPhotos = React.useCallback(() => {
@@ -1354,25 +1408,53 @@ export function Sidebar({
               <div className="text-xs text-muted-foreground mt-1">PNG, JPG, WEBP, SVG</div>
             </label>
 
+            {uploadError && (
+              <p className="text-xs text-destructive mb-3">{uploadError}</p>
+            )}
+
             {localUploads.length > 0 ? (
               <div className="grid grid-cols-2 gap-3 pb-8">
-                {localUploads.map((item) => (
-                  <div
-                    key={item.id}
-                    className="aspect-square bg-gray-100 dark:bg-[#201c16] rounded-md overflow-hidden cursor-pointer hover:ring-2 hover:ring-terracotta"
-                    draggable
-                    onDragStart={(event) => startDrag(event, toImageElement(item.src, item.width, item.height))}
-                    onClick={() => {
-                      if (primarySelected && primarySelected.type === 'image' && onUpdateElement) {
-                        onUpdateElement(primarySelected.id, { src: item.src })
-                      } else {
-                        onAddElement(toImageElement(item.src, item.width, item.height))
-                      }
-                    }}
-                  >
-                    <img src={item.src} alt={item.name} className="w-full h-full object-cover" />
-                  </div>
-                ))}
+                {localUploads.map((item) => {
+                  // Only a finished upload has a durable src; until then the tile
+                  // is not draggable or clickable, so a blob: URL can never be
+                  // committed to the saved layout.
+                  const ready = Boolean(item.src) && !item.error
+                  return (
+                    <div
+                      key={item.id}
+                      className={cn(
+                        'relative aspect-square bg-gray-100 dark:bg-[#201c16] rounded-md overflow-hidden',
+                        ready
+                          ? 'cursor-pointer hover:ring-2 hover:ring-terracotta'
+                          : 'cursor-not-allowed opacity-60'
+                      )}
+                      draggable={ready}
+                      onDragStart={(event) => {
+                        if (!ready || !item.src) {
+                          event.preventDefault()
+                          return
+                        }
+                        startDrag(event, toImageElement(item.src, item.width, item.height))
+                      }}
+                      onClick={() => {
+                        if (!ready || !item.src) return
+                        if (primarySelected && primarySelected.type === 'image' && onUpdateElement) {
+                          onUpdateElement(primarySelected.id, { src: item.src })
+                        } else {
+                          onAddElement(toImageElement(item.src, item.width, item.height))
+                        }
+                      }}
+                      title={item.error || (ready ? item.name : 'Uploading…')}
+                    >
+                      <img src={item.previewSrc} alt={item.name} className="w-full h-full object-cover" />
+                      {!ready && (
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/40 text-[10px] uppercase tracking-widest text-white">
+                          {item.error ? 'Failed' : 'Uploading…'}
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
               </div>
             ) : (
               <div className="p-6 text-center border-2 border-dashed border-[#DDD8CE] dark:border-[#3a342b] rounded-lg">

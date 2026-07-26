@@ -153,6 +153,9 @@ export function OrderPageClient({
     } else {
       discount = appliedPromo.discountValue
     }
+    // Match the server, which clamps a fixed discount to the basket value.
+    // Without this the summary could show a total the server never charges.
+    discount = Math.min(discount, subtotal)
   }
   const discountedSubtotal = Math.max(0, subtotal - discount)
   const shippingFee = discountedSubtotal >= shipTax.free_shipping_threshold ? 0 : shipTax.shipping_fee
@@ -164,6 +167,12 @@ export function OrderPageClient({
   const maxPages = pageLimits[config.productType] || 1000
   const pageCountExceeded = config.productType !== 'polaroid' && pageCount > maxPages
   const hasNoPages = config.productType !== 'polaroid' && pageCount === 0
+  // Binderies enforce a minimum signature count; the server rejects orders
+  // below it, so surface it here instead of failing at the payment step.
+  const minPages = Number(systemSettings?.min_pages ?? 0)
+  const belowMinPages =
+    config.productType !== 'polaroid' && minPages > 0 && pageCount > 0 && pageCount < minPages
+  const pageCountBlocked = pageCountExceeded || hasNoPages || belowMinPages
   const isDraft = albumStatus === 'draft'
 
   const currentStepIndex = WIZARD_STEPS.indexOf(currentStep)
@@ -288,7 +297,8 @@ export function OrderPageClient({
       const keyId = orderData.razorpayKeyId || 'rzp_test_mock'
 
       // Mock Gateway flow
-      if (keyId === 'rzp_test_mock' || orderData.razorpay_order_id.startsWith('order_mock_')) {
+      const razorpayOrderId: string = orderData.razorpay_order_id || ''
+      if (keyId === 'rzp_test_mock' || razorpayOrderId.startsWith('order_mock_')) {
         const verifyRes = await verifyPayment({
           orderId: orderData.id,
           razorpayOrderId: orderData.razorpay_order_id,
@@ -445,6 +455,9 @@ export function OrderPageClient({
                       value={config.productType as any}
                       onChange={(productType) => setConfig((c) => ({ ...c, productType: productType as any }))}
                       disabled={isSubmitting}
+                      pricing={pricing}
+                      pageLimits={pageLimits}
+                      minPages={minPages}
                     />
 
                     <div className="border-t border-border/60" />
@@ -494,11 +507,31 @@ export function OrderPageClient({
                   </div>
                 )}
 
+                {belowMinPages && (
+                  <div className="flex items-start gap-3 rounded-lg border border-primary/30 bg-primary/5 px-5 py-4">
+                    <AlertTriangle className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
+                    <p className="text-sm text-foreground">
+                      Your album has <strong>{pageCount} pages</strong>. A printed book needs at
+                      least <strong>{minPages} pages</strong> — add{' '}
+                      <strong>{minPages - pageCount} more</strong> in the editor before ordering.
+                    </p>
+                  </div>
+                )}
+
+                {hasNoPages && (
+                  <div className="flex items-start gap-3 rounded-lg border border-primary/30 bg-primary/5 px-5 py-4">
+                    <AlertTriangle className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
+                    <p className="text-sm text-foreground">
+                      This album has no pages yet. Add some spreads in the editor before ordering.
+                    </p>
+                  </div>
+                )}
+
                 {/* Navigation */}
                 <div className="flex items-center justify-end pt-6 border-t border-border/60">
                   <Button
                     onClick={goNext}
-                    disabled={pageCountExceeded || hasNoPages}
+                    disabled={pageCountBlocked}
                     className="px-8 py-5 text-sm font-medium gap-2 bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
                   >
                     Continue to shipping
@@ -800,7 +833,7 @@ export function OrderPageClient({
               ) : (
                 <Button
                   onClick={goNext}
-                  disabled={pageCountExceeded || hasNoPages}
+                  disabled={pageCountBlocked}
                   className="w-full py-7 bg-foreground text-background dark:bg-foreground dark:text-background font-bold uppercase tracking-widest text-xs hover:opacity-90 transition-all rounded-lg flex items-center justify-center gap-2 h-12"
                 >
                   <span>Continue to Shipping</span>

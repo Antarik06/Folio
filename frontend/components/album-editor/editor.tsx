@@ -792,6 +792,19 @@ export function AlbumEditor({
     lastTime: 0,
   })
 
+  // Mirrors the ref's stack depths into state so the toolbar re-renders when
+  // history changes. The stacks themselves stay in the ref to avoid cloning
+  // whole documents on every keystroke.
+  const [historyVersion, setHistoryVersion] = useState({ past: 0, future: 0 })
+
+  const syncHistoryVersion = useCallback(() => {
+    setHistoryVersion((prev) => {
+      const past = historyRef.current.past.length
+      const future = historyRef.current.future.length
+      return prev.past === past && prev.future === future ? prev : { past, future }
+    })
+  }, [])
+
   const activeSpread = useMemo(() => {
     return documentState.spreads.find((s) => s.id === documentState.activeSpreadId) || documentState.spreads[0]
   }, [documentState])
@@ -816,8 +829,11 @@ export function AlbumEditor({
     return activeSpreadSide.elements.filter((e) => selection.includes(e.id))
   }, [activeSpreadSide, selection])
 
-  const canUndo = historyRef.current.past.length > 0
-  const canRedo = historyRef.current.future.length > 0
+  // Derived from state, not read straight off the ref: mutating historyRef does
+  // not re-render, so the toolbar's undo/redo buttons stayed stuck in whatever
+  // enabled state they had at mount.
+  const canUndo = historyVersion.past > 0
+  const canRedo = historyVersion.future > 0
 
   const applyDocumentChange = useCallback(
     (
@@ -854,9 +870,10 @@ export function AlbumEditor({
 
       if (changed) {
         setSaveStatus('dirty')
+        syncHistoryVersion()
       }
     },
-    []
+    [syncHistoryVersion]
   )
 
   const undo = useCallback(() => {
@@ -874,8 +891,9 @@ export function AlbumEditor({
     if (changed) {
       setSelection([])
       setSaveStatus('dirty')
+      syncHistoryVersion()
     }
-  }, [])
+  }, [syncHistoryVersion])
 
   const redo = useCallback(() => {
     let changed = false
@@ -892,8 +910,9 @@ export function AlbumEditor({
     if (changed) {
       setSelection([])
       setSaveStatus('dirty')
+      syncHistoryVersion()
     }
-  }, [])
+  }, [syncHistoryVersion])
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {

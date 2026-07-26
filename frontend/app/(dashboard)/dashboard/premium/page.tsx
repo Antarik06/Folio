@@ -1,8 +1,8 @@
 import { redirect } from 'next/navigation'
+import { getAuthToken } from '@/lib/actions/auth'
 import { createClient } from '@/lib/supabase/server'
 import { PremiumDashboardClient } from '@/components/premium/premium-dashboard-client'
 import { serverFetch } from '@/lib/api-client'
-import { cookies } from 'next/headers'
 
 export const metadata = {
   title: 'Premium Concierge Workspace | Folio',
@@ -13,23 +13,11 @@ export default async function PremiumDashboardPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
-  const cookieStore = await cookies()
-  const isAdmin = cookieStore.get('admin_session')?.value === 'admin-secret-token'
-  const isArtist = cookieStore.get('artist_session')?.value === 'artist-secret-token'
-
-  if (!user && !isAdmin && !isArtist) {
+  if (!user) {
     redirect('/auth/login')
   }
 
-  let token: string | null = null
-  if (isAdmin) {
-    token = 'admin-secret-token'
-  } else if (isArtist) {
-    token = 'artist-secret-token'
-  } else {
-    const { data: { session } } = await supabase.auth.getSession()
-    token = session?.access_token || null
-  }
+  const token = await getAuthToken()
 
   let projects = []
   let packages = []

@@ -178,26 +178,47 @@ export function Magazine3D({ album }: Magazine3DProps) {
   }, [PAGE_WIDTH, PAGE_HEIGHT, PAGE_DEPTH, PAGE_SEGMENTS, segmentWidth])
 
   useEffect(() => {
+    // See Book3D: the async pass must be cancellable, and every texture it
+    // allocates has to be disposed, or each album change strands a full set of
+    // multi-megabyte page textures on the GPU.
+    let cancelled = false
+    const created: THREE.Texture[] = []
+
     const gen = async () => {
-      const results: THREE.Texture[] = []
       const H = 1500
       const W = Math.round(H * aspectRatio)
 
       for (const spread of spreads) {
-        const ft = new THREE.CanvasTexture(
-          await renderToCanvas(spread.front, W, H, spread.isCover ? album.cover_image_url : undefined)
+        const frontCanvas = await renderToCanvas(
+          spread.front, W, H, spread.isCover ? album.cover_image_url : undefined
         )
-        const bt = new THREE.CanvasTexture(await renderToCanvas(spread.back, W, H))
+        if (cancelled) return
+        const backCanvas = await renderToCanvas(spread.back, W, H)
+        if (cancelled) return
+
+        const ft = new THREE.CanvasTexture(frontCanvas)
+        const bt = new THREE.CanvasTexture(backCanvas)
         ft.colorSpace = bt.colorSpace = THREE.SRGBColorSpace
-        results.push(ft, bt)
+        created.push(ft, bt)
       }
 
-      const finalBack = new THREE.CanvasTexture(await renderToCanvas({}, W, H))
+      const finalCanvas = await renderToCanvas({}, W, H)
+      if (cancelled) return
+      const finalBack = new THREE.CanvasTexture(finalCanvas)
       finalBack.colorSpace = THREE.SRGBColorSpace
-      results.push(finalBack, finalBack)
-      setTextures(results)
+      created.push(finalBack)
+
+      if (cancelled) return
+      setTextures([...created, finalBack])
     }
-    gen()
+
+    void gen()
+
+    return () => {
+      cancelled = true
+      created.forEach((tex) => tex.dispose())
+      created.length = 0
+    }
   }, [spreads, album, aspectRatio])
 
   async function renderToCanvas(pageData: any, width: number, height: number, coverImg?: string) {

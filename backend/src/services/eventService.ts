@@ -1,5 +1,6 @@
+import { randomBytes } from 'node:crypto'
 import { query } from '../db'
-import { redisService, CACHE_KEYS } from './redisService'
+import { deleteStorageObjects } from '../utils/storage'
 
 export interface getUserEventRoleResult {
   role: 'owner' | 'collaborator' | 'guest' | 'contributor' | 'admin' | null
@@ -11,35 +12,92 @@ export interface getUserEventRoleResult {
   id?: string | null
 }
 
+/**
+ * Explicit column list for gallery reads. `SELECT *` also pulled the
+ * ai_analysis, exif_data and face_embeddings JSON blobs, which the gallery never
+ * displays but which dominate the payload size.
+ */
+export const PHOTO_COLUMNS = `
+  id, event_id, uploader_id, blob_url, blob_pathname, thumbnail_url,
+  original_filename, file_size, width, height, taken_at, is_host_photo,
+  is_shared, processing_status, status, uploaded_by_role, folder_id,
+  people_tags, location, created_at
+`
+
+/** Upper bound on photos returned in one event-detail payload. */
+export const EVENT_PHOTO_LIMIT = Number(process.env.EVENT_PHOTO_LIMIT || 500)
+
+/** Unambiguous alphabet: no O/0 or I/1, so codes survive being read aloud. */
+const CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
+
+function randomCode(length: number): string {
+  const bytes = randomBytes(length)
+  let out = ''
+  for (let i = 0; i < length; i++) {
+    out += CODE_ALPHABET[bytes[i] % CODE_ALPHABET.length]
+  }
+  return out
+}
+
+/**
+ * Generates an invite code that is not already taken. Math.random() gave both a
+ * predictable code and a real collision chance against a UNIQUE column, which
+ * surfaced as an opaque insert failure.
+ */
+async function generateUniqueCode(
+  column: 'invite_code' | 'collaborator_invite_code',
+  prefix = ''
+): Promise<string> {
+  for (let attempt = 0; attempt < 10; attempt++) {
+    const code = `${prefix}${randomCode(8 - Math.min(prefix.length, 4))}`
+    const existing = await query(
+      `SELECT 1 FROM public.events WHERE ${column} = $1 LIMIT 1`,
+      [code]
+    )
+    if (existing.rowCount === 0) {
+      return code
+    }
+  }
+  throw new Error('Could not allocate a unique invite code. Please try again.')
+}
+
 export const eventService = {
   /**
    * Resolves the user's role for a specific event
    */
   async getUserEventRole(eventId: string, userId: string): Promise<getUserEventRoleResult> {
-    // 1. Check if host/owner
-    const eventRes = await query('SELECT host_id FROM public.events WHERE id = $1', [eventId])
-    const event = eventRes.rows[0]
-    
-    if (event && event.host_id === userId) {
+    // Resolve host status and guest membership in one round-trip. This runs on
+    // essentially every authenticated event request (often several times per
+    // request via assertManager), so the previous two sequential queries doubled
+    // the latency floor of the whole API.
+    const res = await query(
+      `SELECT e.host_id,
+              eg.id   AS guest_id,
+              eg.role AS guest_role,
+              eg.face_enrolled,
+              eg.face_reference_url
+       FROM public.events e
+       LEFT JOIN public.event_guests eg
+              ON eg.event_id = e.id AND eg.user_id = $2
+       WHERE e.id = $1`,
+      [eventId, userId]
+    )
+
+    const row = res.rows[0]
+
+    if (row && row.host_id === userId) {
       return { role: 'owner', isOwner: true, isCollaborator: false, isGuest: false, faceEnrolled: false, faceReferenceUrl: null, id: null }
     }
 
-    // 2. Check in guests table
-    const guestRes = await query(
-      'SELECT id, role, face_enrolled, face_reference_url FROM public.event_guests WHERE event_id = $1 AND user_id = $2',
-      [eventId, userId]
-    )
-    const guest = guestRes.rows[0]
-
-    const role = guest?.role ?? null
+    const role = row?.guest_role ?? null
     return {
       role: role,
       isOwner: false,
       isCollaborator: role === 'collaborator',
       isGuest: role === 'guest',
-      faceEnrolled: guest?.face_enrolled ?? false,
-      faceReferenceUrl: guest?.face_reference_url ?? null,
-      id: guest?.id ?? null
+      faceEnrolled: row?.face_enrolled ?? false,
+      faceReferenceUrl: row?.face_reference_url ?? null,
+      id: row?.guest_id ?? null
     }
   },
 
@@ -76,13 +134,17 @@ export const eventService = {
     }
 
     const currentSettings = event.settings && typeof event.settings === 'object' ? event.settings : {}
-    const nextSettings = {
-      ...currentSettings,
-      location: input.location,
-      allow_guest_uploads: input.allowGuestUploads,
-      auto_approve_guest_uploads: input.autoApproveGuestUploads,
-      require_guest_face_enrollment: input.requireGuestFaceEnrollment,
+    // Merge, skipping keys the caller omitted. Assigning `undefined` used to
+    // drop the key on JSON.stringify, silently erasing existing settings on any
+    // partial update.
+    const nextSettings: Record<string, any> = { ...currentSettings }
+    const assignIfDefined = (key: string, value: any) => {
+      if (value !== undefined) nextSettings[key] = value
     }
+    assignIfDefined('location', input.location)
+    assignIfDefined('allow_guest_uploads', input.allowGuestUploads)
+    assignIfDefined('auto_approve_guest_uploads', input.autoApproveGuestUploads)
+    assignIfDefined('require_guest_face_enrollment', input.requireGuestFaceEnrollment)
 
     let nextCoverImageUrl = event.cover_image_url
     if (input.coverPhotoId) {
@@ -97,16 +159,24 @@ export const eventService = {
       nextCoverImageUrl = coverPhoto.thumbnail_url || coverPhoto.blob_url || null
     }
 
+    // COALESCE keeps the stored value when a field is omitted from the payload,
+    // rather than nulling out the title/date of an existing event.
     const updateRes = await query(
-      `UPDATE public.events 
-       SET title = $1, description = $2, event_date = $3, status = $4, cover_image_url = $5, settings = $6, updated_at = NOW()
+      `UPDATE public.events
+       SET title = COALESCE($1, title),
+           description = $2,
+           event_date = $3,
+           status = COALESCE($4, status),
+           cover_image_url = $5,
+           settings = $6,
+           updated_at = NOW()
        WHERE id = $7
-       RETURNING id, title, description, event_date, status, settings, updated_at`,
+       RETURNING id, title, description, event_date, status, cover_image_url, settings, updated_at`,
       [
-        input.title,
-        input.description,
-        input.eventDate,
-        input.status,
+        input.title ?? null,
+        input.description ?? null,
+        input.eventDate || null,
+        input.status ?? null,
         nextCoverImageUrl,
         JSON.stringify(nextSettings),
         eventId
@@ -188,9 +258,14 @@ export const eventService = {
       }
     }
 
-    // Join
+    // Join. ON CONFLICT closes the read-then-insert race: two concurrent joins
+    // (a double-tapped invite link) previously raced past the existence check
+    // and the second one failed on the unique constraint.
     const insertRes = await query(
-      'INSERT INTO public.event_guests (event_id, user_id, role) VALUES ($1, $2, $3) RETURNING id',
+      `INSERT INTO public.event_guests (event_id, user_id, role)
+       VALUES ($1, $2, $3)
+       ON CONFLICT (event_id, user_id) DO UPDATE SET role = event_guests.role
+       RETURNING id`,
       [event.id, userId, role]
     )
     const newGuest = insertRes.rows[0]
@@ -262,7 +337,7 @@ export const eventService = {
       throw new Error('Only the event owner can generate a collaborator code.')
     }
 
-    const code = 'COL-' + Math.random().toString(36).slice(2, 8).toUpperCase()
+    const code = await generateUniqueCode('collaborator_invite_code', 'COL-')
 
     // Fetch current settings
     const eventRes = await query('SELECT settings FROM public.events WHERE id = $1', [eventId])
@@ -271,7 +346,7 @@ export const eventService = {
     settingsObj.collaborator_invite_code = code
 
     await query(
-      'UPDATE public.events SET collaborator_invite_code = $1, settings = $2 WHERE id = $3',
+      'UPDATE public.events SET collaborator_invite_code = $1, settings = $2, updated_at = NOW() WHERE id = $3',
       [code, JSON.stringify(settingsObj), eventId]
     )
 
@@ -284,10 +359,11 @@ export const eventService = {
   async removeGuest(guestId: string, eventId: string, userId: string): Promise<void> {
     const isOwner = await this.assertOwner(eventId, userId)
 
-    // Fetch target guest info
+    // Fetch target guest info. Scoping by event_id matters: without it a
+    // collaborator on one event could remove a guest row belonging to another.
     const guestRes = await query(
-      'SELECT user_id, role, face_reference_url, face_enrolled FROM public.event_guests WHERE id = $1',
-      [guestId]
+      'SELECT user_id, role, face_reference_url, face_enrolled FROM public.event_guests WHERE id = $1 AND event_id = $2',
+      [guestId, eventId]
     )
     const targetGuest = guestRes.rows[0]
 
@@ -312,11 +388,13 @@ export const eventService = {
     }
 
     // Delete
-    await query('DELETE FROM public.event_guests WHERE id = $1', [guestId])
+    await query('DELETE FROM public.event_guests WHERE id = $1 AND event_id = $2', [guestId, eventId])
 
-    // Cleanup face-photo note:
-    // File deletion from Supabase Storage would typically be handled client-side or
-    // via a storage service wrapper, but the DB record is now deleted.
+    // Remove the enrolled face reference from storage as well, so a removed
+    // guest does not leave their selfie behind in the bucket.
+    if (targetGuest.face_reference_url) {
+      await deleteStorageObjects([targetGuest.face_reference_url])
+    }
   },
 
   async getMyHostedEvents(userId: string): Promise<any[]> {
@@ -386,7 +464,7 @@ export const eventService = {
 
     // Auto-generate invite code if owner and it's missing
     if (isOwner && (!event.invite_code || event.invite_code.trim() === '')) {
-      const generated = Math.random().toString(36).slice(2, 10).toUpperCase()
+      const generated = await generateUniqueCode('invite_code')
       await query('UPDATE public.events SET invite_code = $1 WHERE id = $2', [generated, eventId])
       event.invite_code = generated
     }
@@ -415,47 +493,53 @@ export const eventService = {
       }
     }))
 
-    // Fetch photos
-    let photosRes
-    if (isManager) {
-      photosRes = await query(
-        `SELECT * FROM public.photos WHERE event_id = $1 ORDER BY created_at DESC`,
-        [eventId]
-      )
-    } else {
-      photosRes = await query(
-        `SELECT * FROM public.photos 
-         WHERE event_id = $1 AND (uploader_id = $2 OR (status = 'approved' AND is_shared = true))
-         ORDER BY created_at DESC`,
-        [eventId, userId]
-      )
-    }
+    // Fetch photos, albums and folders concurrently — they are independent, and
+    // running them in sequence made this endpoint pay three full round-trips.
+    // Photos are capped: an event with thousands of uploads previously
+    // serialised every row (including the ai_analysis and face_embeddings JSON)
+    // into a single response.
+    const photosQuery = isManager
+      ? query(
+          `SELECT ${PHOTO_COLUMNS} FROM public.photos
+           WHERE event_id = $1
+           ORDER BY created_at DESC
+           LIMIT $2`,
+          [eventId, EVENT_PHOTO_LIMIT]
+        )
+      : query(
+          `SELECT ${PHOTO_COLUMNS} FROM public.photos
+           WHERE event_id = $1 AND (uploader_id = $2 OR (status = 'approved' AND is_shared = true))
+           ORDER BY created_at DESC
+           LIMIT $3`,
+          [eventId, userId, EVENT_PHOTO_LIMIT]
+        )
 
-    // Fetch albums
-    let albumsRes
-    if (isManager) {
-      albumsRes = await query(
-        `SELECT * FROM public.albums WHERE event_id = $1 ORDER BY updated_at DESC`,
-        [eventId]
-      )
-    } else {
-      albumsRes = await query(
-        `SELECT * FROM public.albums WHERE event_id = $1 AND owner_id = $2 ORDER BY updated_at DESC`,
-        [eventId, userId]
-      )
-    }
+    const albumsQuery = isManager
+      ? query(
+          'SELECT * FROM public.albums WHERE event_id = $1 ORDER BY updated_at DESC NULLS LAST',
+          [eventId]
+        )
+      : query(
+          'SELECT * FROM public.albums WHERE event_id = $1 AND owner_id = $2 ORDER BY updated_at DESC NULLS LAST',
+          [eventId, userId]
+        )
 
-    // Fetch folders
-    const foldersRes = await query(
-      'SELECT * FROM public.folders WHERE event_id = $1 ORDER BY created_at ASC',
-      [eventId]
-    )
+    const [photosRes, albumsRes, foldersRes, photoCountRes] = await Promise.all([
+      photosQuery,
+      albumsQuery,
+      query('SELECT * FROM public.folders WHERE event_id = $1 ORDER BY created_at ASC', [eventId]),
+      query('SELECT COUNT(*)::int AS count FROM public.photos WHERE event_id = $1', [eventId])
+    ])
+
+    const totalPhotos = photoCountRes.rows[0]?.count ?? photosRes.rows.length
 
     return {
       event,
       roleInfo,
       guests: mappedGuests,
       photos: photosRes.rows,
+      totalPhotos,
+      photosTruncated: photosRes.rows.length >= EVENT_PHOTO_LIMIT,
       albums: albumsRes.rows,
       folders: foldersRes.rows
     }

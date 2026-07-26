@@ -188,28 +188,54 @@ export function Book3D({ album }: Book3DProps) {
   }, [PAGE_WIDTH, PAGE_HEIGHT, PAGE_DEPTH, PAGE_SEGMENTS, segmentWidth])
 
   useEffect(() => {
+    // Guards an async generation pass that outlives its effect. Without it, a
+    // spread change mid-render resolved into setTextures() for stale data (or
+    // onto an unmounted component) and stranded the textures it had built.
+    let cancelled = false
+    const created: THREE.Texture[] = []
+
+    const disposeCreated = () => {
+      created.forEach((tex) => tex.dispose())
+      created.length = 0
+    }
+
     const generateTextures = async () => {
-      const results: THREE.Texture[] = []
       const H = 1500
       const W = Math.round(H * aspectRatio)
 
       // Loop through all spreads (Spread 0 is the cover)
       for (const spread of spreads) {
-        const frontTex = new THREE.CanvasTexture(await renderToCanvas(spread.front, W, H, spread.isCover ? album.cover_image_url : undefined))
-        const backTex = new THREE.CanvasTexture(await renderToCanvas(spread.back, W, H))
+        const frontCanvas = await renderToCanvas(spread.front, W, H, spread.isCover ? album.cover_image_url : undefined)
+        if (cancelled) return
+        const backCanvas = await renderToCanvas(spread.back, W, H)
+        if (cancelled) return
+
+        const frontTex = new THREE.CanvasTexture(frontCanvas)
+        const backTex = new THREE.CanvasTexture(backCanvas)
         frontTex.colorSpace = backTex.colorSpace = THREE.SRGBColorSpace
-        results.push(frontTex, backTex)
+        created.push(frontTex, backTex)
       }
 
       // Final Back Cover (Exterior)
-      const finalBackTex = new THREE.CanvasTexture(await renderToCanvas({}, W, H))
+      const finalCanvas = await renderToCanvas({}, W, H)
+      if (cancelled) return
+      const finalBackTex = new THREE.CanvasTexture(finalCanvas)
       finalBackTex.colorSpace = THREE.SRGBColorSpace
-      results.push(finalBackTex, finalBackTex)
+      created.push(finalBackTex)
 
-      setTextures(results)
+      if (cancelled) return
+      setTextures([...created, finalBackTex])
     }
 
-    generateTextures()
+    void generateTextures()
+
+    return () => {
+      cancelled = true
+      // Each page texture is a full-size RGBA canvas (several MB of VRAM), and
+      // two are built per spread. Recreating them without disposing leaked the
+      // entire previous set on every album change.
+      disposeCreated()
+    }
   }, [spreads, album, aspectRatio])
 
   async function renderToCanvas(pageData: any, width: number, height: number, coverImg?: string) {

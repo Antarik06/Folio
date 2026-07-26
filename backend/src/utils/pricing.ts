@@ -1,50 +1,13 @@
-export const UNIT_PRICE_CENTS: Record<'softcover' | 'hardcover', number> = {
-  softcover: 89900,  // Rs. 899
-  hardcover: 149900, // Rs. 1,499
-}
-
-export const PRODUCT_LABELS: Record<'softcover' | 'hardcover', string> = {
-  softcover: 'Press',
-  hardcover: 'Folio',
-}
-
-export const SIZE_LABELS: Record<'small' | 'large', string> = {
-  small: 'Small (15×15 cm)',
-  large: 'Large (30×30 cm)',
-}
-
-export const MAX_PAGES: Record<'softcover' | 'hardcover', number> = {
-  softcover: 80,
-  hardcover: 120,
-}
-
-export const MIN_PAGES = 24
-
-export function computePriceCents(
-  productType: 'softcover' | 'hardcover',
-  quantity: number,
-): number {
-  return UNIT_PRICE_CENTS[productType] * quantity
-}
-
-export function formatPrice(cents: number): string {
-  return `Rs. ${(cents / 100).toLocaleString('en-IN')}`
-}
-
-export function validateQuantity(n: number): boolean {
-  return Number.isInteger(n) && n >= 1 && n <= 10
-}
-
-export function isPageCountValid(
-  productType: 'softcover' | 'hardcover',
-  pageCount: number,
-): boolean {
-  return pageCount <= MAX_PAGES[productType]
-}
-
-export function validatePostalCode(s: string): boolean {
-  return /^[a-zA-Z0-9]{4,10}$/.test(s)
-}
+/**
+ * Shipping-address validation helpers.
+ *
+ * This module previously also carried hardcoded price, page-limit and copy-limit
+ * constants (UNIT_PRICE_CENTS, MAX_PAGES, MIN_PAGES, computePriceCents,
+ * formatPrice, validateQuantity, isPageCountValid, getShippingAddressErrors).
+ * All of those values are configured at runtime in public.system_settings and
+ * read by orderService, so the constants were unreferenced duplicates that only
+ * invited someone to price an order from stale numbers. They have been removed.
+ */
 
 export interface ShippingAddress {
   fullName: string
@@ -57,6 +20,10 @@ export interface ShippingAddress {
   phone: string
 }
 
+export function validatePostalCode(s: string): boolean {
+  return /^[a-zA-Z0-9]{4,10}$/.test(s)
+}
+
 export function validateShippingAddress(addr: ShippingAddress): boolean {
   const required = [
     addr.fullName,
@@ -67,26 +34,4 @@ export function validateShippingAddress(addr: ShippingAddress): boolean {
     addr.phone,
   ]
   return required.every((f) => f && f.trim().length > 0)
-}
-
-export function getShippingAddressErrors(
-  addr: ShippingAddress,
-): Partial<Record<keyof ShippingAddress, string>> {
-  const errors: Partial<Record<keyof ShippingAddress, string>> = {}
-  if (!addr.fullName || !addr.fullName.trim()) errors.fullName = 'Full name is required.'
-  if (!addr.addressLine1 || !addr.addressLine1.trim()) errors.addressLine1 = 'Address is required.'
-  if (!addr.city || !addr.city.trim()) errors.city = 'City is required.'
-  if (!addr.state || !addr.state.trim()) errors.state = 'State is required.'
-  if (!addr.phone || !addr.phone.trim()) {
-    errors.phone = 'Phone number is required.'
-  } else if (!/^[+]?[0-9\s-]{10,15}$/.test(addr.phone.trim())) {
-    errors.phone = 'Please enter a valid phone number (10-15 digits).'
-  }
-  if (!addr.postalCode || !addr.postalCode.trim()) {
-    errors.postalCode = 'Postal code is required.'
-  } else if (!validatePostalCode(addr.postalCode)) {
-    errors.postalCode = 'Enter a valid postal code (4–10 alphanumeric characters).'
-  }
-  if (!addr.country || !addr.country.trim()) errors.country = 'Country is required.'
-  return errors
 }

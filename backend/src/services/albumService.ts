@@ -1,5 +1,23 @@
 import { query } from '../db'
 import { eventService } from './eventService'
+import { verifyAlbumShareToken } from '../utils/shareToken'
+
+/** Cache of column-existence probes, so the check costs one query per process. */
+const albumColumnCache = new Map<string, boolean>()
+
+async function hasAlbumColumn(column: string): Promise<boolean> {
+  const cached = albumColumnCache.get(column)
+  if (cached !== undefined) return cached
+
+  const res = await query(
+    `SELECT 1 FROM information_schema.columns
+     WHERE table_schema = 'public' AND table_name = 'albums' AND column_name = $1`,
+    [column]
+  )
+  const exists = (res.rowCount ?? 0) > 0
+  albumColumnCache.set(column, exists)
+  return exists
+}
 
 export const albumService = {
   /**
@@ -159,28 +177,30 @@ export const albumService = {
       }
     }
 
-    const album = await this.assertManageableAlbum(albumId, userId)
+    await this.assertManageableAlbum(albumId, userId)
 
-    // Supports both 'layout_data' and 'theme_config' columns for backward compatibility
-    const updateColumn = field === 'theme_config' ? 'theme_config' : 'layout_data'
+    // 'theme_config' is only honoured when the column actually exists in this
+    // database; otherwise the layout is stored in layout_data.
+    //
+    // The old fallback wrote the layout into style_data when theme_config was
+    // missing, so the editor reported a successful save while the document was
+    // parked in a column nothing ever reads back — the classic "my edits
+    // disappeared after reload".
+    const wantsThemeConfig = field === 'theme_config'
+    const updateColumn = wantsThemeConfig && (await hasAlbumColumn('theme_config'))
+      ? 'theme_config'
+      : 'layout_data'
 
-    // First try update column
-    try {
-      const updateRes = await query(
-        `UPDATE public.albums SET ${updateColumn} = $1, updated_at = NOW() WHERE id = $2 RETURNING *`,
-        [JSON.stringify(layout), albumId]
-      )
-      return updateRes.rows[0]
-    } catch (e: any) {
-      // Fallback to alternate column if schema lacks one
-      const fallbackColumn = updateColumn === 'layout_data' ? 'style_data' : 'layout_data' // standard fallback
-      console.warn(`Failed layout save on ${updateColumn}, trying fallback.`, e.message)
-      const updateRes = await query(
-        `UPDATE public.albums SET ${fallbackColumn} = $1, updated_at = NOW() WHERE id = $2 RETURNING *`,
-        [JSON.stringify(layout), albumId]
-      )
-      return updateRes.rows[0]
+    const updateRes = await query(
+      `UPDATE public.albums SET ${updateColumn} = $1, updated_at = NOW() WHERE id = $2 RETURNING *`,
+      [JSON.stringify(layout), albumId]
+    )
+
+    if (updateRes.rowCount === 0) {
+      throw new Error('Album not found.')
     }
+
+    return updateRes.rows[0]
   },
 
   /**
@@ -230,8 +250,18 @@ export const albumService = {
   },
 
   async listAlbums(userId: string): Promise<any[]> {
+    // albums has cover_photo_id (a photo reference), not a cover_image_url
+    // column — selecting the latter made this endpoint fail outright.
     const res = await query(
-      'SELECT id, title, cover_image_url, created_at FROM public.albums WHERE owner_id = $1 ORDER BY created_at DESC',
+      `SELECT a.id, a.title, a.description, a.status, a.is_published, a.event_id,
+              a.cover_photo_id, a.created_at, a.updated_at,
+              COALESCE(p.thumbnail_url, p.blob_url) AS cover_image_url,
+              e.title AS event_title
+       FROM public.albums a
+       LEFT JOIN public.photos p ON a.cover_photo_id = p.id
+       LEFT JOIN public.events e ON a.event_id = e.id
+       WHERE a.owner_id = $1
+       ORDER BY a.updated_at DESC NULLS LAST, a.created_at DESC`,
       [userId]
     )
     return res.rows
@@ -241,7 +271,6 @@ export const albumService = {
    * Decodes, verifies and fetches album details for public share access
    */
   async getSharedAlbumByToken(token: string): Promise<any> {
-    const { verifyAlbumShareToken } = require('../utils/shareToken')
     const payload = verifyAlbumShareToken(token)
     if (!payload) {
       throw new Error('Invalid or expired share link.')

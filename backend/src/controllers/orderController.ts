@@ -1,4 +1,5 @@
 import { Response } from 'express'
+import { sendError } from '../utils/httpError'
 import { AuthenticatedRequest } from '../middlewares/authMiddleware'
 import { orderService } from '../services/orderService'
 import { createOrderSchema } from '../schema/zod'
@@ -22,7 +23,7 @@ export const orderController = {
       const order = await orderService.createOrder(parsed.data, userId)
       res.status(201).json({ success: true, order })
     } catch (error: any) {
-      res.status(400).json({ error: error.message })
+      sendError(res, error)
     }
   },
 
@@ -41,7 +42,7 @@ export const orderController = {
       const order = await orderService.getAlbumOrder(albumId, userId)
       res.json(order)
     } catch (error: any) {
-      res.status(500).json({ error: error.message })
+      sendError(res, error)
     }
   },
 
@@ -64,12 +65,13 @@ export const orderController = {
         orderId,
         razorpayOrderId,
         razorpayPaymentId,
-        razorpaySignature
+        razorpaySignature,
+        userId
       )
 
       res.json({ success: true, order })
     } catch (error: any) {
-      res.status(400).json({ error: error.message })
+      sendError(res, error)
     }
   },
 
@@ -86,7 +88,7 @@ export const orderController = {
       const orders = await orderService.getUserOrders(userId)
       res.json(orders)
     } catch (error: any) {
-      res.status(500).json({ error: error.message })
+      sendError(res, error)
     }
   }
 }
