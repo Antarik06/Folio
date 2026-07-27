@@ -1,11 +1,11 @@
-# Graph Report - Folio  (2026-07-27)
+# Graph Report - Folio  (2026-07-28)
 
 ## Corpus Check
-- 185 files · ~297,673 words
+- 199 files · ~305,524 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 590 nodes · 772 edges · 28 communities detected
+- 604 nodes · 772 edges · 28 communities detected
 - Extraction: 65% EXTRACTED · 35% INFERRED · 0% AMBIGUOUS · INFERRED: 272 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
@@ -37,7 +37,7 @@
 - [[_COMMUNITY_Community 35|Community 35]]
 - [[_COMMUNITY_Community 36|Community 36]]
 - [[_COMMUNITY_Community 37|Community 37]]
-- [[_COMMUNITY_Community 83|Community 83]]
+- [[_COMMUNITY_Community 84|Community 84]]
 
 ## God Nodes (most connected - your core abstractions)
 1. `serverFetch()` - 55 edges
@@ -67,15 +67,15 @@
 
 ### Community 0 - "Community 0"
 Cohesion: 0.07
-Nodes (63): assignArtistToOrder(), assignArtistToPremiumProject(), createPromoCode(), deletePromoCode(), getAdminArtists(), getAdminEventAlbums(), getAdminEventPhotos(), getAdminOrders() (+55 more)
+Nodes (62): assignArtistToOrder(), assignArtistToPremiumProject(), createPromoCode(), deletePromoCode(), getAdminArtists(), getAdminEventAlbums(), getAdminEventPhotos(), getAdminOrders() (+54 more)
 
 ### Community 1 - "Community 1"
 Cohesion: 0.11
-Nodes (22): homeForRole(), signIn(), signInWithGoogle(), signOut(), signUp(), autoSelect(), EditorPage(), GoogleIcon() (+14 more)
+Nodes (23): getProfile(), homeForRole(), signIn(), signInWithGoogle(), signOut(), signUp(), autoSelect(), EditorPage() (+15 more)
 
 ### Community 2 - "Community 2"
 Cohesion: 0.09
-Nodes (17): hasAlbumColumn(), authMiddleware(), loadProfile(), verifyToken(), generateUniqueCode(), randomCode(), ensureAdminProfile(), getClient() (+9 more)
+Nodes (17): hasAlbumColumn(), ensureAdminProfile(), authMiddleware(), loadProfile(), verifyToken(), generateUniqueCode(), randomCode(), getClient() (+9 more)
 
 ### Community 3 - "Community 3"
 Cohesion: 0.12
@@ -118,16 +118,16 @@ Cohesion: 0.32
 Nodes (3): handleClose(), handleDoubleClickFile(), handleImport()
 
 ### Community 14 - "Community 14"
-Cohesion: 0.33
-Nodes (4): createAdminClient(), spreadsToFlipbookPages(), normalizeSpreads(), SharedAlbumPage()
-
-### Community 15 - "Community 15"
 Cohesion: 0.29
 Nodes (1): fetchAlbums()
 
-### Community 16 - "Community 16"
+### Community 15 - "Community 15"
 Cohesion: 0.29
 Nodes (1): handleGenerateColCode()
+
+### Community 16 - "Community 16"
+Cohesion: 0.33
+Nodes (4): createAdminClient(), spreadsToFlipbookPages(), normalizeSpreads(), SharedAlbumPage()
 
 ### Community 17 - "Community 17"
 Cohesion: 0.6
@@ -173,7 +173,7 @@ Nodes (2): retake(), startCamera()
 Cohesion: 1.0
 Nodes (2): getDefaultName(), inferImageLayerName()
 
-### Community 83 - "Community 83"
+### Community 84 - "Community 84"
 Cohesion: 1.0
 Nodes (1): PageFlip
 
@@ -182,9 +182,9 @@ Nodes (1): PageFlip
   These have ≤1 connection - possible missing edges or undocumented components.
 - **Thin community `Community 10`** (11 nodes): `photo-editor.tsx`, `applyCropAspect()`, `buildCssFilter()`, `clamp()`, `handleReset()`, `handleSave()`, `resetCrop()`, `snapRotate()`, `startResize()`, `stopResize()`, `updateSize()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 15`** (7 nodes): `sidebar.tsx`, `fetchAlbums()`, `isVisiblePreset()`, `matchesQuery()`, `readFileAsImage()`, `svgToDataUri()`, `toRemoteImageType()`
+- **Thin community `Community 14`** (7 nodes): `sidebar.tsx`, `fetchAlbums()`, `isVisiblePreset()`, `matchesQuery()`, `readFileAsImage()`, `svgToDataUri()`, `toRemoteImageType()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 16`** (7 nodes): `guest-list.tsx`, `copyCode()`, `copyColCode()`, `copyColLink()`, `copyLink()`, `handleGenerateColCode()`, `handleRemove()`
+- **Thin community `Community 15`** (7 nodes): `guest-list.tsx`, `copyCode()`, `copyColCode()`, `copyColLink()`, `copyLink()`, `handleGenerateColCode()`, `handleRemove()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
 - **Thin community `Community 21`** (5 nodes): `coerceSettings()`, `getPhotoUrl()`, `handleDeleteEvent()`, `saveSettings()`, `event-settings-panel.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
@@ -202,18 +202,18 @@ Nodes (1): PageFlip
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
 - **Thin community `Community 37`** (3 nodes): `layers-panel.tsx`, `getDefaultName()`, `inferImageLayerName()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 83`** (2 nodes): `page-flip.d.ts`, `PageFlip`
+- **Thin community `Community 84`** (2 nodes): `page-flip.d.ts`, `PageFlip`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `createClient()` connect `Community 0` to `Community 1`, `Community 3`, `Community 4`, `Community 14`?**
-  _High betweenness centrality (0.075) - this node is a cross-community bridge._
-- **Why does `GET()` connect `Community 1` to `Community 0`, `Community 2`, `Community 3`, `Community 15`, `Community 17`?**
-  _High betweenness centrality (0.068) - this node is a cross-community bridge._
+- **Why does `createClient()` connect `Community 0` to `Community 16`, `Community 1`, `Community 3`, `Community 4`?**
+  _High betweenness centrality (0.071) - this node is a cross-community bridge._
+- **Why does `GET()` connect `Community 1` to `Community 0`, `Community 2`, `Community 3`, `Community 14`, `Community 17`?**
+  _High betweenness centrality (0.063) - this node is a cross-community bridge._
 - **Why does `getUser()` connect `Community 0` to `Community 8`, `Community 1`, `Community 27`, `Community 4`?**
-  _High betweenness centrality (0.062) - this node is a cross-community bridge._
+  _High betweenness centrality (0.058) - this node is a cross-community bridge._
 - **Are the 54 inferred relationships involving `serverFetch()` (e.g. with `ArtistDashboardPage()` and `EventSettingsPage()`) actually correct?**
   _`serverFetch()` has 54 INFERRED edges - model-reasoned connections that need verification._
 - **Are the 48 inferred relationships involving `getAuthToken()` (e.g. with `ArtistDashboardPage()` and `EventSettingsPage()`) actually correct?**
