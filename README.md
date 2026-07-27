@@ -223,6 +223,38 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 ---
 
+## 🧪 Running Automated Tests
+
+Folio includes automated test coverage for frontend components, backend API endpoints, and end-to-end (E2E) user flows.
+
+### 1. Frontend Unit & Component Tests (Vitest + React Testing Library)
+Run component rendering and pure unit tests (pricing calculations, navigation, join button):
+```bash
+cd frontend
+npm test
+```
+
+### 2. Backend API & Security Tests (Vitest + Supertest)
+Run backend API integration tests for authentication middleware, order validation, and Razorpay webhook signature handling:
+```bash
+cd backend
+npm test
+```
+
+### 3. End-to-End (E2E) Flow Tests (Playwright)
+Run end-to-end browser tests for Auth/Login, RSVP Event Join, and Payment Checkout flows:
+```bash
+cd frontend
+
+# Install browser binaries if running for the first time
+npx playwright install chromium
+
+# Execute Playwright E2E tests
+npm run test:e2e
+```
+
+---
+
 ## 📄 License
 
 This project is licensed under the **MIT License**. See the [LICENSE](LICENSE) file for details.

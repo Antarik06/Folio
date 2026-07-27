@@ -16,7 +16,10 @@ text.txt
 .kiro
 graphify-out/
 .agents/
-.github/
 public/textures
 inspo/
 .opencode/
+test-results/
+playwright-report/
+blob-report/
+coverage/
