@@ -6,6 +6,9 @@ import fs from 'fs'
 import apiRoutes from './routes'
 import errorMiddleware from './middlewares/errorMiddleware'
 
+import helmet from 'helmet'
+import rateLimit from 'express-rate-limit'
+
 dotenv.config()
 
 const SCRATCH_DIR = path.join(process.cwd(), 'scratch')
@@ -14,6 +17,23 @@ if (!fs.existsSync(SCRATCH_DIR)) {
 }
 
 export const app = express()
+
+// Security headers via Helmet
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: 'cross-origin' }, // allow image/PDF proxy loading
+  contentSecurityPolicy: false, // delegated to frontend or customized per route
+}))
+
+// Rate limiting for overall API
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 300, // Limit each IP to 300 requests per windowMs
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many requests, please try again later.' }
+})
+
+app.use('/api', apiLimiter)
 
 app.use((req, res, next) => {
   console.log(`[API Request] ${req.method} ${req.path}`)
