@@ -25,7 +25,7 @@
       "label": "ensureAdminProfile()",
       "file_type": "code",
       "source_file": "backend\\src\\app.ts",
-      "source_location": "L34",
+      "source_location": "L54",
       "id": "app_ensureadminprofile",
       "community": 2,
       "norm_label": "ensureadminprofile()"
@@ -5445,7 +5445,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "backend\\src\\app.ts",
-      "source_location": "L34",
+      "source_location": "L54",
       "weight": 1.0,
       "_src": "backend_src_app_ts",
       "_tgt": "app_ensureadminprofile",
