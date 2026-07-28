@@ -1,5 +1,7 @@
+
 import { createClient } from '@supabase/supabase-js'
 import dotenv from 'dotenv'
+import ws from 'ws'
 
 dotenv.config()
 
@@ -14,5 +16,8 @@ export const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
   auth: {
     persistSession: false,
     autoRefreshToken: false
+  },
+  realtime: {
+    transport: ws as any
   }
 })
