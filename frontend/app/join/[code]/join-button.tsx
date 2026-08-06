@@ -27,7 +27,7 @@ export function JoinEventButton({ code, eventId }: JoinEventButtonProps) {
     }
 
     if (result.alreadyHost) {
-      router.push(`/events/${result.eventId}`)
+      router.push(`/dashboard/events/${result.eventId}`)
       return
     }
 

@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { enrollFace } from '@/lib/actions/events'
+import { detectFaces, describeEnrollmentProblem, loadFaceEngine } from '@/lib/face-recognition'
 
 type Step = 'intro' | 'camera' | 'preview' | 'uploading' | 'done'
 
@@ -22,6 +23,8 @@ function EnrollFaceContent({ params: paramsPromise }: EnrollFacePageProps) {
   const [cameraError, setCameraError] = useState<string | null>(null)
   const [capturedImage, setCapturedImage] = useState<string | null>(null)
   const [uploadError, setUploadError] = useState<string | null>(null)
+  const [uploadStage, setUploadStage] = useState<string>('Analysing your photo...')
+  const [matchedCount, setMatchedCount] = useState<number | null>(null)
 
   const videoRef = useRef<HTMLVideoElement>(null)
   const streamRef = useRef<MediaStream | null>(null)
@@ -30,6 +33,14 @@ function EnrollFaceContent({ params: paramsPromise }: EnrollFacePageProps) {
   useEffect(() => {
     paramsPromise.then(({ code }) => setCode(code))
   }, [paramsPromise])
+
+  // Start fetching the ~12 MB of face model weights while the guest is still
+  // reading the instructions, so confirming the selfie feels instant.
+  useEffect(() => {
+    loadFaceEngine().catch(() => {
+      // Surfaced at confirm time if it is still broken then.
+    })
+  }, [])
 
   // Stop camera stream on unmount
   useEffect(() => {
@@ -88,11 +99,31 @@ function EnrollFaceContent({ params: paramsPromise }: EnrollFacePageProps) {
     if (!capturedImage || !eventId) return
     setStep('uploading')
     setUploadError(null)
+    setUploadStage('Analysing your photo...')
 
     try {
       // Convert dataUrl → Blob
       const res = await fetch(capturedImage)
       const blob = await res.blob()
+
+      // Extract the face embedding first. If the selfie is unusable there is no
+      // point uploading it — the guest gets told what to fix while the retake
+      // button is still one tap away.
+      let faces
+      try {
+        faces = await detectFaces(blob)
+      } catch (err: any) {
+        console.error('Face detection failed:', err)
+        throw new Error(
+          'Face recognition could not start on this device. Please try a different browser or ask the host to add your photos manually.'
+        )
+      }
+
+      const problem = describeEnrollmentProblem(faces)
+      if (problem) throw new Error(problem)
+
+      setUploadStage('Saving your enrollment...')
+
       const file = new File([blob], `selfie-${Date.now()}.jpg`, { type: 'image/jpeg' })
 
       const supabase = createClient()
@@ -110,9 +141,12 @@ function EnrollFaceContent({ params: paramsPromise }: EnrollFacePageProps) {
         .from('face-photos')
         .getPublicUrl(filePath)
 
-      const result = await enrollFace(eventId, publicUrl)
+      setUploadStage('Matching you against event photos...')
+
+      const result = await enrollFace(eventId, publicUrl, faces[0].descriptor)
       if (result?.error) throw new Error(result.error)
 
+      setMatchedCount(typeof result?.matched === 'number' ? result.matched : null)
       setStep('done')
     } catch (err: any) {
       setUploadError(err.message || 'Something went wrong. Please try again.')
@@ -175,7 +209,7 @@ function EnrollFaceContent({ params: paramsPromise }: EnrollFacePageProps) {
               Open Camera →
             </button>
             <Link
-              href={`/events/${eventId}/my-photos`}
+              href={`/dashboard/events/${eventId}/my-photos`}
               className="block text-center text-sm text-muted-foreground hover:text-foreground transition-colors"
             >
               Skip for now
@@ -271,7 +305,7 @@ function EnrollFaceContent({ params: paramsPromise }: EnrollFacePageProps) {
           <div className="text-center">
             <div className="w-16 h-16 border-2 border-primary/20 border-t-primary rounded-full animate-spin mx-auto mb-8" />
             <h1 className="font-serif text-3xl text-foreground mb-3">Enrolling your face...</h1>
-            <p className="text-muted-foreground text-sm">This only takes a moment.</p>
+            <p className="text-muted-foreground text-sm">{uploadStage}</p>
           </div>
         )}
 
@@ -285,14 +319,18 @@ function EnrollFaceContent({ params: paramsPromise }: EnrollFacePageProps) {
             </div>
             <h1 className="font-serif text-4xl text-foreground mb-4">You&apos;re enrolled!</h1>
             <p className="text-muted-foreground mb-3 leading-relaxed">
-              Your face has been registered. AI will now match event photos to you and build your personalized album.
+              {matchedCount === null
+                ? 'Your face has been registered. We will match event photos to you as they are uploaded.'
+                : matchedCount > 0
+                ? `We already found you in ${matchedCount} ${matchedCount === 1 ? 'photo' : 'photos'} from this event.`
+                : 'Your face has been registered. No photos match you yet.'}
             </p>
             <p className="text-sm text-muted-foreground mb-10">
-              It may take a little while for photos to be matched — check back after a few minutes.
+              New photos are matched as the host uploads them, so check back during and after the event.
             </p>
 
             <button
-              onClick={() => router.push(`/events/${eventId}/my-photos`)}
+              onClick={() => router.push(`/dashboard/events/${eventId}/my-photos`)}
               className="w-full bg-primary text-primary-foreground py-4 text-sm font-sans uppercase tracking-[0.2em] hover:bg-primary/90 transition-colors"
             >
               View My Photos →

@@ -119,7 +119,7 @@ export function EventHub() {
 
             <div className="pt-6">
               <a 
-                href="/events/create" 
+                href="/dashboard/events/new"
                 className="inline-flex items-center gap-2 text-xs font-mono uppercase tracking-widest text-primary hover:text-primary/80 transition-colors border-b border-primary/30 pb-1"
               >
                 Start a shared camera roll →

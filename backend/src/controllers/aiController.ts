@@ -2,6 +2,7 @@ import { Response, Request } from 'express'
 import { sendError } from '../utils/httpError'
 import { AuthenticatedRequest } from '../middlewares/authMiddleware'
 import { aiService } from '../services/aiService'
+import { faceService, normalizeDescriptor } from '../services/faceService'
 
 export const aiController = {
   /**
@@ -41,13 +42,17 @@ export const aiController = {
   },
 
   /**
-   * POST /api/events/:eventId/enroll-face
+   * POST /api/ai/events/:eventId/enroll-face
+   * Body: { selfieUrl, descriptor: number[128] }
+   *
+   * The descriptor is extracted from the selfie in the browser, so it is
+   * validated here before it is allowed anywhere near the matcher.
    */
   async enrollFace(req: AuthenticatedRequest, res: Response) {
     try {
       const eventId = req.params.eventId
       const userId = req.user?.id
-      const { selfieUrl } = req.body
+      const { selfieUrl, descriptor } = req.body
 
       if (!userId) {
         return res.status(401).json({ error: 'Unauthenticated' })
@@ -57,10 +62,17 @@ export const aiController = {
         return res.status(400).json({ error: 'Selfie URL is required.' })
       }
 
-      await aiService.enrollFace(eventId, selfieUrl, userId)
-      res.json({ success: true })
+      const parsedDescriptor = normalizeDescriptor(descriptor)
+      if (!parsedDescriptor) {
+        return res.status(400).json({
+          error: 'A 128-number face descriptor is required. Retake the selfie so your face is clearly visible.'
+        })
+      }
+
+      const result = await faceService.enrollFace(eventId, userId, selfieUrl, parsedDescriptor)
+      res.json({ success: true, matched: result.matched })
     } catch (error: any) {
-      sendError(res, error instanceof Error ? error : new Error('Face enrollment database update failed'))
+      sendError(res, error)
     }
   }
 }

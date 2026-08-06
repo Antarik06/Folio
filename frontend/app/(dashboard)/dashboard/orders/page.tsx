@@ -3,7 +3,8 @@ import Link from 'next/link'
 import { getUserOrders } from '@/lib/actions/orders'
 import { getProfile, getUser } from '@/lib/actions/auth'
 import { formatPrice } from '@/lib/pricing'
-import { Clock, CheckCircle2, ChevronRight, Package, Truck, Compass, UserCheck, Check } from 'lucide-react'
+import { PrintJobProgress } from '@/components/album-order/print-job-progress'
+import { Clock, CheckCircle2, Package, Truck, Compass, UserCheck, Check } from 'lucide-react'
 
 // Define the steps in order
 const PROGRESS_STEPS = [
@@ -145,6 +146,12 @@ export default async function MyOrdersPage() {
                         Specification: <strong className="text-foreground">{formatName} ({sizeName})</strong>
                       </p>
                     </div>
+                  </div>
+
+                  {/* Live print-export progress. Renders itself away until a
+                      print job actually exists for this order. */}
+                  <div className="mb-12">
+                    <PrintJobProgress orderId={order.id} />
                   </div>
 
                   {/* Horizontal Visual Tracker */}

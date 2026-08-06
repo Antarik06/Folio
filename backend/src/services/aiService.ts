@@ -1,4 +1,3 @@
-import { query } from '../db'
 import dotenv from 'dotenv'
 
 dotenv.config()
@@ -129,27 +128,5 @@ export const aiService = {
     }
 
     throw new Error('Unsupported elements source.')
-  },
-
-  /**
-   * Registers a user face reference image URL for an event
-   */
-  async enrollFace(eventId: string, selfieUrl: string, userId: string): Promise<void> {
-    const updateRes = await query(
-      `UPDATE public.event_guests
-       SET face_reference_url = $1, face_enrolled = TRUE
-       WHERE event_id = $2 AND user_id = $3`,
-      [selfieUrl, eventId, userId]
-    )
-
-    if (updateRes.rowCount === 0) {
-      // Previously this inserted a guest row for any event id, which let a user
-      // join a private event without ever presenting an invite code. Enrollment
-      // now requires an existing membership (or being the host).
-      const hostRes = await query('SELECT 1 FROM public.events WHERE id = $1 AND host_id = $2', [eventId, userId])
-      if (hostRes.rowCount === 0) {
-        throw new Error('Join this event with an invite code before enrolling your face.')
-      }
-    }
   }
 }

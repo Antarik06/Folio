@@ -5,16 +5,28 @@ const nextConfig = {
     // shipping type errors silently.
     ignoreBuildErrors: false,
   },
+  async redirects() {
+    // The app router previously carried two parallel trees for the same
+    // screens — /(dashboard)/events alongside /(dashboard)/dashboard/events —
+    // where the shorter one was part duplicated page, part redirect stub. The
+    // duplicates are gone; these keep old links, QR codes and bookmarks working.
+    //
+    // Temporary (307) on purpose: the deleted stubs redirected with the same
+    // status, and a 308 would be cached in browsers indefinitely.
+    return [
+      { source: '/events', destination: '/dashboard/events', permanent: false },
+      { source: '/events/:path*', destination: '/dashboard/events/:path*', permanent: false },
+      { source: '/templates', destination: '/dashboard/templates', permanent: false },
+      { source: '/templates/:path*', destination: '/dashboard/templates/:path*', permanent: false },
+      { source: '/polaroid', destination: '/dashboard/polaroid', permanent: false },
+    ]
+  },
   async rewrites() {
     return [
       {
-        source: '/dashboard/polaroid',
-        destination: '/polaroid',
+        source: '/dashboard/join',
+        destination: '/join',
       },
-      {
-         source: '/dashboard/join',
-         destination: '/join',
-      }
     ]
   },
   images: {

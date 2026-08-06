@@ -175,7 +175,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
               return (
                 <Link
                   key={entry.id}
-                  href={`/events/${event.id}`}
+                  href={`/dashboard/events/${event.id}`}
                   className="flex items-stretch bg-card border border-secondary/30 hover:border-secondary/70 transition-colors overflow-hidden min-h-[120px]"
                 >
                   <div className="w-40 shrink-0 bg-muted/40 border-r border-border">
@@ -248,7 +248,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
         <div>
           <div className="flex items-center justify-between mb-6">
             <h2 className="font-serif text-2xl text-foreground">Your Events</h2>
-            <Link href="/events" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+            <Link href="/dashboard/events" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
               View all
             </Link>
           </div>
@@ -261,7 +261,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                 return (
                   <Link
                     key={event.id}
-                    href={`/events/${event.id}`}
+                    href={`/dashboard/events/${event.id}`}
                     className="flex items-stretch bg-card border border-border hover:border-primary/50 transition-colors overflow-hidden min-h-[120px]"
                   >
                     <div className="w-40 shrink-0 bg-muted/40 border-r border-border">
@@ -302,7 +302,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
             <div className="p-8 bg-card border border-border text-center">
               <p className="text-muted-foreground mb-4">No events yet</p>
               <Link
-                href="/events/new"
+                href="/dashboard/events/new"
                 className="inline-block bg-primary text-primary-foreground px-6 py-2 text-sm hover:bg-primary/90 transition-colors"
               >
                 Create your first event
@@ -315,7 +315,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
         <div>
           <div className="flex items-center justify-between mb-6">
             <h2 className="font-serif text-2xl text-foreground">Your Albums</h2>
-            <Link href="/events" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+            <Link href="/dashboard/events" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
               Open events
             </Link>
           </div>

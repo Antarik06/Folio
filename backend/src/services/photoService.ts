@@ -1,36 +1,16 @@
 import { query } from '../db'
-import { eventService, PHOTO_COLUMNS, EVENT_PHOTO_LIMIT } from './eventService'
+import { eventService, fetchEventPhotos, EVENT_PHOTO_LIMIT } from './eventService'
 import { deleteStorageObjects } from '../utils/storage'
 
 export const photoService = {
   /**
-   * For guest: returns approved photos + their own uploads.
+   * For guest: returns approved photos + their own uploads + photos the face
+   * matcher recognised them in.
    * For manager: returns all photos.
    */
   async getEventPhotos(eventId: string, userId: string, limit = EVENT_PHOTO_LIMIT, offset = 0): Promise<any[]> {
     const isManager = await eventService.assertManager(eventId, userId)
-    const safeLimit = Math.min(Math.max(1, limit), EVENT_PHOTO_LIMIT)
-    const safeOffset = Math.max(0, offset)
-
-    if (isManager) {
-      const photosRes = await query(
-        `SELECT ${PHOTO_COLUMNS} FROM public.photos
-         WHERE event_id = $1
-         ORDER BY created_at DESC
-         LIMIT $2 OFFSET $3`,
-        [eventId, safeLimit, safeOffset]
-      )
-      return photosRes.rows
-    } else {
-      const photosRes = await query(
-        `SELECT ${PHOTO_COLUMNS} FROM public.photos
-         WHERE event_id = $1 AND (uploader_id = $2 OR (status = 'approved' AND is_shared = TRUE))
-         ORDER BY created_at DESC
-         LIMIT $3 OFFSET $4`,
-        [eventId, userId, safeLimit, safeOffset]
-      )
-      return photosRes.rows
-    }
+    return fetchEventPhotos(eventId, userId, isManager, { limit, offset })
   },
 
   /**

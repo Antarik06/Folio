@@ -38,8 +38,16 @@ export default async function MyPhotosPage({ params }: Props) {
     redirect(`/join/${event.invite_code}`)
   }
 
+  // Each photo appears in exactly one section, most personal first: photos the
+  // face matcher recognised you in, then your own uploads, then the rest of the
+  // shared pool.
   const ownPhotos = (myPhotos ?? []).filter((p: any) => p.uploader_id === user.id)
-  const sharedPhotos = (myPhotos ?? []).filter((p: any) => p.is_shared && p.uploader_id !== user.id)
+  const matchedPhotos = (myPhotos ?? []).filter(
+    (p: any) => p.is_face_match && p.uploader_id !== user.id
+  )
+  const sharedPhotos = (myPhotos ?? []).filter(
+    (p: any) => p.is_shared && p.uploader_id !== user.id && !p.is_face_match
+  )
   const eventDate = event.event_date
     ? new Date(event.event_date).toLocaleDateString('en-US', {
         month: 'long', day: 'numeric', year: 'numeric',
@@ -69,11 +77,12 @@ export default async function MyPhotosPage({ params }: Props) {
           </p>
         </div>
 
-        {/* Order CTA */}
+        {/* Order CTA. Ordering starts from an album, which lives on the event
+            page — /dashboard/events/[id]/order was never a real route. */}
         <div className="flex-shrink-0">
           <Link
-            href={`/dashboard/events/${eventId}/order`}
-            className="bg-primary text-primary-foreground px-10 py-4 text-[10px] uppercase tracking-[0.3em] font-bold hover:bg-primary/90 transition-all shadow-xl shadow-primary/20"
+            href={`/dashboard/events/${eventId}`}
+            className="inline-block bg-primary text-primary-foreground px-10 py-4 text-[10px] uppercase tracking-[0.3em] font-bold hover:bg-primary/90 transition-all shadow-xl shadow-primary/20"
           >
             Order Magazine Volume
           </Link>
@@ -100,7 +109,11 @@ export default async function MyPhotosPage({ params }: Props) {
       )}
 
       {/* Stats row */}
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-12 mb-20 px-6">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-12 mb-20 px-6">
+        <div className="flex flex-col gap-2">
+          <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground font-bold">Photos of You</p>
+          <p className="font-serif text-5xl text-foreground">{matchedPhotos.length}</p>
+        </div>
         <div className="flex flex-col gap-2">
           <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground font-bold">My Uploads</p>
           <p className="font-serif text-5xl text-foreground">{ownPhotos.length}</p>
@@ -115,11 +128,23 @@ export default async function MyPhotosPage({ params }: Props) {
         </div>
       </div>
 
+      {/* Enrolled but nothing matched yet — explain rather than show a bare 0. */}
+      {guestRecord.face_enrolled && matchedPhotos.length === 0 && (myPhotos ?? []).length > 0 && (
+        <div className="p-8 bg-card border border-border mb-16">
+          <p className="font-serif text-xl text-foreground mb-2 italic">We haven&apos;t spotted you yet.</p>
+          <p className="text-muted-foreground font-light leading-relaxed text-sm">
+            Your face is enrolled. As the host uploads and indexes more photos, the ones you appear in
+            will show up here automatically.
+          </p>
+        </div>
+      )}
+
       <div className="mt-12">
         <GuestPhotoGrid
           photos={myPhotos ?? []}
           ownPhotos={ownPhotos}
           sharedPhotos={sharedPhotos}
+          matchedPhotos={matchedPhotos}
           eventId={eventId}
           userId={user.id}
         />

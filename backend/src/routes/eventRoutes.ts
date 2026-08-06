@@ -1,5 +1,6 @@
 import { Router } from 'express'
 import { eventController } from '../controllers/eventController'
+import { faceController } from '../controllers/faceController'
 import authMiddleware from '../middlewares/authMiddleware'
 
 const router = Router()
@@ -9,6 +10,9 @@ router.get('/lookup', eventController.lookup)
 
 // Protected routes (JWT verification required)
 router.get('/dashboard', authMiddleware, eventController.getDashboard)
+// Face indexing status + backlog for the host dashboard.
+router.get('/:eventId/face-scan-queue', authMiddleware, faceController.getScanQueue)
+router.get('/:eventId/face-stats', authMiddleware, faceController.getStats)
 router.get('/', authMiddleware, eventController.getMyEvents)
 router.post('/', authMiddleware, eventController.create)
 router.post('/join', authMiddleware, eventController.join)

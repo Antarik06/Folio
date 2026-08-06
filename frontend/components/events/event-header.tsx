@@ -15,7 +15,7 @@ export function EventHeader({ event, isHost, photoCount, guestCount }: EventHead
     <div className="mb-8">
       {/* Breadcrumb */}
       <div className="mb-6">
-        <Link href="/events" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+        <Link href="/dashboard/events" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
           ← Back to Events
         </Link>
       </div>
@@ -79,7 +79,7 @@ export function EventHeader({ event, isHost, photoCount, guestCount }: EventHead
         {isHost && (
           <div className="flex items-center gap-3">
             <Link
-              href={`/events/${event.id}/settings`}
+              href={`/dashboard/events/${event.id}/settings`}
               className="px-4 py-2 border border-border text-foreground text-sm hover:bg-card transition-colors"
             >
               Settings

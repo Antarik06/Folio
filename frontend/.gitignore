@@ -20,3 +20,5 @@ graphify-out/
 public/textures
 inspo/
 .opencode/
+# face-api model weights are copied from node_modules by scripts/setup-face-models.mjs
+public/models/face-api/

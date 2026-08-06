@@ -172,7 +172,7 @@ export default async function JoinCodePage({ params }: Props) {
                 You&apos;re the owner of this event. Manage it from your dashboard.
               </p>
               <Link
-                href={`/events/${event.id}`}
+                href={`/dashboard/events/${event.id}`}
                 className="w-full block text-center bg-primary text-primary-foreground py-4 text-sm uppercase tracking-[0.2em] hover:bg-primary/90 transition-colors"
               >
                 Go to Event Dashboard
@@ -212,7 +212,7 @@ export default async function JoinCodePage({ params }: Props) {
                     Enroll My Face →
                   </Link>
                   <Link
-                    href={`/events/${event.id}`}
+                    href={`/dashboard/events/${event.id}`}
                     className="w-full block text-center border border-border text-foreground py-4 text-sm uppercase tracking-[0.2em] hover:bg-card transition-colors"
                   >
                     Go to Dashboard
@@ -220,7 +220,7 @@ export default async function JoinCodePage({ params }: Props) {
                 </>
               ) : (
                 <Link
-                  href={`/events/${event.id}`}
+                  href={`/dashboard/events/${event.id}`}
                   className="w-full block text-center bg-primary text-primary-foreground py-4 text-sm uppercase tracking-[0.2em] hover:bg-primary/90 transition-colors"
                 >
                   Go to Event Dashboard

@@ -83,7 +83,7 @@ export interface Database {
           email: string
           name: string | null
           role: 'guest' | 'contributor'
-          face_embedding: number[] | null
+          face_descriptor: number[] | null
           face_enrolled: boolean
           face_reference_url: string | null
           joined_at: string
@@ -95,7 +95,7 @@ export interface Database {
           email: string
           name?: string | null
           role?: 'guest' | 'contributor'
-          face_embedding?: number[] | null
+          face_descriptor?: number[] | null
           face_enrolled?: boolean
           face_reference_url?: string | null
           joined_at?: string
@@ -107,7 +107,7 @@ export interface Database {
           email?: string
           name?: string | null
           role?: 'guest' | 'contributor'
-          face_embedding?: number[] | null
+          face_descriptor?: number[] | null
           face_enrolled?: boolean
           face_reference_url?: string | null
           joined_at?: string
@@ -131,6 +131,9 @@ export interface Database {
           ai_emotion_tags: string[] | null
           is_host_photo: boolean
           is_shared: boolean
+          face_scan_status: 'pending' | 'done' | 'failed' | 'unsupported'
+          face_count: number
+          face_scanned_at: string | null
           processing_status: 'pending' | 'processing' | 'complete' | 'failed'
           created_at: string
         }
@@ -151,6 +154,9 @@ export interface Database {
           ai_emotion_tags?: string[] | null
           is_host_photo?: boolean
           is_shared?: boolean
+          face_scan_status?: 'pending' | 'done' | 'failed' | 'unsupported'
+          face_count?: number
+          face_scanned_at?: string | null
           processing_status?: 'pending' | 'processing' | 'complete' | 'failed'
           created_at?: string
         }
@@ -171,6 +177,9 @@ export interface Database {
           ai_emotion_tags?: string[] | null
           is_host_photo?: boolean
           is_shared?: boolean
+          face_scan_status?: 'pending' | 'done' | 'failed' | 'unsupported'
+          face_count?: number
+          face_scanned_at?: string | null
           processing_status?: 'pending' | 'processing' | 'complete' | 'failed'
           created_at?: string
         }

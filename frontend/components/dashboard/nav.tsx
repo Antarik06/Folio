@@ -60,7 +60,7 @@ export function DashboardNav({ user, profile }: DashboardNavProps) {
         <div className="flex items-center gap-4">
           <ThemeToggle />
           <Link
-            href="/events/new"
+            href="/dashboard/events/new"
             className="hidden md:inline-flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 text-sm hover:bg-primary/90 transition-colors"
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -94,7 +94,7 @@ export function DashboardNav({ user, profile }: DashboardNavProps) {
               </div>
               <DropdownMenuSeparator />
               <DropdownMenuItem asChild>
-                <Link href="/events">Manage Events</Link>
+                <Link href="/dashboard/events">Manage Events</Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
                 <Link href="/join">Join Event</Link>
@@ -162,7 +162,7 @@ export function DashboardNav({ user, profile }: DashboardNavProps) {
           <div className="h-px bg-border my-2" />
           <div className="flex flex-col gap-3">
             <Link
-              href="/events/new"
+              href="/dashboard/events/new"
               onClick={() => setIsMobileMenuOpen(false)}
               className="flex items-center justify-center gap-2 bg-primary text-primary-foreground px-4 py-2.5 text-sm font-medium hover:bg-primary/90 transition-colors"
             >

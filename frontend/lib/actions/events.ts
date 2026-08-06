@@ -61,15 +61,21 @@ export async function generateCollaboratorCode(eventId: string) {
   }
 }
 
-export async function enrollFace(eventId: string, selfieUrl: string) {
+/**
+ * `descriptor` is the 128-float embedding extracted from the selfie in the
+ * browser (see lib/face-recognition.ts). The backend rejects the enrollment
+ * without one, because a selfie URL alone cannot match anything.
+ */
+export async function enrollFace(eventId: string, selfieUrl: string, descriptor: number[]) {
   try {
     const token = await getAuthToken()
     const result = await serverFetch(`/api/ai/events/${eventId}/enroll-face`, token, {
       method: 'POST',
-      body: JSON.stringify({ selfieUrl })
+      body: JSON.stringify({ selfieUrl, descriptor })
     })
 
     revalidatePath(`/dashboard/events/${eventId}`)
+    revalidatePath(`/dashboard/events/${eventId}/my-photos`)
     return result
   } catch (error: any) {
     return { error: error.message }

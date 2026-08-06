@@ -67,6 +67,7 @@ export function EventSettingsPanel({ event, photos }: EventSettingsPanelProps) {
   const [allowGuestUploads, setAllowGuestUploads] = useState(settings.allow_guest_uploads ?? true)
   const [autoApproveGuestUploads, setAutoApproveGuestUploads] = useState(settings.auto_approve_guest_uploads ?? false)
   const [requireGuestFaceEnrollment, setRequireGuestFaceEnrollment] = useState(settings.require_guest_face_enrollment ?? false)
+  const [shareFaceMatchedPhotos, setShareFaceMatchedPhotos] = useState(settings.share_face_matched_photos ?? true)
 
   const [isPending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
@@ -94,6 +95,7 @@ export function EventSettingsPanel({ event, photos }: EventSettingsPanelProps) {
         allowGuestUploads,
         autoApproveGuestUploads,
         requireGuestFaceEnrollment,
+        shareFaceMatchedPhotos,
       })
 
       if (result?.error) {
@@ -116,7 +118,7 @@ export function EventSettingsPanel({ event, photos }: EventSettingsPanelProps) {
         setShowDeleteDialog(false)
         return
       }
-      router.push('/events')
+      router.push('/dashboard/events')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to delete event')
       setIsDeleting(false)
@@ -228,6 +230,17 @@ export function EventSettingsPanel({ event, photos }: EventSettingsPanelProps) {
               <p className="text-xs text-muted-foreground mt-1">Shows a stricter requirement hint before guests upload.</p>
             </div>
             <Switch checked={requireGuestFaceEnrollment} onCheckedChange={setRequireGuestFaceEnrollment} />
+          </div>
+
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <p className="text-sm font-medium text-foreground">Share face-matched photos</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                Guests who enrolled a selfie see approved photos they appear in, even ones you have not
+                shared with everyone. Turn off to make sharing the only way a guest sees a photo.
+              </p>
+            </div>
+            <Switch checked={shareFaceMatchedPhotos} onCheckedChange={setShareFaceMatchedPhotos} />
           </div>
 
           <div className="rounded border border-border bg-background/60 p-3 text-xs text-muted-foreground">

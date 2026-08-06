@@ -25,3 +25,7 @@ inspo/
 !graph.html
 !graph_report.md
 
+
+# face-api model weights are copied from node_modules by
+# frontend/scripts/setup-face-models.mjs on install/build.
+public/models/face-api/

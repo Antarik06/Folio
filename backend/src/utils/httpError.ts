@@ -1,6 +1,21 @@
 import { Response } from 'express'
 
 /**
+ * An error that carries its own HTTP status, for cases where inferring one from
+ * the message text would be guesswork. `statusForError` already honours a
+ * `status` property, so throwing this from a service needs no controller change.
+ */
+export class HttpError extends Error {
+  readonly status: number
+
+  constructor(status: number, message: string) {
+    super(message)
+    this.name = 'HttpError'
+    this.status = status
+  }
+}
+
+/**
  * Maps a service-layer Error onto an HTTP status.
  *
  * Services signal failures by throwing plain Errors ("Not authorized.",

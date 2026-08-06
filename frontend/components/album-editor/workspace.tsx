@@ -69,6 +69,35 @@ const DRAG_MIME = 'application/x-folio-album-element'
 const SNAP_TOLERANCE = 8
 const GRID_STEP = 40
 
+/**
+ * Transformer handle sizing. Konva's default 10px anchor is roughly a quarter of
+ * the ~40px touch target a fingertip needs, which made resizing on a phone a
+ * matter of luck.
+ */
+const ANCHOR_SIZE_MOUSE = 10
+const ANCHOR_SIZE_TOUCH = 22
+const ROTATE_OFFSET_MOUSE = 20
+const ROTATE_OFFSET_TOUCH = 40
+
+/**
+ * Coarse pointers get bigger handles. Checked at run time rather than from a
+ * width breakpoint so a touchscreen laptop is treated correctly too.
+ */
+function useCoarsePointer(): boolean {
+  const [coarse, setCoarse] = useState(false)
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.matchMedia) return
+    const media = window.matchMedia('(pointer: coarse)')
+    const update = () => setCoarse(media.matches)
+    update()
+    media.addEventListener('change', update)
+    return () => media.removeEventListener('change', update)
+  }, [])
+
+  return coarse
+}
+
 const QUICK_FONT_OPTIONS = [
   { label: 'Serif', value: 'serif' },
   { label: 'Sans', value: 'sans-serif' },
@@ -138,7 +167,107 @@ export function Workspace({
   const [currentLine, setCurrentLine] = useState<{ points: number[] } | null>(null)
   const isDrawing = useRef(false)
 
+  const isCoarsePointer = useCoarsePointer()
   const scale = zoom / 100
+
+  // A fingertip always wobbles a few pixels, so with Konva's default 0px drag
+  // threshold every tap-to-select nudged the element out of place. Require a
+  // deliberate movement on touch before a drag begins.
+  useEffect(() => {
+    Konva.dragDistance = isCoarsePointer ? 6 : 0
+  }, [isCoarsePointer])
+
+  // Long-press stands in for right-click on touch: mobile browsers do not fire
+  // contextmenu reliably inside a canvas, so the element menu was unreachable.
+  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const cancelLongPress = () => {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current)
+      longPressTimer.current = null
+    }
+  }
+
+  useEffect(() => cancelLongPress, [])
+
+  const armLongPress = (e: any) => {
+    cancelLongPress()
+    if (isDrawingMode || blockContextMenu) return
+
+    const targetId = e.target?.id?.() || null
+    const isBackground = !targetId || e.target === e.target.getStage() || targetId === 'bg-page'
+    if (isBackground) return
+
+    // The touch position has to be read now: by the time the timer fires the
+    // Konva event object has been recycled.
+    const touch = e.evt?.touches?.[0]
+    const clientX = touch?.clientX
+    const clientY = touch?.clientY
+
+    longPressTimer.current = setTimeout(() => {
+      openContextMenu({ clientX, clientY }, targetId)
+    }, 500)
+  }
+
+  // Drawing was wired to mouse events only, so freehand sketching started on a
+  // touchscreen and then never moved or committed. Mouse and touch now run the
+  // same three handlers.
+  const beginStroke = (e: any) => {
+    if (!isDrawingMode) {
+      checkDeselect(e)
+      return
+    }
+    // Konva delivers touch events with the page still free to scroll; without
+    // this the canvas pans out from under the stroke being drawn.
+    e.evt?.preventDefault?.()
+    const pos = e.target.getStage()?.getRelativePointerPosition()
+    if (!pos) return
+    isDrawing.current = true
+    setCurrentLine({ points: [pos.x, pos.y] })
+  }
+
+  const extendStroke = (e: any) => {
+    if (!isDrawing.current || !isDrawingMode) return
+    e.evt?.preventDefault?.()
+    const point = e.target.getStage()?.getRelativePointerPosition()
+    if (!point) return
+    setCurrentLine((line) => (line ? { points: line.points.concat([point.x, point.y]) } : line))
+  }
+
+  const endStroke = () => {
+    if (isDrawing.current && currentLine && currentLine.points.length > 2) {
+      // Calculate bounds of the drawing
+      const xs = currentLine.points.filter((_, i) => i % 2 === 0)
+      const ys = currentLine.points.filter((_, i) => i % 2 === 1)
+      const minX = Math.min(...xs)
+      const minY = Math.min(...ys)
+      const maxX = Math.max(...xs)
+      const maxY = Math.max(...ys)
+
+      // Normalize points relative to element top-left
+      const normalizedPoints = currentLine.points.map((val, i) =>
+        i % 2 === 0 ? val - minX : val - minY
+      )
+
+      onDropElement(
+        {
+          type: 'drawing',
+          name: 'Freehand Sketch',
+          points: normalizedPoints,
+          stroke: brushColor,
+          strokeWidth: brushSize,
+          x: minX,
+          y: minY,
+          width: Math.max(5, maxX - minX),
+          height: Math.max(5, maxY - minY),
+          rotation: 0,
+        } as Omit<DrawingElement, 'id' | 'zIndex'>,
+        { x: minX, y: minY }
+      )
+    }
+    isDrawing.current = false
+    setCurrentLine(null)
+  }
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -400,68 +529,22 @@ export function Workspace({
           height={SPREAD_HEIGHT * scale}
           scaleX={scale}
           scaleY={scale}
-          onMouseDown={(e) => {
-            if (isDrawingMode) {
-              const pos = e.target.getStage()?.getRelativePointerPosition()
-              if (pos) {
-                isDrawing.current = true
-                setCurrentLine({ points: [pos.x, pos.y] })
-              }
-              return
-            }
-            checkDeselect(e)
-          }}
-          onMouseMove={(e) => {
-            if (!isDrawing.current || !isDrawingMode) return
-            const stage = e.target.getStage()
-            const point = stage?.getRelativePointerPosition()
-            if (point && currentLine) {
-              setCurrentLine({
-                points: currentLine.points.concat([point.x, point.y])
-              })
-            }
-          }}
-          onMouseUp={() => {
-            if (isDrawing.current && currentLine && currentLine.points.length > 2) {
-              // Calculate bounds of the drawing
-              const xs = currentLine.points.filter((_, i) => i % 2 === 0)
-              const ys = currentLine.points.filter((_, i) => i % 2 === 1)
-              const minX = Math.min(...xs)
-              const minY = Math.min(...ys)
-              const maxX = Math.max(...xs)
-              const maxY = Math.max(...ys)
-              
-              // Normalize points relative to element top-left
-              const normalizedPoints = currentLine.points.map((val, i) => 
-                i % 2 === 0 ? val - minX : val - minY
-              )
-
-              onDropElement({
-                type: 'drawing',
-                name: 'Freehand Sketch',
-                points: normalizedPoints,
-                stroke: brushColor,
-                strokeWidth: brushSize,
-                x: minX,
-                y: minY,
-                width: Math.max(5, maxX - minX),
-                height: Math.max(5, maxY - minY),
-                rotation: 0,
-              } as Omit<DrawingElement, 'id' | 'zIndex'>, { x: minX, y: minY })
-            }
-            isDrawing.current = false
-            setCurrentLine(null)
-          }}
+          onMouseDown={beginStroke}
+          onMouseMove={extendStroke}
+          onMouseUp={endStroke}
+          onMouseLeave={endStroke}
           onTouchStart={(e) => {
-            if (isDrawingMode) {
-              const pos = e.target.getStage()?.getRelativePointerPosition()
-              if (pos) {
-                isDrawing.current = true
-                setCurrentLine({ points: [pos.x, pos.y] })
-              }
-              return
-            }
-            checkDeselect(e)
+            armLongPress(e)
+            beginStroke(e)
+          }}
+          onTouchMove={(e) => {
+            // Any movement means this is a drag or a stroke, not a long press.
+            cancelLongPress()
+            extendStroke(e)
+          }}
+          onTouchEnd={() => {
+            cancelLongPress()
+            endStroke()
           }}
           onContextMenu={(event) => {
             const stage = event.target.getStage()
@@ -740,10 +823,22 @@ export function Workspace({
                 return newBox
               }}
               rotationSnaps={[0, 45, 90, 135, 180, 225, 270, 315]}
+              // Anchors are drawn in stage space, so at 40% zoom a nominal 22px
+              // handle would render at 9px. Divide by the scale to keep the
+              // on-screen hit area constant however far the canvas is zoomed.
+              anchorSize={(isCoarsePointer ? ANCHOR_SIZE_TOUCH : ANCHOR_SIZE_MOUSE) / scale}
+              anchorStrokeWidth={(isCoarsePointer ? 2 : 1) / scale}
+              anchorCornerRadius={(isCoarsePointer ? 11 : 2) / scale}
+              borderStrokeWidth={1 / scale}
+              rotateAnchorOffset={(isCoarsePointer ? ROTATE_OFFSET_TOUCH : ROTATE_OFFSET_MOUSE) / scale}
+              // Corners only on touch: the four side handles sit close enough
+              // together at finger size that they overlap on a small element.
               enabledAnchors={
                 selection.length === 1 &&
                 spread.elements.find((el) => el.id === selection[0])?.locked
                   ? []
+                  : isCoarsePointer
+                  ? ['top-left', 'top-right', 'bottom-left', 'bottom-right']
                   : undefined
               }
             />

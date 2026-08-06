@@ -14,6 +14,7 @@ import {
 } from '@/lib/actions/admin'
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts'
 import { formatPrice } from '@/lib/pricing'
+import { PrintJobProgress } from '@/components/album-order/print-job-progress'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
 
@@ -1117,13 +1118,14 @@ export function AdminDashboardClient({ initialUsers, initialOrders }: AdminDashb
                       <th className="py-4 px-6 text-right">Price Summary</th>
                       <th className="py-4 px-6 text-center">Payment Status</th>
                       <th className="py-4 px-6">Assigned Artist</th>
+                      <th className="py-4 px-6">Print Export</th>
                       <th className="py-4 px-6">Tracking status</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border/10 text-sm">
                     {filteredOrders.length === 0 ? (
                       <tr>
-                        <td colSpan={7} className="py-12 text-center text-muted-foreground font-mono text-xs uppercase">
+                        <td colSpan={8} className="py-12 text-center text-muted-foreground font-mono text-xs uppercase">
                           No print orders found matching query.
                         </td>
                       </tr>
@@ -1208,6 +1210,11 @@ export function AdminDashboardClient({ initialUsers, initialOrders }: AdminDashb
                                   </option>
                                 ))}
                               </select>
+                            </td>
+
+                            {/* Live print PDF export progress + download */}
+                            <td className="py-4 px-6">
+                              <PrintJobProgress orderId={order.id} compact showDownload />
                             </td>
 
                             {/* Status picker select dropdown */}

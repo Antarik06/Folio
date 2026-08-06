@@ -444,6 +444,62 @@ export const orderService = {
   },
 
   /**
+   * Live progress of the print PDF export for one order.
+   *
+   * Returns null when nothing has been queued yet (the order is still awaiting
+   * artist review), which the UI shows as "not started" rather than an error.
+   */
+  async getPrintJobStatus(orderId: string, userId: string): Promise<any | null> {
+    const orderRes = await query('SELECT user_id FROM public.orders WHERE id = $1', [orderId])
+    const order = orderRes.rows[0]
+    if (!order) {
+      throw new Error('Order not found.')
+    }
+
+    if (order.user_id !== userId) {
+      // Admins fulfil other people's orders, so they may read any job.
+      const adminRes = await query(
+        "SELECT 1 FROM public.profiles WHERE id = $1 AND role = 'admin'",
+        [userId]
+      )
+      if (adminRes.rowCount === 0) {
+        throw new Error('Not authorized to view this print job.')
+      }
+    }
+
+    const jobRes = await query(
+      `SELECT id, status, progress_stage, progress_current, progress_total,
+              progress_message, progress_updated_at, queued_at, started_at,
+              completed_at, error_message, output_pdf_path, preflight_report
+       FROM public.print_jobs
+       WHERE order_id = $1
+       ORDER BY queued_at DESC
+       LIMIT 1`,
+      [orderId]
+    )
+
+    const job = jobRes.rows[0]
+    if (!job) return null
+
+    const total = job.progress_total || 0
+    const current = job.progress_current || 0
+
+    return {
+      ...job,
+      // Rendering is the long phase; treat the tail phases as the last 10% so
+      // the bar keeps moving through compile and upload instead of sitting at
+      // 100% while Ghostscript runs.
+      percent:
+        job.progress_stage === 'completed'
+          ? 100
+          : total > 0
+          ? Math.min(90, Math.round((current / total) * 90)) +
+            (job.progress_stage === 'compiling' ? 4 : job.progress_stage === 'uploading' ? 7 : 0)
+          : 0
+    }
+  },
+
+  /**
    * Gets all orders created by a particular user
    */
   async getUserOrders(userId: string): Promise<any[]> {

@@ -44,7 +44,11 @@ export async function updateSession(request: NextRequest) {
   // Gate the authenticated areas of the app. The original check pointed at
   // "/protected", a path this app never had, so /dashboard and /editor were
   // reachable while signed out and only failed later, deep in a data fetch.
-  const protectedPrefixes = ['/dashboard', '/editor', '/events', '/templates', '/polaroid']
+  // /events, /templates and /polaroid used to be listed here too. They are now
+  // retired aliases, and next.config redirects run *before* middleware, so a
+  // request for one is already rewritten to /dashboard/* by the time this sees
+  // it — listing them again would be unreachable config.
+  const protectedPrefixes = ['/dashboard', '/editor']
   const { pathname } = request.nextUrl
   const isProtected = protectedPrefixes.some(
     (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)

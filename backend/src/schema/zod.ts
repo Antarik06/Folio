@@ -10,6 +10,8 @@ export const updateEventSettingsSchema = z.object({
   allowGuestUploads: z.boolean(),
   autoApproveGuestUploads: z.boolean(),
   requireGuestFaceEnrollment: z.boolean(),
+  // Optional so older clients that predate face matching keep validating.
+  shareFaceMatchedPhotos: z.boolean().optional(),
 })
 
 export const shippingAddressSchema = z.object({

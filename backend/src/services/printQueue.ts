@@ -3,6 +3,14 @@ import { processPrintJob } from '../utils/printProcessor'
 
 let isProcessing = false
 
+/**
+ * Progress writes are throttled: a 200-page album would otherwise issue 200
+ * UPDATEs while the render competes for the same connection pool. A page
+ * boundary that lands inside the window still gets written by the final
+ * transition, so the bar never stalls short of 100%.
+ */
+const PROGRESS_WRITE_INTERVAL_MS = 750
+
 export async function processNextJob() {
   if (isProcessing) return
   isProcessing = true
@@ -45,13 +53,61 @@ export async function processNextJob() {
 
     addLog(`Claimed queued job ${jobId} for order ${orderId}`)
 
-    // 3. Process
-    const { pdfPath, report } = await processPrintJob(orderId!, addLog)
+    // 3. Process, publishing progress so the buyer and the admin fulfilment
+    // queue can show "Rendered 12 of 30 pages" instead of an opaque spinner.
+    let lastWriteAt = 0
+    let lastStage = ''
+    let pendingWrite: Promise<unknown> = Promise.resolve()
+
+    const writeProgress = (progress: {
+      stage: string
+      current: number
+      total: number
+      message: string
+    }) => {
+      const now = Date.now()
+      const stageChanged = progress.stage !== lastStage
+      const isFinalPage = progress.total > 0 && progress.current === progress.total
+
+      if (!stageChanged && !isFinalPage && now - lastWriteAt < PROGRESS_WRITE_INTERVAL_MS) {
+        return
+      }
+
+      lastWriteAt = now
+      lastStage = progress.stage
+
+      // Fire-and-forget so a slow write never stalls the render, but keep the
+      // handle so the job does not complete with an update still in flight.
+      pendingWrite = query(
+        `UPDATE public.print_jobs
+         SET progress_stage = $2,
+             progress_current = $3,
+             progress_total = $4,
+             progress_message = $5,
+             progress_updated_at = NOW()
+         WHERE id = $1`,
+        [jobId, progress.stage, progress.current, progress.total, progress.message]
+      ).catch((err: any) => {
+        console.warn(`[PrintQueue] Progress update failed: ${err.message}`)
+      })
+    }
+
+    const { pdfPath, report } = await processPrintJob(orderId!, addLog, writeProgress)
+    await pendingWrite
 
     // 4. Update job to complete
     await query(
-      `UPDATE public.print_jobs 
-       SET status = 'completed', completed_at = NOW(), output_pdf_path = $2, preflight_report = $3, job_log = $4
+      `UPDATE public.print_jobs
+       SET status = 'completed',
+           completed_at = NOW(),
+           output_pdf_path = $2,
+           preflight_report = $3,
+           job_log = $4,
+           progress_stage = 'completed',
+           progress_current = GREATEST(progress_total, 1),
+           progress_total = GREATEST(progress_total, 1),
+           progress_message = 'Print-ready PDF is available',
+           progress_updated_at = NOW()
        WHERE id = $1`,
       [jobId, pdfPath, JSON.stringify(report), logs.join('\n')]
     )
@@ -78,8 +134,14 @@ export async function processNextJob() {
       try {
         // Update job to failed
         await query(
-          `UPDATE public.print_jobs 
-           SET status = 'failed', completed_at = NOW(), error_message = $2, job_log = $3
+          `UPDATE public.print_jobs
+           SET status = 'failed',
+               completed_at = NOW(),
+               error_message = $2,
+               job_log = $3,
+               progress_stage = 'failed',
+               progress_message = $2,
+               progress_updated_at = NOW()
            WHERE id = $1`,
           [jobId, err.message, logs.join('\n')]
         )

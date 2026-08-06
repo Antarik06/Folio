@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation'
 import { apiClient, BACKEND_URL } from '@/lib/api-client'
 import { loadGoogleScripts, authenticateGoogleDrive, GoogleDriveFile } from '@/lib/google-drive'
 import { GoogleDrivePicker } from './google-drive-picker'
+import { detectFaces } from '@/lib/face-recognition'
 
 interface PhotoUploaderProps {
   eventId: string
@@ -21,8 +22,9 @@ interface UploadQueueItem {
   id: string
   name: string
   progress: number
-  status: 'pending' | 'downloading' | 'uploading' | 'registering' | 'completed' | 'failed'
+  status: 'pending' | 'downloading' | 'uploading' | 'registering' | 'indexing' | 'completed' | 'failed'
   error?: string
+  facesFound?: number
 }
 
 // Cache to store ongoing CDN script loading promises to prevent race conditions
@@ -166,6 +168,31 @@ async function createThumbnail(
     return { blob, width, height }
   } finally {
     bitmap.close?.()
+  }
+}
+
+/**
+ * Runs face detection on a just-uploaded image and posts the embeddings to the
+ * backend, which matches them against every guest enrolled in the event.
+ *
+ * Never throws: a photo that uploaded successfully stays uploaded even if the
+ * model fails to load. The row is left `pending` so the host's "index remaining
+ * photos" action can pick it up later.
+ */
+async function indexPhotoFaces(photoId: string, source: Blob): Promise<number | undefined> {
+  try {
+    const faces = await detectFaces(source)
+    await apiClient.post(`/api/photos/${photoId}/faces`, {
+      faces: faces.map((face) => ({
+        descriptor: face.descriptor,
+        box: face.box,
+        score: face.score,
+      })),
+    })
+    return faces.length
+  } catch (err) {
+    console.warn(`Face indexing skipped for photo ${photoId}:`, err)
+    return undefined
   }
 }
 
@@ -346,7 +373,7 @@ export function PhotoUploader({
           // Insert photo record in db.
           // Moderation status is decided server-side from the uploader's role
           // and the event settings, so it is deliberately not sent here.
-          await apiClient.post('/api/photos', {
+          const registered = await apiClient.post('/api/photos', {
             eventId,
             blobUrl: publicUrl,
             blobPathname: filePath,
@@ -357,8 +384,21 @@ export function PhotoUploader({
             height: dimensions?.height
           })
 
+          const photoId = registered?.photo?.id
+
+          // Face indexing. Deliberately after the photo row exists and outside
+          // the upload's failure path: a photo that uploaded fine must not be
+          // reported as failed because the face model could not load.
+          let facesFound: number | undefined
+          if (photoId) {
+            setUploadQueue(prev =>
+              prev.map(q => (q.id === item.id ? { ...q, status: 'indexing', progress: 92 } : q))
+            )
+            facesFound = await indexPhotoFaces(photoId, uploadPayload)
+          }
+
           setUploadQueue(prev =>
-            prev.map(q => (q.id === item.id ? { ...q, status: 'completed', progress: 100 } : q))
+            prev.map(q => (q.id === item.id ? { ...q, status: 'completed', progress: 100, facesFound } : q))
           )
         } catch (err: any) {
           console.error(`Upload failed for ${item.name}:`, err)
@@ -545,26 +585,33 @@ export function PhotoUploader({
                 <div className="flex items-center gap-2.5 min-w-0 flex-1">
                   {item.status === 'completed' && <CheckCircle2 className="w-4.5 h-4.5 text-emerald-500 flex-shrink-0" />}
                   {item.status === 'failed' && <AlertCircle className="w-4.5 h-4.5 text-rose-500 flex-shrink-0" />}
-                  {(item.status === 'downloading' || item.status === 'uploading' || item.status === 'registering') && (
+                  {(item.status === 'downloading' || item.status === 'uploading' || item.status === 'registering' || item.status === 'indexing') && (
                     <Loader2 className="w-4.5 h-4.5 text-blue-500 animate-spin flex-shrink-0" />
                   )}
                   {item.status === 'pending' && <div className="w-4.5 h-4.5 rounded-full border border-border flex-shrink-0" />}
-                  
+
                   <div className="min-w-0 flex-1">
                     <p className="font-medium text-foreground truncate" title={item.name}>{item.name}</p>
                     <p className="text-[10px] text-muted-foreground capitalize">
                       {item.status === 'downloading' && 'Downloading from Google Drive...'}
                       {item.status === 'uploading' && `Uploading to Supabase... ${item.progress}%`}
                       {item.status === 'registering' && 'Registering in DB...'}
-                      {item.status === 'completed' && 'Completed'}
+                      {item.status === 'indexing' && 'Scanning for faces...'}
+                      {item.status === 'completed' && (
+                        item.facesFound === undefined
+                          ? 'Completed'
+                          : item.facesFound === 0
+                          ? 'Completed · no faces detected'
+                          : `Completed · ${item.facesFound} ${item.facesFound === 1 ? 'face' : 'faces'} indexed`
+                      )}
                       {item.status === 'failed' && (item.error || 'Failed')}
                       {item.status === 'pending' && 'Pending...'}
                     </p>
                   </div>
                 </div>
-                
+
                 {/* Visual Progress Bar */}
-                {(item.status === 'uploading' || item.status === 'downloading' || item.status === 'registering') && (
+                {(item.status === 'uploading' || item.status === 'downloading' || item.status === 'registering' || item.status === 'indexing') && (
                   <div className="w-24 bg-border/40 h-1.5 rounded-full overflow-hidden hidden sm:block">
                     <div 
                       className="bg-blue-500 h-full rounded-full transition-all duration-300"

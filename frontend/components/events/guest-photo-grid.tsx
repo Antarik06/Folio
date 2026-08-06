@@ -3,61 +3,56 @@
 import { useState } from 'react'
 import { Photo } from '@/lib/types/database'
 
+/** Rows carry `is_face_match` from the backend's face matcher. */
+type GuestPhoto = Partial<Photo> & { is_face_match?: boolean }
+
 interface GuestPhotoGridProps {
-  photos: Partial<Photo>[]
-  ownPhotos: Partial<Photo>[]
-  sharedPhotos: Partial<Photo>[]
+  photos: GuestPhoto[]
+  ownPhotos: GuestPhoto[]
+  sharedPhotos: GuestPhoto[]
+  matchedPhotos?: GuestPhoto[]
   eventId: string
   userId: string
 }
 
-export function GuestPhotoGrid({ ownPhotos, sharedPhotos }: GuestPhotoGridProps) {
-  const [lightboxPhoto, setLightboxPhoto] = useState<Partial<Photo> | null>(null)
+export function GuestPhotoGrid({ ownPhotos, sharedPhotos, matchedPhotos = [] }: GuestPhotoGridProps) {
+  const [lightboxPhoto, setLightboxPhoto] = useState<GuestPhoto | null>(null)
 
-  if (ownPhotos.length === 0 && sharedPhotos.length === 0) return null
+  if (ownPhotos.length === 0 && sharedPhotos.length === 0 && matchedPhotos.length === 0) return null
 
   return (
     <>
+      {/* Photos of You — the payoff for enrolling a face */}
+      {matchedPhotos.length > 0 && (
+        <PhotoSection
+          title="Photos of You"
+          count={matchedPhotos.length}
+          photos={matchedPhotos}
+          badge="match"
+          onSelect={setLightboxPhoto}
+        />
+      )}
+
       {/* My Uploads */}
       {ownPhotos.length > 0 && (
-        <section className="mb-14">
-          <div className="flex items-center gap-4 mb-6">
-            <h2 className="text-sm uppercase tracking-wider text-muted-foreground">My Uploads</h2>
-            <div className="flex-1 h-px bg-border" />
-            <span className="text-sm text-muted-foreground">{ownPhotos.length} photo{ownPhotos.length !== 1 ? 's' : ''}</span>
-          </div>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-            {ownPhotos.map((photo) => (
-              <PhotoTile
-                key={photo.id}
-                photo={photo}
-                badge={null}
-                onClick={() => setLightboxPhoto(photo)}
-              />
-            ))}
-          </div>
-        </section>
+        <PhotoSection
+          title="My Uploads"
+          count={ownPhotos.length}
+          photos={ownPhotos}
+          badge={null}
+          onSelect={setLightboxPhoto}
+        />
       )}
 
       {/* Shared Moments */}
       {sharedPhotos.length > 0 && (
-        <section className="mb-14">
-          <div className="flex items-center gap-4 mb-6">
-            <h2 className="text-sm uppercase tracking-wider text-muted-foreground">Shared Moments</h2>
-            <div className="flex-1 h-px bg-border" />
-            <span className="text-sm text-muted-foreground">{sharedPhotos.length} photo{sharedPhotos.length !== 1 ? 's' : ''}</span>
-          </div>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-            {sharedPhotos.map((photo) => (
-              <PhotoTile
-                key={photo.id}
-                photo={photo}
-                badge="shared"
-                onClick={() => setLightboxPhoto(photo)}
-              />
-            ))}
-          </div>
-        </section>
+        <PhotoSection
+          title="Shared Moments"
+          count={sharedPhotos.length}
+          photos={sharedPhotos}
+          badge="shared"
+          onSelect={setLightboxPhoto}
+        />
       )}
 
       {/* Lightbox */}
@@ -87,13 +82,44 @@ export function GuestPhotoGrid({ ownPhotos, sharedPhotos }: GuestPhotoGridProps)
   )
 }
 
+function PhotoSection({
+  title,
+  count,
+  photos,
+  badge,
+  onSelect,
+}: {
+  title: string
+  count: number
+  photos: GuestPhoto[]
+  badge: 'shared' | 'match' | null
+  onSelect: (photo: GuestPhoto) => void
+}) {
+  return (
+    <section className="mb-14">
+      <div className="flex items-center gap-4 mb-6">
+        <h2 className="text-sm uppercase tracking-wider text-muted-foreground">{title}</h2>
+        <div className="flex-1 h-px bg-border" />
+        <span className="text-sm text-muted-foreground">
+          {count} photo{count !== 1 ? 's' : ''}
+        </span>
+      </div>
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+        {photos.map((photo) => (
+          <PhotoTile key={photo.id} photo={photo} badge={badge} onClick={() => onSelect(photo)} />
+        ))}
+      </div>
+    </section>
+  )
+}
+
 function PhotoTile({
   photo,
   badge,
   onClick,
 }: {
-  photo: Partial<Photo>
-  badge: 'shared' | null
+  photo: GuestPhoto
+  badge: 'shared' | 'match' | null
   onClick: () => void
 }) {
   return (
@@ -113,10 +139,14 @@ function PhotoTile({
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
         </svg>
       </div>
-      {/* Shared badge */}
       {badge === 'shared' && (
         <div className="absolute top-2 left-2 px-2 py-0.5 bg-secondary/90 text-xs text-background uppercase tracking-wider">
           Shared
+        </div>
+      )}
+      {badge === 'match' && (
+        <div className="absolute top-2 left-2 px-2 py-0.5 bg-primary/90 text-xs text-primary-foreground uppercase tracking-wider">
+          You
         </div>
       )}
     </div>

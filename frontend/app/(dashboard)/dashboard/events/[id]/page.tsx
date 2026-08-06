@@ -2,6 +2,7 @@ import { notFound, redirect } from 'next/navigation'
 import { EventHeader } from '@/components/events/event-header'
 import { PhotoGrid } from '@/components/events/photo-grid'
 import { PhotoUploader } from '@/components/events/photo-uploader'
+import { FaceIndexPanel } from '@/components/events/face-index-panel'
 import { GuestList } from '@/components/events/guest-list'
 import { EventTabs } from '@/components/events/event-tabs'
 import { AlbumsGrid } from '@/components/events/albums-grid'
@@ -74,6 +75,8 @@ export default async function EventDetailPage({ params }: Props) {
             autoApproveGuestUploads={eventSettings.auto_approve_guest_uploads ?? false}
             requireGuestFaceEnrollment={eventSettings.require_guest_face_enrollment ?? false}
           />
+
+          {isManager && <FaceIndexPanel eventId={id} />}
 
           <PhotoGrid
             photos={photos || []}

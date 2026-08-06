@@ -60,9 +60,28 @@ async function convertToPdfX4(inputPath: string, outputPath: string): Promise<bo
   }
 }
 
-export async function processPrintJob(orderId: string, logCallback: (msg: string) => void): Promise<{ pdfPath: string, report: any }> {
+/** Coarse phases the UI turns into a status line above the progress bar. */
+export type PrintStage = 'preparing' | 'rendering' | 'compiling' | 'uploading'
+
+/**
+ * Reports how far along the render is. `current`/`total` are page counts during
+ * the 'rendering' stage and 0/0 for the phases that have no natural unit.
+ */
+export type ProgressCallback = (progress: {
+  stage: PrintStage
+  current: number
+  total: number
+  message: string
+}) => void
+
+export async function processPrintJob(
+  orderId: string,
+  logCallback: (msg: string) => void,
+  onProgress: ProgressCallback = () => {}
+): Promise<{ pdfPath: string, report: any }> {
   logCallback(`Starting print job for order ${orderId}`)
-  
+  onProgress({ stage: 'preparing', current: 0, total: 0, message: 'Loading order and album layout' })
+
   // 1. Fetch order details
   const orderRes = await query('SELECT * FROM public.orders WHERE id = $1', [orderId])
   const order = orderRes.rows[0]
@@ -126,14 +145,15 @@ export async function processPrintJob(orderId: string, logCallback: (msg: string
   const scaleX = pageWidthPoints / SPREAD_WIDTH
   const scaleY = pageHeightPoints / SPREAD_HEIGHT
 
-  // Process pages
+  // Flatten every spread into the physical pages it produces before rendering
+  // any of them. Progress is reported per page, so the total has to be known up
+  // front — a cover contributes one page and a trailing spread may only have a
+  // front, so it cannot be derived as spreads * 2.
+  const pageSides: { name: string; elements: any[]; background: string }[] = []
+
   for (let sIdx = 0; sIdx < spreads.length; sIdx++) {
     const spread = spreads[sIdx]
-    logCallback(`Processing spread ${sIdx + 1}/${spreads.length}`)
 
-    // A spread has front and back sides (left and right pages)
-    const pageSides: { name: string; elements: any[]; background: string }[] = []
-    
     if (spread.isCover) {
       if (spread.front?.elements) {
         pageSides.push({ name: 'Cover Front', elements: spread.front.elements, background: spread.front.background || '#FAF9F6' })
@@ -148,8 +168,21 @@ export async function processPrintJob(orderId: string, logCallback: (msg: string
         pageSides.push({ name: `Spread ${sIdx} Right`, elements: spread.back.elements, background: spread.back.background || '#FFFFFF' })
       }
     }
+  }
 
-    for (const side of pageSides) {
+  const totalPages = pageSides.length
+  logCallback(`Layout expands to ${totalPages} printable pages`)
+  onProgress({
+    stage: 'rendering',
+    current: 0,
+    total: totalPages,
+    message: `Rendered 0 of ${totalPages} pages`
+  })
+
+  // Process pages
+  {
+    for (let pIdx = 0; pIdx < pageSides.length; pIdx++) {
+      const side = pageSides[pIdx]
       logCallback(`Adding page: ${side.name}`)
       const page = pdfDoc.addPage([physicalWidth, physicalHeight])
       
@@ -277,10 +310,23 @@ export async function processPrintJob(orderId: string, logCallback: (msg: string
           })
         }
       }
+
+      onProgress({
+        stage: 'rendering',
+        current: pIdx + 1,
+        total: totalPages,
+        message: `Rendered ${pIdx + 1} of ${totalPages} pages`
+      })
     }
   }
 
   // 3. Save PDF locally, then attempt PDF/X-4 GS compilation
+  onProgress({
+    stage: 'compiling',
+    current: totalPages,
+    total: totalPages,
+    message: 'Compiling print-ready PDF/X-4'
+  })
   const pdfBytes = await pdfDoc.save()
   const tempDir = SCRATCH_DIR
   if (!fs.existsSync(tempDir)) {
@@ -325,6 +371,12 @@ export async function processPrintJob(orderId: string, logCallback: (msg: string
   }
 
   // 4. Upload finished PDF to Supabase Storage with octet-stream
+  onProgress({
+    stage: 'uploading',
+    current: totalPages,
+    total: totalPages,
+    message: 'Uploading print-ready PDF'
+  })
   const storagePath = `print-ready/${orderId}.pdf`
   let pdfUrl = ''
 

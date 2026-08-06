@@ -1,5 +1,6 @@
 import { Router } from 'express'
 import { photoController } from '../controllers/photoController'
+import { faceController } from '../controllers/faceController'
 import authMiddleware from '../middlewares/authMiddleware'
 
 const router = Router()
@@ -18,5 +19,9 @@ router.patch('/:id/move', photoController.movePhoto)
 router.patch('/:id/tags', photoController.updateTags)
 router.patch('/:id/location', photoController.updateLocation)
 router.delete('/:id', photoController.deletePhoto)
+
+// Face indexing. Descriptors are computed client-side and posted back here.
+router.post('/:id/faces', faceController.registerPhotoFaces)
+router.post('/:id/faces/failed', faceController.markScanFailed)
 
 export default router

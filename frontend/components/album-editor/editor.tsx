@@ -691,6 +691,10 @@ export function AlbumEditor({
   })
   const [selection, setSelection] = useState<string[]>([])
   const [zoom, setZoomState] = useState<number>(50)
+  // Mirrors `zoom` so the pinch listener can read the current value without
+  // being torn down and re-attached on every frame of the gesture.
+  const zoomRef = useRef(zoom)
+  zoomRef.current = zoom
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('saved')
   const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null)
   const [layoutSaveField, setLayoutSaveField] = useState<'layout_data' | 'theme_config'>(layoutField)
@@ -725,10 +729,18 @@ export function AlbumEditor({
     return () => window.removeEventListener('resize', checkMobile)
   }, [])
 
-  // Auto-fit zoom calculation when viewport changes
+  // Auto-fit zoom calculation when the viewport changes.
+  //
+  // It stops once the user has set a zoom themselves. On mobile the address bar
+  // collapsing fires `resize`, so re-fitting unconditionally used to throw away
+  // a pinch (or a toolbar zoom) the moment the page scrolled.
+  const userSetZoomRef = useRef(false)
+
   useEffect(() => {
     if (typeof window === 'undefined') return
+
     const calculateFitZoom = () => {
+      if (userSetZoomRef.current) return
       if (isMobile) {
         // On mobile, panels are overlay drawers and do not take document flow space.
         // We only subtract workspace padding (p-4 = 16px * 2 = 32px).
@@ -1299,8 +1311,63 @@ export function AlbumEditor({
   )
 
   const setZoom = useCallback((value: number) => {
-    setZoomState(Math.max(10, Math.min(300, value)))
+    userSetZoomRef.current = true
+    setZoomState(Math.max(10, Math.min(300, Math.round(value))))
   }, [])
+
+  // Pinch-to-zoom on the canvas viewport. The container sets
+  // `touch-action: pan-x pan-y`, which suppresses the browser's own pinch, so
+  // without this a two-finger gesture on the canvas did nothing at all and the
+  // only way to zoom on a phone was the toolbar buttons.
+  const viewportRef = useRef<HTMLDivElement>(null)
+  const pinchRef = useRef<{ startDistance: number; startZoom: number } | null>(null)
+
+  useEffect(() => {
+    const node = viewportRef.current
+    if (!node) return
+
+    const distanceBetween = (touches: TouchList) => {
+      const dx = touches[0].clientX - touches[1].clientX
+      const dy = touches[0].clientY - touches[1].clientY
+      return Math.hypot(dx, dy)
+    }
+
+    const onTouchStart = (event: TouchEvent) => {
+      if (event.touches.length !== 2) return
+      pinchRef.current = {
+        startDistance: distanceBetween(event.touches),
+        startZoom: zoomRef.current,
+      }
+    }
+
+    const onTouchMove = (event: TouchEvent) => {
+      const pinch = pinchRef.current
+      if (!pinch || event.touches.length !== 2) return
+      // Stop the scroll container from panning while the pinch is in progress.
+      event.preventDefault()
+
+      const distance = distanceBetween(event.touches)
+      if (pinch.startDistance <= 0) return
+      setZoom(pinch.startZoom * (distance / pinch.startDistance))
+    }
+
+    const endPinch = () => {
+      pinchRef.current = null
+    }
+
+    // Passive must be off on touchmove for preventDefault to take effect.
+    node.addEventListener('touchstart', onTouchStart, { passive: true })
+    node.addEventListener('touchmove', onTouchMove, { passive: false })
+    node.addEventListener('touchend', endPinch)
+    node.addEventListener('touchcancel', endPinch)
+
+    return () => {
+      node.removeEventListener('touchstart', onTouchStart)
+      node.removeEventListener('touchmove', onTouchMove)
+      node.removeEventListener('touchend', endPinch)
+      node.removeEventListener('touchcancel', endPinch)
+    }
+  }, [setZoom])
 
   const setSelectionSafe = useCallback((ids: string[]) => {
     setSelection(ids)
@@ -1747,7 +1814,10 @@ export function AlbumEditor({
         />
 
         <div className="flex-1 min-h-0 flex bg-[#E5E5E5] dark:bg-[#171411] transition-colors relative">
-          <div className="flex-1 relative overflow-auto touch-pan-x touch-pan-y flex items-center justify-center p-4 md:p-8">
+          <div
+            ref={viewportRef}
+            className="flex-1 relative overflow-auto touch-pan-x touch-pan-y flex items-center justify-center p-4 md:p-8"
+          >
             <Workspace
               spread={activeSpreadView || activeSpread}
               zoom={zoom}

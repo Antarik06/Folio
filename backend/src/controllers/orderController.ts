@@ -76,6 +76,24 @@ export const orderController = {
   },
 
   /**
+   * GET /api/orders/:orderId/print-job
+   * Progress of the server-side print PDF export, polled while it renders.
+   */
+  async getPrintJobStatus(req: AuthenticatedRequest, res: Response) {
+    try {
+      const userId = req.user?.id
+      if (!userId) {
+        return res.status(401).json({ error: 'Unauthenticated' })
+      }
+
+      const job = await orderService.getPrintJobStatus(req.params.orderId, userId)
+      res.json({ job })
+    } catch (error: any) {
+      sendError(res, error)
+    }
+  },
+
+  /**
    * GET /api/orders
    */
   async getUserOrders(req: AuthenticatedRequest, res: Response) {

@@ -14,18 +14,87 @@ export interface getUserEventRoleResult {
 
 /**
  * Explicit column list for gallery reads. `SELECT *` also pulled the
- * ai_analysis, exif_data and face_embeddings JSON blobs, which the gallery never
- * displays but which dominate the payload size.
+ * ai_analysis and exif_data JSON blobs, which the gallery never displays but
+ * which dominate the payload size.
  */
 export const PHOTO_COLUMNS = `
-  id, event_id, uploader_id, blob_url, blob_pathname, thumbnail_url,
-  original_filename, file_size, width, height, taken_at, is_host_photo,
-  is_shared, processing_status, status, uploaded_by_role, folder_id,
-  people_tags, location, created_at
+  p.id, p.event_id, p.uploader_id, p.blob_url, p.blob_pathname, p.thumbnail_url,
+  p.original_filename, p.file_size, p.width, p.height, p.taken_at, p.is_host_photo,
+  p.is_shared, p.processing_status, p.status, p.uploaded_by_role, p.folder_id,
+  p.people_tags, p.location, p.created_at,
+  p.face_scan_status, p.face_count
 `
 
 /** Upper bound on photos returned in one event-detail payload. */
 export const EVENT_PHOTO_LIMIT = Number(process.env.EVENT_PHOTO_LIMIT || 500)
+
+/**
+ * The single definition of "which photos may this user see". Both the
+ * event-detail payload and the standalone photo list read through this, so the
+ * two can no longer drift — previously each carried its own copy of the rule and
+ * only one of them would have learned about face matches.
+ *
+ * Every row carries `is_face_match` so the personal gallery can separate
+ * "photos of you" from the rest of the shared pool.
+ */
+export async function fetchEventPhotos(
+  eventId: string,
+  userId: string,
+  isManager: boolean,
+  options: {
+    limit?: number
+    offset?: number
+    /** Pass when the caller already loaded the event, to save a round-trip. */
+    eventSettings?: any
+  } = {}
+): Promise<any[]> {
+  const safeLimit = Math.min(Math.max(1, options.limit ?? EVENT_PHOTO_LIMIT), EVENT_PHOTO_LIMIT)
+  const safeOffset = Math.max(0, options.offset ?? 0)
+
+  const selectClause = `SELECT ${PHOTO_COLUMNS}, (m.photo_id IS NOT NULL) AS is_face_match
+     FROM public.photos p
+     LEFT JOIN public.photo_face_matches m
+            ON m.photo_id = p.id AND m.user_id = $2`
+
+  if (isManager) {
+    const res = await query(
+      `${selectClause}
+       WHERE p.event_id = $1
+       ORDER BY p.created_at DESC
+       LIMIT $3 OFFSET $4`,
+      [eventId, userId, safeLimit, safeOffset]
+    )
+    return res.rows
+  }
+
+  // A guest may see a photo the matcher recognised them in even when the host
+  // has not globally shared it — that is the entire point of enrolling a face —
+  // but it must still have cleared moderation. Hosts who want stricter
+  // behaviour turn share_face_matched_photos off in event settings.
+  let settings = options.eventSettings
+  if (settings === undefined) {
+    const settingsRes = await query('SELECT settings FROM public.events WHERE id = $1', [eventId])
+    settings = settingsRes.rows[0]?.settings
+  }
+  const shareMatched =
+    settings && typeof settings === 'object' ? settings.share_face_matched_photos !== false : true
+
+  const matchClause = shareMatched ? "OR (p.status = 'approved' AND m.photo_id IS NOT NULL)" : ''
+
+  const res = await query(
+    `${selectClause}
+     WHERE p.event_id = $1
+       AND (
+         p.uploader_id = $2
+         OR (p.status = 'approved' AND p.is_shared = TRUE)
+         ${matchClause}
+       )
+     ORDER BY p.created_at DESC
+     LIMIT $3 OFFSET $4`,
+    [eventId, userId, safeLimit, safeOffset]
+  )
+  return res.rows
+}
 
 /** Unambiguous alphabet: no O/0 or I/1, so codes survive being read aloud. */
 const CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
@@ -145,6 +214,7 @@ export const eventService = {
     assignIfDefined('allow_guest_uploads', input.allowGuestUploads)
     assignIfDefined('auto_approve_guest_uploads', input.autoApproveGuestUploads)
     assignIfDefined('require_guest_face_enrollment', input.requireGuestFaceEnrollment)
+    assignIfDefined('share_face_matched_photos', input.shareFaceMatchedPhotos)
 
     let nextCoverImageUrl = event.cover_image_url
     if (input.coverPhotoId) {
@@ -496,23 +566,10 @@ export const eventService = {
     // Fetch photos, albums and folders concurrently — they are independent, and
     // running them in sequence made this endpoint pay three full round-trips.
     // Photos are capped: an event with thousands of uploads previously
-    // serialised every row (including the ai_analysis and face_embeddings JSON)
-    // into a single response.
-    const photosQuery = isManager
-      ? query(
-          `SELECT ${PHOTO_COLUMNS} FROM public.photos
-           WHERE event_id = $1
-           ORDER BY created_at DESC
-           LIMIT $2`,
-          [eventId, EVENT_PHOTO_LIMIT]
-        )
-      : query(
-          `SELECT ${PHOTO_COLUMNS} FROM public.photos
-           WHERE event_id = $1 AND (uploader_id = $2 OR (status = 'approved' AND is_shared = true))
-           ORDER BY created_at DESC
-           LIMIT $3`,
-          [eventId, userId, EVENT_PHOTO_LIMIT]
-        )
+    // serialised every row (including the ai_analysis JSON) into one response.
+    const photosQuery = fetchEventPhotos(eventId, userId, isManager, {
+      eventSettings: event.settings
+    })
 
     const albumsQuery = isManager
       ? query(
@@ -524,22 +581,22 @@ export const eventService = {
           [eventId, userId]
         )
 
-    const [photosRes, albumsRes, foldersRes, photoCountRes] = await Promise.all([
+    const [photos, albumsRes, foldersRes, photoCountRes] = await Promise.all([
       photosQuery,
       albumsQuery,
       query('SELECT * FROM public.folders WHERE event_id = $1 ORDER BY created_at ASC', [eventId]),
       query('SELECT COUNT(*)::int AS count FROM public.photos WHERE event_id = $1', [eventId])
     ])
 
-    const totalPhotos = photoCountRes.rows[0]?.count ?? photosRes.rows.length
+    const totalPhotos = photoCountRes.rows[0]?.count ?? photos.length
 
     return {
       event,
       roleInfo,
       guests: mappedGuests,
-      photos: photosRes.rows,
+      photos,
       totalPhotos,
-      photosTruncated: photosRes.rows.length >= EVENT_PHOTO_LIMIT,
+      photosTruncated: photos.length >= EVENT_PHOTO_LIMIT,
       albums: albumsRes.rows,
       folders: foldersRes.rows
     }
