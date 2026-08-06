@@ -9,25 +9,18 @@ const dmMono = { variable: '--font-mono' }
 const cormorant = { variable: '--font-serif' }
 
 export const metadata: Metadata = {
-  title: 'Folio — Where memories become books',
+  title: 'Folio',
   description: 'Upload your photos. AI creates personalized albums for everyone. Order beautifully printed books that tell your story.',
   generator: 'v0.app',
   keywords: ['photo album', 'AI photo sorting', 'facial recognition', 'photo book', 'event photos', 'personalized album'],
   icons: {
     icon: [
       {
-        url: '/icon-light-32x32.png',
-        media: '(prefers-color-scheme: light)',
-      },
-      {
-        url: '/icon-dark-32x32.png',
-        media: '(prefers-color-scheme: dark)',
-      },
-      {
         url: '/icon.svg',
         type: 'image/svg+xml',
       },
     ],
+    shortcut: '/icon.svg',
     apple: '/apple-icon.png',
   },
 }

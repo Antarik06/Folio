@@ -16,9 +16,16 @@ text.txt
 .kiro
 graphify-out/
 .agents/
-.github/
 public/textures
 inspo/
 .opencode/
-# face-api model weights are copied from node_modules by scripts/setup-face-models.mjs
+
+# face-api model weights are copied out of node_modules by
+# scripts/setup-face-models.mjs on install/build — not committed.
 public/models/face-api/
+
+# Test output
+test-results/
+playwright-report/
+blob-report/
+coverage/
