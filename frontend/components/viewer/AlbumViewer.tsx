@@ -12,7 +12,6 @@ import { Provider, useAtom } from 'jotai'
 import * as THREE from 'three'
 import { BookScene } from './scenes/book'
 import { MagazineScene } from './scenes/magazine'
-import { PolaroidScene } from './scenes/polaroid'
 import { viewerIndexAtom, type ViewerStyle } from './state'
 import { AlbumViewerControls, type ViewerAction } from './AlbumViewerControls'
 import { CornerMarks } from '@/components/folio/marks'
@@ -27,9 +26,9 @@ import { CornerMarks } from '@/components/folio/marks'
  * extends the `style` union and adds one entry to STAGES; it does not fork
  * this file.
  *
- * The three scene meshes stay in ./scenes because they are genuinely
- * different geometry (a curved page-turn simulation, a glossy magazine, a
- * scattered print stack) rather than the same thing with different props.
+ * The scene meshes stay in ./scenes because they are genuinely different
+ * geometry — a matte page-turn simulation and a glossy magazine — rather than
+ * the same thing with different props.
  *
  * Presentation follows the design's 3D Album Preview screen: a dark stage with
  * registration marks at all four corners, a real cast shadow, a mono spec
@@ -70,26 +69,12 @@ const STAGES: Record<ViewerStyle, StageConfig> = {
     point: { position: [-3, 2, -2], intensity: 0.5, color: '#F5F0E8' },
     shadow: { opacity: 0.4, blur: 2 },
   },
-  polaroid: {
-    toneMapping: THREE.NoToneMapping,
-    float: { intensity: 0.2, speed: 1.4, rotation: 0.2 },
-    orbit: { min: 2.5, max: 9, minPolar: Math.PI / 6, maxPolar: Math.PI / 1.6 },
-    ambient: 2.0,
-    directional: 1.4,
-    rim: { position: [0, 7, 3], intensity: 0.9, angle: 0.35, penumbra: 0.6 },
-    point: { position: [-4, 3, -2], intensity: 0.6, color: '#FFF5E0' },
-    shadow: { opacity: 0.35, blur: 2.5 },
-  },
 }
 
 export interface AlbumViewerProps {
   style: ViewerStyle
-  /** Album record — required for `book` and `magazine`. */
+  /** The album record this viewer renders. */
   album?: any
-  /** Print sources — required for `polaroid`. */
-  images?: string[]
-  /** Polaroid frame preset id. */
-  frameId?: string
   /** Headline shown in the HUD. Falls back to the album title. */
   title?: string
   /** Mono spec stamp lines, e.g. ["24 SPREADS · 12×12in", "LINEN COVER"]. */
@@ -120,8 +105,6 @@ export function AlbumViewer(props: AlbumViewerProps) {
 function ViewerStage({
   style,
   album,
-  images = [],
-  frameId = 'classic',
   title,
   spec,
   back,
@@ -129,10 +112,7 @@ function ViewerStage({
 }: AlbumViewerProps) {
   const stage = STAGES[style]
 
-  const itemCount =
-    style === 'polaroid'
-      ? images.length
-      : (album?.layout_data?.spreads?.length ?? 0) + 1
+  const itemCount = (album?.layout_data?.spreads?.length ?? 0) + 1
 
   return (
     <div className="relative h-[100dvh] w-full overflow-hidden bg-[#12100D]">
@@ -155,13 +135,7 @@ function ViewerStage({
         dpr={[1, 2]}
       >
         <Suspense fallback={null}>
-          <Scene
-            style={style}
-            album={album}
-            images={images}
-            frameId={frameId}
-            stage={stage}
-          />
+          <Scene style={style} album={album} stage={stage} />
         </Suspense>
       </Canvas>
 
@@ -182,41 +156,21 @@ function ViewerStage({
 function Scene({
   style,
   album,
-  images,
-  frameId,
   stage,
 }: {
   style: ViewerStyle
   album: any
-  images: string[]
-  frameId: string
   stage: StageConfig
 }) {
-  const [index, setIndex] = useAtom(viewerIndexAtom)
-
-  // A lone print should drift more than a stack; a stack should stay put.
-  const solo = style === 'polaroid' && images.length === 1
-  const floatIntensity = solo ? 0.6 : stage.float.intensity
-  const rotationIntensity = solo ? 0.8 : stage.float.rotation
-
   return (
     <>
       <Float
         rotation-x={stage.float.rotationX}
-        floatIntensity={floatIntensity}
+        floatIntensity={stage.float.intensity}
         speed={stage.float.speed}
-        rotationIntensity={rotationIntensity}
+        rotationIntensity={stage.float.rotation}
       >
-        {style === 'book' ? <BookScene album={album} /> : null}
-        {style === 'magazine' ? <MagazineScene album={album} /> : null}
-        {style === 'polaroid' ? (
-          <PolaroidScene
-            images={images}
-            frameId={frameId}
-            focusedIndex={index}
-            onFocus={setIndex}
-          />
-        ) : null}
+        {style === 'book' ? <BookScene album={album} /> : <MagazineScene album={album} />}
       </Float>
 
       <OrbitControls
@@ -247,13 +201,12 @@ function Scene({
           intensity={stage.rim.intensity}
           angle={stage.rim.angle}
           penumbra={stage.rim.penumbra}
-          castShadow={style === 'polaroid'}
           color="#ffffff"
         />
       ) : null}
 
       <ContactShadows
-        position={[0, style === 'polaroid' ? -1.4 : -1.5, 0]}
+        position={[0, -1.5, 0]}
         opacity={stage.shadow.opacity}
         scale={10}
         blur={stage.shadow.blur}

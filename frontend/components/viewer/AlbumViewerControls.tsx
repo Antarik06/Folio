@@ -42,7 +42,7 @@ export function AlbumViewerControls({
 }: AlbumViewerControlsProps) {
   const [index, setIndex] = useAtom(viewerIndexAtom)
 
-  const unit = style === 'polaroid' ? 'Print' : style === 'magazine' ? 'Spread' : 'Page'
+  const unit = style === 'magazine' ? 'Spread' : 'Page'
   const stepped = count > 1
 
   const go = (next: number) => setIndex(Math.min(count - 1, Math.max(0, next)))
@@ -94,7 +94,7 @@ export function AlbumViewerControls({
                   key={i}
                   role="tab"
                   aria-selected={i === index}
-                  aria-label={i === 0 && style !== 'polaroid' ? 'Cover' : `${unit} ${i + 1}`}
+                  aria-label={i === 0 ? 'Cover' : `${unit} ${i + 1}`}
                   onClick={() => go(i)}
                   className={`h-4 w-[3px] transition-colors ${
                     i === index ? 'bg-primary' : 'bg-[#F5F0E8]/25 hover:bg-[#F5F0E8]/50'
