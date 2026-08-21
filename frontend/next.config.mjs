@@ -40,12 +40,12 @@ const nextConfig = {
       },
       {
         source: '/dashboard/templates/editor/:id',
-        destination: '/create/editor/:id?mode=simple',
+        destination: '/create/editor/:id',
         permanent: false,
       },
       {
         source: '/dashboard/templates/builder/:id',
-        destination: '/create/editor/:id?mode=simple',
+        destination: '/create/editor/:id',
         permanent: false,
       },
       // The bespoke Adventure flow and its template are both gone.

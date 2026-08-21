@@ -8,15 +8,14 @@ import { createClient as createBrowserClient } from '@/lib/supabase/client'
 import { apiClient } from '@/lib/api-client'
 import { MagazineTemplate } from '@/lib/magazine-templates'
 import { AlbumSpread, AlbumElement, AlbumPageSide, TextElement } from './types'
-import { Sidebar } from './sidebar'
+import { Sidebar, type SidebarPanel } from './sidebar'
 import { Topbar } from './topbar'
+import { PhotoEditor } from '@/components/events/photo-editor'
 import { Workspace } from './workspace'
 import { Timeline } from './timeline'
 import { SpecStrip } from './spec-strip'
-import { LayersPanel } from './layers-panel'
 import { getAlbumAspectRatio } from '@/lib/template-engine-utils'
 
-type EditorMode = 'simple' | 'advanced'
 
 interface EditorProps {
   albumId: string
@@ -25,7 +24,6 @@ interface EditorProps {
   layoutField?: 'layout_data' | 'theme_config'
   coverImageUrl?: string
   initialLayoutData?: Record<string, any>
-  mode?: EditorMode
   templates?: MagazineTemplate[]
 }
 
@@ -653,7 +651,6 @@ export function AlbumEditor({
   layoutField = 'layout_data',
   coverImageUrl,
   initialLayoutData,
-  mode = 'advanced',
   templates = [],
 }: EditorProps) {
   const aspectRatio = useMemo(() => {
@@ -675,7 +672,6 @@ export function AlbumEditor({
   const SPREAD_HEIGHT = 1000
   const SPREAD_WIDTH = Math.round(SPREAD_HEIGHT * aspectRatio)
 
-  const isSimpleMode = mode === 'simple'
   const router = useRouter()
   const fallbackSpreads = useMemo(
     () => normalizeSpreads(initialSpreads?.length ? initialSpreads : [DEFAULT_COVER_SPREAD('spread-0', coverImageUrl, SPREAD_WIDTH, SPREAD_HEIGHT), DEFAULT_SPREAD]),
@@ -705,19 +701,21 @@ export function AlbumEditor({
     return rest
   })
   const [activeTemplateId, setActiveTemplateId] = useState<string | null>(startingTemplateId)
-  const [activePanel, setActivePanel] = useState<
-    'design' | 'elements' | 'photos' | 'uploads' | 'text' | 'ai' | 'draw' | 'projects' | 'templates'
-  >(isSimpleMode ? 'templates' : 'photos')
-  
-  // Drawing state
-  const [isDrawingMode, setIsDrawingMode] = useState(false)
-  const [brushColor, setBrushColor] = useState('#1C1814')
-  const [brushSize, setBrushSize] = useState(5)
+  const [activePanel, setActivePanel] = useState<SidebarPanel>('photos')
+
+  // Freehand drawing is gone: anyone needing that much control should be
+  // commissioning an artist, which is what the Create tab offers. These stay
+  // as fixed values because Workspace still accepts them.
+  const isDrawingMode = false
+  const brushColor = '#1C1814'
+  const brushSize = 5
   const [showGrid, setShowGrid] = useState(true)
+
+  // The image currently open in the photo editor, if any.
+  const [editingPhoto, setEditingPhoto] = useState<AlbumElement | null>(null)
 
   const [isMobile, setIsMobile] = useState(false)
   const [sidebarOpen, setSidebarOpen] = useState(false)
-  const [layersOpen, setLayersOpen] = useState(false)
 
   // Screen size listener for < 1024px (mobile + tablet)
   useEffect(() => {
@@ -1108,6 +1106,47 @@ export function AlbumEditor({
       console.error('Failed to localize remote image:', error)
     }
   }, [albumId, supabase, updateElement])
+
+  /**
+   * Saves an edit made in the photo editor.
+   *
+   * The album editor and the standalone photo editor used to be separate
+   * places — you cropped and filtered a picture in the event gallery, then
+   * came here to lay it out. Now the same editor opens over the canvas on the
+   * selected frame, and the result is uploaded and swapped in place, so a
+   * photograph never has to leave the album to be adjusted.
+   */
+  const handleSavePhotoEdit = useCallback(
+    async (blob: Blob) => {
+      const element = editingPhoto
+      if (!element) return
+
+      try {
+        const filePath = `albums/${albumId}/edit-${Date.now()}-${Math.random()
+          .toString(36)
+          .slice(2, 8)}.jpg`
+
+        const { error: uploadError } = await supabase.storage
+          .from('photos')
+          .upload(filePath, blob, { contentType: 'image/jpeg' })
+
+        if (uploadError) throw uploadError
+
+        const {
+          data: { publicUrl },
+        } = supabase.storage.from('photos').getPublicUrl(filePath)
+
+        updateElement(element.id, { src: publicUrl } as Partial<AlbumElement>, {
+          historyGroup: 'photo-edit',
+        })
+      } catch (error) {
+        console.error('Failed to save the edited photo:', error)
+      } finally {
+        setEditingPhoto(null)
+      }
+    },
+    [albumId, editingPhoto, supabase, updateElement]
+  )
 
   const addElement = useCallback(
     (element: Omit<AlbumElement, 'id' | 'zIndex'>) => {
@@ -1642,13 +1681,11 @@ export function AlbumEditor({
   const handleSelectSpread = useCallback((id: string) => {
     setDocumentState((doc) => ({ ...doc, activeSpreadId: id, activeSide: 'front' }))
     setSelection([])
-    setIsDrawingMode(false)
   }, [])
 
   const handleChangeSide = useCallback((side: SpreadSide) => {
     setDocumentState((doc) => ({ ...doc, activeSide: side }))
     setSelection([])
-    setIsDrawingMode(false)
   }, [])
 
   const handleSwitchAlbum = useCallback((id: string) => {
@@ -1729,14 +1766,6 @@ export function AlbumEditor({
     }
   }, [albumId, persistDraft, router])
 
-  const handleOpenAdvancedEditor = useCallback(() => {
-    void (async () => {
-      const saved = await persistDraft()
-      if (!saved) return
-      router.push(`/create/editor/${albumId}`)
-    })()
-  }, [albumId, persistDraft, router])
-
   if (!activeSpread) {
     return null
   }
@@ -1747,35 +1776,19 @@ export function AlbumEditor({
         activePanel={activePanel}
         onChangePanel={(panel) => {
           setActivePanel(panel)
-          if (panel !== 'draw') setIsDrawingMode(false)
           if (isMobile) setSidebarOpen(true)
         }}
         onAddElement={addElement}
-        onUpdateElement={updateElement}
         photos={photos}
         onGoBack={handleBackToSite}
         spreadBackground={activeSpreadSide.background}
         onSetSpreadBackground={setSpreadBackground}
-        selectedElements={selectedElements}
-        onAiFillColor={handleAiFillColor}
-        onAiRemoveBackground={handleAiRemoveBackground}
-  // Drawing
-        isDrawingMode={isDrawingMode}
-        onToggleDrawingMode={setIsDrawingMode}
-        brushColor={brushColor}
-        onChangeBrushColor={setBrushColor}
-        brushSize={brushSize}
-        onChangeBrushSize={setBrushSize}
-        
-        // Projects
-        currentAlbumId={albumId}
-        onSwitchAlbum={handleSwitchAlbum}
-        simpleMode={isSimpleMode}
         templates={templates}
         activeTemplateId={activeTemplateId}
         onApplyTemplate={handleApplyTemplate}
         isMobile={isMobile}
         isOpen={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
       />
 
       {/* Sidebar Backdrop Overlay on Mobile */}
@@ -1786,47 +1799,31 @@ export function AlbumEditor({
         />
       )}
 
-      {/* Layers Panel Backdrop Overlay on Mobile */}
-      {isMobile && layersOpen && (
-        <div 
-          className="fixed inset-0 bg-black/40 z-20 transition-opacity animate-in fade-in duration-200"
-          onClick={() => setLayersOpen(false)}
-        />
-      )}
-
       <div className="flex-1 flex flex-col h-full min-w-0 transition-all duration-300">
         <Topbar
-          albumId={albumId}
           zoom={zoom}
           setZoom={setZoom}
           selectedElements={selectedElements}
           onUpdateElement={updateElement}
           onDeleteSelected={handleDeleteSelection}
-          photos={photos}
           canUndo={canUndo}
           canRedo={canRedo}
           onUndo={undo}
           onRedo={redo}
+          saving={saveStatus === 'saving'}
           onSaveNow={() => {
             void (async () => {
               const saved = await persistDraft()
-              if (saved) {
-                handleBackToSite()
-              }
+              if (saved) handleBackToSite()
             })()
           }}
-          onExport={handleExport}
-          onAlign={alignSelection}
-          onDistribute={distributeSelection}
-          showGrid={showGrid}
-          onToggleGrid={toggleGrid}
-          onOpenAdvancedView={isSimpleMode ? handleOpenAdvancedEditor : undefined}
-          simpleMode={isSimpleMode}
+          onEditPhoto={(element) => setEditingPhoto(element)}
+          onReplacePhoto={() => {
+            setActivePanel('photos')
+            if (isMobile) setSidebarOpen(true)
+          }}
           isMobile={isMobile}
-          sidebarOpen={sidebarOpen}
           onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
-          layersOpen={layersOpen}
-          onToggleLayers={() => setLayersOpen(!layersOpen)}
         />
 
         <SpecStrip
@@ -1858,29 +1855,10 @@ export function AlbumEditor({
               isDrawingMode={isDrawingMode}
               brushColor={brushColor}
               brushSize={brushSize}
-              simpleMode={isSimpleMode}
               photos={photos}
             />
           </div>
 
-          {!isSimpleMode && (!isMobile || layersOpen) && (
-            <LayersPanel
-              elements={activeSpreadSide.elements}
-              selection={selection}
-              onSelect={(ids) => {
-                setSelectionSafe(ids)
-                if (isMobile) setLayersOpen(false)
-              }}
-              onRename={handleRenameLayer}
-              onToggleLock={handleToggleLock}
-              onToggleHidden={handleToggleHidden}
-              onMoveUp={(id) => moveLayer(id, 'up')}
-              onMoveDown={(id) => moveLayer(id, 'down')}
-              isMobile={isMobile}
-              isOpen={layersOpen}
-              onClose={() => setLayersOpen(false)}
-            />
-          )}
         </div>
 
         <Timeline
@@ -1897,6 +1875,16 @@ export function AlbumEditor({
         />
       </div>
 
+      {/* Photo editing, over the canvas rather than in another part of the app. */}
+      {editingPhoto && (editingPhoto as any).src ? (
+        <div className="fixed inset-0 z-50 bg-[#1C1814]">
+          <PhotoEditor
+            imageUrl={(editingPhoto as any).src}
+            onCancel={() => setEditingPhoto(null)}
+            onSave={handleSavePhotoEdit}
+          />
+        </div>
+      ) : null}
     </div>
   )
 }

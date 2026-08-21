@@ -248,7 +248,7 @@ export default function UseTemplatePage() {
       const createdAlbumId = resolveCreatedAlbumId(album)
 
       if (createdAlbumId) {
-        router.push(`/create/editor/${createdAlbumId}?mode=simple`)
+        router.push(`/create/editor/${createdAlbumId}`)
         return
       }
       console.error('Album creation did not return a valid album id:', album)
@@ -375,7 +375,7 @@ export default function UseTemplatePage() {
       const createdAlbumId = resolveCreatedAlbumId(album)
 
       if (createdAlbumId) {
-        router.push(`/create/editor/${createdAlbumId}?mode=simple`)
+        router.push(`/create/editor/${createdAlbumId}`)
         return
       }
       console.error('Album creation from curated photos did not return a valid album id:', album)
@@ -455,7 +455,7 @@ export default function UseTemplatePage() {
       const createdAlbumId = resolveCreatedAlbumId(album)
 
       if (createdAlbumId) {
-        router.push(`/create/editor/${createdAlbumId}?mode=simple`)
+        router.push(`/create/editor/${createdAlbumId}`)
         return
       }
       console.error('Album creation from upload did not return a valid album id:', album)

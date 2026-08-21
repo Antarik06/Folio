@@ -1263,7 +1263,7 @@ export function ArtistDashboardClient({
                            {/* Hover overlay */}
                            <div className="absolute inset-0 bg-gradient-to-t from-[#1C1814]/70 via-[#1C1814]/25 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-400 flex items-end justify-center pb-4 gap-2">
                              <Link
-                               href={`/create/editor/${album.id}?mode=simple`}
+                               href={`/create/editor/${album.id}`}
                                className="flex items-center gap-1.5 px-3.5 py-2 bg-white/95 text-[#1C1814] text-[10px] font-bold uppercase tracking-wider rounded-lg hover:bg-white transition-colors shadow-lg"
                              >
                                <Eye className="w-3 h-3" /> Edit

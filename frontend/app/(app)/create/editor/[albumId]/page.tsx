@@ -8,21 +8,17 @@ import { isUuid, resolveAlbumLayout, resolveEventId } from '@/lib/album-spreads'
 /**
  * The one editor.
  *
- * There used to be two routes here — /editor/[id] and
- * /dashboard/templates/editor/[id] — rendering the same AlbumEditor with
- * `mode="advanced"` and `mode="simple"` respectively, with ~120 lines of
- * identical spread-healing copied between them. They are one route now; the
- * mode is a search param, and the shared logic lives in lib/album-spreads.
+ * There used to be two routes here rendering the same AlbumEditor in a
+ * "simple" and an "advanced" mode, with ~120 lines of identical spread-healing
+ * copied between them. There is now one route and one editor — the mode split
+ * is gone, since half a toolbar was never a useful thing to choose between.
  */
 export default async function EditorPage({
   params,
-  searchParams,
 }: {
   params: Promise<{ albumId: string }>
-  searchParams: Promise<{ mode?: string }>
 }) {
   const { albumId } = await params
-  const { mode: modeParam } = (await searchParams) || {}
 
   if (!isUuid(albumId)) {
     console.warn('[Editor] Invalid album id received:', albumId)
@@ -67,10 +63,6 @@ export default async function EditorPage({
 
   const { rawLayout, initialSpreads, layoutField } = resolveAlbumLayout(album)
 
-  // `simple` is the template-driven entry (style gallery → editor); `advanced`
-  // is the full light table. Anything else falls back to advanced.
-  const mode = modeParam === 'simple' ? 'simple' : 'advanced'
-
   return (
     <div className="min-h-[100dvh] bg-background">
       <AlbumEditor
@@ -80,8 +72,7 @@ export default async function EditorPage({
         layoutField={layoutField}
         coverImageUrl={album.cover_image_url}
         initialLayoutData={rawLayout ?? undefined}
-        mode={mode}
-        templates={mode === 'simple' ? ALL_MAGAZINE_TEMPLATES : undefined}
+        templates={ALL_MAGAZINE_TEMPLATES}
       />
     </div>
   )
