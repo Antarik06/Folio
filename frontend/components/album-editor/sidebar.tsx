@@ -1,4 +1,6 @@
 import React from 'react'
+import { ALBUM_STYLES, styleOfTemplate } from '@/lib/magazine-templates'
+import { AlbumMiniature } from '@/components/create/album-miniature'
 import {
   LayoutTemplate,
   Images,
@@ -1072,8 +1074,12 @@ export function Sidebar({
                         : 'border-black/10 dark:border-white/10 hover:border-terracotta/60'
                     } ${!hasLayout ? 'opacity-50 cursor-not-allowed' : ''}`}
                   >
-                    <div className="aspect-[4/3] overflow-hidden rounded mb-2 bg-black/10">
-                      <img src={template.thumbnail} alt={template.name} className="h-full w-full object-cover" />
+                    <div className="mb-2 overflow-hidden rounded bg-black/5 p-1.5 dark:bg-white/5">
+                      <AlbumMiniature
+                        spreads={template.spreads}
+                        palette={(styleOfTemplate(template.id) ?? ALBUM_STYLES[0]).palette}
+                        pages={2}
+                      />
                     </div>
                     <div className="flex items-center justify-between gap-2">
                       <div>

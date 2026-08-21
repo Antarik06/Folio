@@ -1,7 +1,8 @@
 'use client'
 
 import React from 'react'
-import { ALL_MAGAZINE_TEMPLATES } from '@/lib/magazine-templates'
+import { ALL_MAGAZINE_TEMPLATES, ALBUM_STYLES, styleOfTemplate } from '@/lib/magazine-templates'
+import { AlbumMiniature } from '@/components/create/album-miniature'
 import { inferTemplateProductType, productTypeLabel } from '@/lib/product-type'
 import { useRouter } from 'next/navigation'
 
@@ -26,11 +27,12 @@ export function TemplateSelector({ eventId }: TemplateSelectorProps) {
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
       {ALL_MAGAZINE_TEMPLATES.map((template) => (
         <div key={template.id} className="group relative bg-card border border-border overflow-hidden flex flex-col">
-          <div className="aspect-[4/5] relative overflow-hidden bg-muted">
-            <img 
-              src={template.thumbnail} 
-              alt={template.name}
-              className="w-full h-full object-cover transition-all duration-700"
+          <div className="aspect-[4/5] relative overflow-hidden bg-surface-2 p-4">
+            {/* The template's own geometry, not a stock photograph. */}
+            <AlbumMiniature
+              spreads={template.spreads}
+              palette={(styleOfTemplate(template.id) ?? ALBUM_STYLES[0]).palette}
+              pages={2}
             />
             <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center p-6 text-center">
               <h4 className="text-white font-serif text-lg mb-2">{template.name}</h4>

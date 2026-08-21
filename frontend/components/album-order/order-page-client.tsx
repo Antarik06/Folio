@@ -113,8 +113,10 @@ export function OrderPageClient({
           console.error('Error parsing polaroid state:', e)
         }
       } else {
-        // Fallback: If no polaroids, redirect back to studio
-        router.push('/create/polaroid')
+        // The polaroid studio has been retired, so there is nowhere to send
+        // someone starting a fresh polaroid order. Existing orders still
+        // render below; a new one starts from the catalogue.
+        router.push('/create')
       }
     }
   }, [initialProductType, router])

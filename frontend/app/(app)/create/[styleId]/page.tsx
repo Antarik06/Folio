@@ -31,7 +31,9 @@ export default function UseTemplatePage() {
   const router = useRouter()
   const params = useParams()
   const searchParams = useSearchParams()
-  const id = params.id as string
+  // The dynamic segment is [styleId]; reading params.id here returned
+  // undefined and left `template` permanently null.
+  const id = params.styleId as string
   const eventIdFromUrl = searchParams.get('eventId')
   
   const [template, setTemplate] = useState<any>(() => ALL_MAGAZINE_TEMPLATES.find(t => t.id === id) || null)

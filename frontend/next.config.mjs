@@ -48,19 +48,18 @@ const nextConfig = {
         destination: '/create/editor/:id?mode=simple',
         permanent: false,
       },
-      // The bespoke Adventure flow is gone; Adventure is a style like any other.
-      {
-        source: '/dashboard/templates/adventure',
-        destination: '/create/adventure-travel',
-        permanent: false,
-      },
+      // The bespoke Adventure flow and its template are both gone.
+      { source: '/dashboard/templates/adventure', destination: '/create', permanent: false },
       { source: '/dashboard/templates', destination: '/create', permanent: false },
       { source: '/dashboard/templates/:path*', destination: '/create/:path*', permanent: false },
       { source: '/templates', destination: '/create', permanent: false },
       { source: '/templates/:path*', destination: '/create/:path*', permanent: false },
 
-      { source: '/dashboard/polaroid', destination: '/create/polaroid', permanent: false },
-      { source: '/polaroid', destination: '/create/polaroid', permanent: false },
+      // The Polaroid studio is retired; old links land in the catalogue.
+      { source: '/dashboard/polaroid', destination: '/create', permanent: false },
+      { source: '/polaroid', destination: '/create', permanent: false },
+      { source: '/create/polaroid', destination: '/create', permanent: false },
+      { source: '/preview/polaroid', destination: '/create', permanent: false },
 
       // "Concierge" / "Premium" are all one thing now: Ask an Artist.
       { source: '/dashboard/premium', destination: '/create/artist', permanent: false },

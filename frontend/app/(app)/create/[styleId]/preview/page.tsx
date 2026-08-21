@@ -3,12 +3,14 @@ import { notFound } from 'next/navigation'
 import Link from 'next/link'
 
 interface Props {
-  params: Promise<{ id: string }>
+  /** Must match the [styleId] segment — an `id` here silently resolved to
+      undefined and sent every template to notFound(). */
+  params: Promise<{ styleId: string }>
 }
 
 export default async function TemplatePreviewPage({ params }: Props) {
-  const { id } = await params
-  const template = ALL_MAGAZINE_TEMPLATES.find(t => t.id === id)
+  const { styleId } = await params
+  const template = ALL_MAGAZINE_TEMPLATES.find(t => t.id === styleId)
   
   if (!template) {
     notFound()
