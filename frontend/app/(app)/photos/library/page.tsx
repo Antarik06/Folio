@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation'
 import { serverFetch } from '@/lib/api-client'
 import { getAuthToken } from '@/lib/actions/auth'
 import { MonoLabel, PageMasthead, StampButton } from '@/components/folio/primitives'
-import { ContactSheet } from '@/components/photos/contact-sheet'
+import { LibrarySheet } from '@/components/photos/library-sheet'
 import { monoCount } from '@/lib/photo-clusters'
 
 export const metadata = {
@@ -56,14 +56,7 @@ export default async function LibraryPage({
       />
 
       <div className="mt-8">
-        <ContactSheet
-          photos={library.photos}
-          emptyHint={
-            <p className="max-w-sm text-sm leading-relaxed text-muted-foreground">
-              Frames land here from every event you host or join.
-            </p>
-          }
-        />
+        <LibrarySheet photos={library.photos} />
       </div>
 
       {library.total > 0 ? (

@@ -1,22 +1,19 @@
 'use client'
 
 import Link from 'next/link'
-import { Plate } from './plate'
+import { PhotoScatter } from './photo-scatter'
 
 /**
  * The hero.
  *
- * One thought, said once. The sheet of empty plates settles into place beside
- * it — unexposed, waiting. No stock photography, no feature list, no second
- * headline competing with the first.
+ * One thought, said once, beside a scatter of prints on the darkroom table —
+ * the tilted, draggable stack carried over from the original hero, rebuilt on
+ * the ink ground with empty frames.
  */
-
-const SHEET = Array.from({ length: 9 })
-
 export function Hero() {
   return (
     <section className="relative overflow-hidden bg-[#1C1814]">
-      <div className="mx-auto grid max-w-[1180px] items-center gap-14 px-6 pb-24 pt-36 sm:px-10 sm:pb-32 sm:pt-44 lg:grid-cols-[1fr_380px] lg:gap-24">
+      <div className="mx-auto grid max-w-[1180px] items-center gap-14 px-6 pb-24 pt-36 sm:px-10 sm:pb-32 sm:pt-44 lg:grid-cols-[1fr_460px] lg:gap-20">
         <div>
           <h1 className="max-w-[15ch] font-serif text-[clamp(2.9rem,10vw,5.2rem)] leading-[0.95] tracking-[-0.025em] text-[#F5F0E8]">
             The day ends.
@@ -45,47 +42,12 @@ export function Hero() {
           </div>
         </div>
 
-        {/* The sheet — nine empty plates, settling in. */}
-        <div className="mx-auto w-full max-w-[380px] lg:mx-0">
-          <div className="grid grid-cols-3 gap-[3px]">
-            {SHEET.map((_, i) => (
-              <div
-                key={i}
-                className="settle"
-                style={{ animationDelay: `${0.15 + i * 0.07}s` }}
-              >
-                <Plate ratio="1/1" tone="dark" />
-              </div>
-            ))}
-          </div>
-          <div className="mt-3 text-center font-mono text-[10px] uppercase tracking-[0.16em] text-[#F5F0E8]/25">
-            Unexposed
-          </div>
+        {/* Prints on the table — drag them around. */}
+        <div className="w-full">
+          <PhotoScatter />
         </div>
       </div>
 
-      <style jsx>{`
-        .settle {
-          animation: settle 0.8s cubic-bezier(0.22, 1, 0.36, 1) both;
-        }
-
-        @keyframes settle {
-          from {
-            opacity: 0;
-            transform: translateY(10px) scale(0.97);
-          }
-          to {
-            opacity: 1;
-            transform: none;
-          }
-        }
-
-        @media (prefers-reduced-motion: reduce) {
-          .settle {
-            animation: none;
-          }
-        }
-      `}</style>
     </section>
   )
 }

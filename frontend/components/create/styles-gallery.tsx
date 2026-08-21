@@ -1,214 +1,229 @@
-'use client'
-
-import { useMemo, useState } from 'react'
-import {
-  LabelledBlock,
-  MonoLabel,
-  PageMasthead,
-  SectionRule,
-  StampButton,
-} from '@/components/folio/primitives'
-import { StyleCard, type StyleSummary } from './style-card'
-import { pickFeatures } from './style-idiom'
+import Link from 'next/link'
+import type { ReactNode } from 'react'
+import { StampButton } from '@/components/folio/primitives'
+import { AlbumMiniature } from './album-miniature'
+import { CompassMark, SprocketRail } from '@/components/folio/marks'
+import type { AlbumStyle, MagazineTemplate } from '@/lib/magazine-templates'
 
 /**
- * Screen 03 — Styles Gallery. The Create tab's home.
+ * The Create catalogue.
  *
- * Three things happen here, in order of how a person actually decides:
- * first *how* the piece gets made (yourself, an artist, or instant prints),
- * then *what* it looks like. The feature grid is deliberately asymmetric —
- * a catalogue spread, not a uniform card wall — and every style below it
- * carries its own print idiom.
+ * Five styles, each opening on its own name and carrying two or three
+ * templates. There is no separate "featured" rail: a featured section always
+ * ends up showing the same templates twice, and the thing worth featuring is
+ * the style, not an arbitrary pick from inside it.
  *
- * This replaces templates-showcase.tsx (42KB), which wrapped every template in
- * one shell decorated with invented star ratings and review counts.
+ * Each template previews its actual geometry rather than a stock photograph, so
+ * choosing between "The Vows" and "The Celebration" means comparing a wide mat
+ * against a full bleed — which is the only thing that really separates them.
  */
 export function StylesGallery({
-  templates,
+  groups,
   eventId,
 }: {
-  templates: StyleSummary[]
+  groups: { style: AlbumStyle; templates: MagazineTemplate[] }[]
   eventId?: string
 }) {
-  const [category, setCategory] = useState('all')
+  const total = groups.reduce((n, g) => n + g.templates.length, 0)
 
-  const categories = useMemo(() => {
-    const seen = new Map<string, number>()
-    for (const t of templates) {
-      const c = t.category || 'Artist'
-      seen.set(c, (seen.get(c) ?? 0) + 1)
-    }
-    return [...seen.entries()].sort((a, b) => b[1] - a[1])
-  }, [templates])
-
-  const features = useMemo(() => pickFeatures(templates), [templates])
-  const featureIds = useMemo(() => new Set(features.map((f) => f.template.id)), [features])
-
-  const catalogue = useMemo(() => {
-    const rest = templates.filter((t) => !featureIds.has(t.id))
-    if (category === 'all') return rest
-    return rest.filter((t) => (t.category || 'Artist') === category)
-  }, [templates, featureIds, category])
-
-  const cover = features.find((f) => f.slot === 'cover')
-  const singleA = features.find((f) => f.slot === 'single-a')
-  const singleB = features.find((f) => f.slot === 'single-b')
-  const wide = features.find((f) => f.slot === 'wide')
+  const href = (id: string) => (eventId ? `/create/${id}?eventId=${eventId}` : `/create/${id}`)
 
   return (
-    <div className="mx-auto max-w-[1440px] px-4 py-8 sm:px-6 sm:py-12">
-      <PageMasthead
-        eyebrow="Create"
-        title="Pick a style"
-        meta={`${templates.length} styles · album, print, or card`}
-        actions={
-          <StampButton href="/create/orders" tone="ghost" size="sm">
-            Orders
-          </StampButton>
-        }
-      />
-
-      {/* ── How it gets made ─────────────────────────────────────────────── */}
-      <LabelledBlock label="Ways in" className="mt-8">
-        <div className="grid gap-3 sm:grid-cols-3">
-          <WayIn
-            href={eventId ? `/create?eventId=${eventId}` : '/create'}
-            title="Build it yourself"
-            note="Pick a style, drop your photos in, arrange the spreads."
-            active
-          />
-          <WayIn
-            href={eventId ? `/create/artist?eventId=${eventId}` : '/create/artist'}
-            title="Ask an Artist"
-            note="A photographer designs it for you. 12–15 days."
-          />
-          <WayIn
-            href="/create/polaroid"
-            title="Polaroid prints"
-            note="Instant frames, no album. Straight to print."
-          />
-        </div>
-      </LabelledBlock>
-
-      {/* ── The catalogue spread ─────────────────────────────────────────── */}
-      <div className="mt-10 sm:mt-12">
-        <SectionRule index="01" title="Featured" aside="Ref — album catalogs, letterpress stationery" />
-
-        {/* Asymmetric on desktop (2fr 1fr 1fr over two rows); a single column
-            on phones, where the cover feature still leads. */}
-        <div className="grid gap-4 sm:gap-5 lg:grid-cols-[2fr_1fr_1fr] lg:grid-rows-[auto_auto]">
-          {cover ? (
-            <div className="lg:row-span-2">
-              <StyleCard template={cover.template} eventId={eventId} size="cover" />
+    <div className="py-10 sm:py-14">
+      <Hold>
+        <header className="flex flex-wrap items-end justify-between gap-x-8 gap-y-5">
+          <div>
+            <div className="font-mono text-[11px] uppercase tracking-[0.16em] text-primary">
+              Create
             </div>
-          ) : null}
-          {singleA ? <StyleCard template={singleA.template} eventId={eventId} /> : null}
-          {singleB ? <StyleCard template={singleB.template} eventId={eventId} /> : null}
-          {wide ? (
-            <div className="lg:col-span-2">
-              <StyleCard template={wide.template} eventId={eventId} size="wide" />
-            </div>
-          ) : null}
-        </div>
-      </div>
-
-      {/* ── Everything else ──────────────────────────────────────────────── */}
-      {catalogue.length > 0 || category !== 'all' ? (
-        <div className="mt-12">
-          <SectionRule index="02" title="All styles" aside={`${catalogue.length} shown`} />
-
-          <div className="-mx-4 mb-6 overflow-x-auto px-4 snap-rail sm:mx-0 sm:px-0">
-            <div
-              className="flex w-max gap-2"
-              role="tablist"
-              aria-label="Filter styles by category"
+            <h1 className="mt-3 font-serif text-[clamp(2.4rem,8vw,4rem)] leading-[0.95] tracking-[-0.025em] text-foreground">
+              Pick a shape
+            </h1>
+          </div>
+          <div className="flex items-center gap-2 pb-1">
+            <StampButton
+              href={eventId ? `/create/artist?eventId=${eventId}` : '/create/artist'}
+              tone="primary"
+              size="sm"
             >
-              <CategoryTab
-                label="All"
-                count={templates.length}
-                active={category === 'all'}
-                onClick={() => setCategory('all')}
-              />
-              {categories.map(([name, count]) => (
-                <CategoryTab
-                  key={name}
-                  label={name}
-                  count={count}
-                  active={category === name}
-                  onClick={() => setCategory(name)}
+              Ask an artist
+            </StampButton>
+            <StampButton href="/create/orders" tone="ghost" size="sm">
+              Orders
+            </StampButton>
+          </div>
+        </header>
+
+        <nav
+          aria-label="Styles"
+          className="mt-6 flex flex-wrap items-center gap-x-6 gap-y-2"
+        >
+          {groups.map((g, i) => (
+            <Link
+              key={g.style.id}
+              href={`#${g.style.id}`}
+              className="group inline-flex min-h-[44px] items-baseline gap-2 font-mono text-[11px] uppercase tracking-[0.12em] text-ink-soft transition-colors hover:text-foreground"
+            >
+              <span className="text-primary">{String(i + 1).padStart(2, '0')}</span>
+              <span className="group-hover:underline group-hover:underline-offset-4">
+                {g.style.name}
+              </span>
+              <span className="tabular-nums opacity-60">{g.templates.length}</span>
+            </Link>
+          ))}
+          <span className="font-mono text-[10px] uppercase tracking-[0.1em] text-ink-soft/60">
+            {total} templates
+          </span>
+        </nav>
+      </Hold>
+
+      {groups.map((group, i) => (
+        <section key={group.style.id} className="mt-16 sm:mt-24">
+          <Hold>
+            <div id={group.style.id} className="scroll-mt-20 border-t border-border pt-5">
+              <div className="flex flex-wrap items-end justify-between gap-x-8 gap-y-3">
+                <div className="max-w-[30ch]">
+                  <div className="font-mono text-[11px] tracking-[0.16em] text-primary">
+                    {String(i + 1).padStart(2, '0')}
+                  </div>
+                  <h2 className="mt-2 font-serif text-[clamp(2rem,6vw,3.25rem)] leading-[0.98] tracking-[-0.02em] text-foreground">
+                    {group.style.name}
+                  </h2>
+                </div>
+                <p className="max-w-[42ch] pb-1 text-[14px] leading-relaxed text-muted-foreground">
+                  {group.style.line}
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-8 grid gap-x-5 gap-y-10 sm:grid-cols-2 sm:gap-x-7 lg:grid-cols-3 lg:gap-x-9">
+              {group.templates.map((template) => (
+                <TemplateCard
+                  key={template.id}
+                  template={template}
+                  style={group.style}
+                  href={href(template.id)}
                 />
               ))}
             </div>
-          </div>
+          </Hold>
+        </section>
+      ))}
 
-          {catalogue.length === 0 ? (
-            <div className="rounded-[4px] border border-dashed border-border px-6 py-12 text-center">
-              <MonoLabel>No styles in {category}</MonoLabel>
+      {/* One way out, at the end, for people who would rather not choose. */}
+      <section className="mt-20 sm:mt-28">
+        <Hold>
+          <div className="border-t border-border pt-10 text-center sm:pt-14">
+            <h2 className="font-serif text-[clamp(1.75rem,5vw,2.5rem)] italic text-foreground">
+              Or hand it to someone
+            </h2>
+            <p className="mx-auto mt-3 max-w-sm text-sm leading-relaxed text-muted-foreground">
+              A photographer picks the shape, lays it out, and sends back proofs.
+              Twelve to fifteen days.
+            </p>
+            <div className="mt-7">
+              <StampButton
+                href={eventId ? `/create/artist?eventId=${eventId}` : '/create/artist'}
+                tone="primary"
+              >
+                Ask an artist
+              </StampButton>
             </div>
-          ) : (
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-              {catalogue.map((template) => (
-                <StyleCard key={template.id} template={template} eventId={eventId} />
-              ))}
-            </div>
-          )}
-        </div>
-      ) : null}
+          </div>
+        </Hold>
+      </section>
     </div>
   )
 }
 
-function WayIn({
-  href,
-  title,
-  note,
-  active,
-}: {
-  href: string
-  title: string
-  note: string
-  active?: boolean
-}) {
+function Hold({ children, className }: { children: ReactNode; className?: string }) {
   return (
-    <a
-      href={href}
-      className={`flex min-h-[88px] flex-col justify-center rounded-[4px] border p-4 transition-colors ${
-        active
-          ? 'border-primary bg-primary/[0.06]'
-          : 'border-border bg-card hover:border-foreground'
-      }`}
-    >
-      <span className="font-serif text-lg text-foreground">{title}</span>
-      <span className="mt-1 text-[13px] leading-snug text-muted-foreground">{note}</span>
-    </a>
+    <div className={`mx-auto max-w-[1320px] px-5 sm:px-8 ${className ?? ''}`}>{children}</div>
   )
 }
 
-function CategoryTab({
-  label,
-  count,
-  active,
-  onClick,
+/**
+ * One template. The idiom comes from its style, so a Wedding template is set on
+ * an ivory mat and an Editorial one sits on a contact strip — crop the preview
+ * out and you would still know which style it belonged to.
+ */
+function TemplateCard({
+  template,
+  style,
+  href,
 }: {
-  label: string
-  count: number
-  active: boolean
-  onClick: () => void
+  template: MagazineTemplate
+  style: AlbumStyle
+  href: string
 }) {
+  const spreadCount = template.spreads.length
+  const meta = `${spreadCount} spread${spreadCount === 1 ? '' : 's'} · ${template.pageCount ?? spreadCount} pages`
+
   return (
-    <button
-      type="button"
-      role="tab"
-      aria-selected={active}
-      onClick={onClick}
-      className={`inline-flex min-h-[44px] shrink-0 items-center gap-2 rounded-[2px] border px-4 font-mono text-[11px] uppercase tracking-[0.06em] transition-colors ${
-        active
-          ? 'border-foreground bg-foreground text-background'
-          : 'border-border text-ink-soft hover:border-foreground hover:text-foreground'
-      }`}
-    >
-      {label}
-      <span className={active ? 'opacity-60' : 'opacity-50'}>{count}</span>
-    </button>
+    <Link href={href} className="group block">
+      <Idiom idiom={style.idiom}>
+        <AlbumMiniature spreads={template.spreads} palette={style.palette} pages={3} />
+      </Idiom>
+
+      <div className="mt-3.5">
+        <div className="font-serif text-lg italic leading-snug text-foreground underline-offset-4 group-hover:underline sm:text-xl">
+          {template.name}
+        </div>
+        <div className="mt-1 font-mono text-[10px] uppercase tracking-[0.1em] tabular-nums text-ink-soft">
+          {meta}
+        </div>
+        <p className="mt-2 text-[13px] leading-relaxed text-muted-foreground">
+          {template.description}
+        </p>
+      </div>
+    </Link>
   )
+}
+
+/** The print idiom each style is presented in. */
+function Idiom({ idiom, children }: { idiom: AlbumStyle['idiom']; children: ReactNode }) {
+  switch (idiom) {
+    case 'letterpress':
+      return (
+        <div className="bg-card p-1 ring-1 ring-inset ring-border transition-colors group-hover:ring-primary/50">
+          <div className="border border-dashed border-border p-4">{children}</div>
+        </div>
+      )
+
+    case 'stamp':
+      return (
+        <div className="relative bg-card p-3.5 ring-1 ring-inset ring-border transition-colors group-hover:ring-secondary/60">
+          {children}
+          <div className="pointer-events-none absolute bottom-2 right-2 opacity-70">
+            <CompassMark size={18} />
+          </div>
+        </div>
+      )
+
+    case 'contact-strip':
+      return (
+        <div className="flex items-center gap-2.5 bg-foreground p-3">
+          <SprocketRail count={4} />
+          <div className="min-w-0 flex-1">{children}</div>
+        </div>
+      )
+
+    case 'ledger':
+      return (
+        <div className="bg-card p-3.5 ring-1 ring-inset ring-border transition-colors group-hover:ring-primary/50">
+          <div className="mb-2.5 flex items-center justify-between font-mono text-[9px] uppercase tracking-[0.14em] text-ink-soft">
+            <span>Entry</span>
+            <span>—</span>
+          </div>
+          {children}
+        </div>
+      )
+
+    default:
+      return (
+        <div className="bg-card p-4 ring-1 ring-inset ring-border transition-colors group-hover:ring-primary/50">
+          {children}
+        </div>
+      )
+  }
 }

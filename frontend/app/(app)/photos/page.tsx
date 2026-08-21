@@ -1,16 +1,15 @@
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
+import type { ReactNode } from 'react'
 import { serverFetch } from '@/lib/api-client'
 import { getAuthToken } from '@/lib/actions/auth'
 import { createClient } from '@/lib/supabase/server'
-import {
-  LabelledBlock,
-  MonoLabel,
-  PageMasthead,
-  StampButton,
-} from '@/components/folio/primitives'
-import { ContactSheet } from '@/components/photos/contact-sheet'
-import { EventBlock, type EventOverview } from '@/components/photos/event-block'
+import { StampButton } from '@/components/folio/primitives'
+import { LibrarySheet } from '@/components/photos/library-sheet'
+import type { EventOverview } from '@/components/photos/types'
+import { SectionIndex, SectionHead } from '@/components/photos/section-index'
+import { EventsGrid } from '@/components/photos/events-grid'
+import { SpacesShelf, SpacesEmpty } from '@/components/photos/spaces-shelf'
 import { monoCount } from '@/lib/photo-clusters'
 
 export const metadata = {
@@ -18,13 +17,30 @@ export const metadata = {
 }
 
 /**
- * Screen 01 — Library & Events. The app's home screen.
+ * The Photos tab.
  *
- * Two readings of one shelf: Library is every frame in an unbroken contact
- * sheet, Events is the same frames grouped by occasion. Per the design, the
- * difference between them is carried entirely by grid rhythm and metadata
- * density — there is deliberately no "shared" badge anywhere on this page.
+ *   01 Events    a large panel + stacks — one day leads, the rest sit beside it
+ *   02 My Spaces stacks               — the same tile, on the same grid
+ *   03 Library   a sheet              — the whole, flat, uniform, edge to edge
+ *
+ * Three geometries, because these are three different kinds of thing. The
+ * order runs specific → personal → total: the occasion you came for, then your
+ * own collections, then the archive of everything.
+ *
+ * 01 and 02 share one grid and one tile, so they read as a single family; the
+ * Library then breaks that rhythm by running edge to edge, which is what makes
+ * it land as the archive rather than a third list. Bleeding sections live
+ * outside the padded column rather than escaping it with negative margins, so
+ * nothing can overflow sideways.
  */
+
+/** The measured column everything reads against. */
+function Hold({ children, className }: { children: ReactNode; className?: string }) {
+  return (
+    <div className={`mx-auto max-w-[1320px] px-5 sm:px-8 ${className ?? ''}`}>{children}</div>
+  )
+}
+
 export default async function PhotosPage({
   searchParams,
 }: {
@@ -48,19 +64,17 @@ export default async function PhotosPage({
       if (profile?.role === 'admin') redirect('/admin')
       if (profile?.role === 'artist') redirect('/artist-studio')
     } catch (err) {
-      // A profile lookup failure shouldn't block the page; fall through to the
-      // normal Photos view.
       if ((err as { digest?: string })?.digest?.startsWith('NEXT_REDIRECT')) throw err
       console.error('[Photos] Failed to resolve role:', err)
     }
   }
 
   let library: { total: number; photos: any[] } = { total: 0, photos: [] }
-  let events: EventOverview[] = []
+  let collections: EventOverview[] = []
 
   const [libraryResult, eventsResult] = await Promise.allSettled([
-    serverFetch('/api/library/photos?limit=40', token),
-    serverFetch('/api/library/events?limit=4&photosPerEvent=12', token),
+    serverFetch('/api/library/photos?limit=84', token),
+    serverFetch('/api/library/events?limit=12&photosPerEvent=12', token),
   ])
 
   if (libraryResult.status === 'fulfilled') {
@@ -70,71 +84,136 @@ export default async function PhotosPage({
   }
 
   if (eventsResult.status === 'fulfilled') {
-    events = eventsResult.value
+    collections = eventsResult.value
   } else {
-    console.error('[Photos] Events fetch failed:', eventsResult.reason)
+    console.error('[Photos] Collections fetch failed:', eventsResult.reason)
   }
 
-  const hasAnything = library.total > 0 || events.length > 0
+  const events = collections.filter((c) => c.kind !== 'space')
+  const spaces = collections.filter((c) => c.kind === 'space')
+
+  const hasAnything = library.total > 0 || collections.length > 0
 
   return (
-    <div className="mx-auto max-w-[1440px] px-4 py-8 sm:px-6 sm:py-12">
-      <PageMasthead
-        eyebrow="Photos"
-        title="Every frame you have"
-        meta={`Library · ${monoCount(library.total)} frames · ${monoCount(events.length)} events`}
-        actions={
-          <>
+    <div className="py-10 sm:py-14">
+      <Hold>
+        <header className="flex flex-wrap items-end justify-between gap-x-8 gap-y-5">
+          <div>
+            <div className="font-mono text-[11px] uppercase tracking-[0.16em] text-primary">
+              Photos
+            </div>
+            <h1 className="mt-3 font-serif text-[clamp(2.4rem,8vw,4rem)] leading-[0.95] tracking-[-0.025em] text-foreground">
+              Everything you have
+            </h1>
+          </div>
+          <div className="flex items-center gap-2 pb-1">
             <StampButton href="/photos/events/new" tone="primary" size="sm">
               New Event
             </StampButton>
-            <StampButton href="/join" tone="ghost" size="sm" className="hidden sm:inline-flex">
+            <StampButton href="/join" tone="ghost" size="sm">
               Join
             </StampButton>
-          </>
-        }
-      />
+          </div>
+        </header>
+      </Hold>
 
       {!hasAnything ? (
-        <EmptyPhotos />
+        <Hold>
+          <EmptyPhotos />
+        </Hold>
       ) : (
-        <div className="mt-8 space-y-10 sm:mt-10 sm:space-y-12">
-          <LabelledBlock
-            label={`Library — private, ${monoCount(library.total)} photos`}
-            action={
-              library.total > library.photos.length ? (
-                <Link
-                  href="/photos/library"
-                  className="font-mono text-[11px] uppercase tracking-[0.06em] text-primary underline-offset-4 hover:underline"
-                >
-                  See all →
-                </Link>
-              ) : null
-            }
-          >
-            <ContactSheet
-              photos={library.photos}
-              emptyHint={
-                <p className="max-w-sm text-sm leading-relaxed text-muted-foreground">
-                  Frames land here from every event you host or join. Nothing is
-                  shared outside an event until you say so.
-                </p>
-              }
+        <>
+          <Hold>
+            <SectionIndex
+              entries={[
+                { id: 'events', index: '01', label: 'Events', count: events.length },
+                { id: 'spaces', index: '02', label: 'My Spaces', count: spaces.length },
+                { id: 'library', index: '03', label: 'Library', count: library.total },
+              ]}
             />
-          </LabelledBlock>
+          </Hold>
 
-          {events.map((event) => (
-            <EventBlock key={event.id} event={event} />
-          ))}
+          {/* ── 01 Events — held in the column ────────────────────────── */}
+          <section className="mt-16 sm:mt-24">
+            <Hold>
+              <SectionHead
+                id="events"
+                index="01"
+                label="Events"
+                qualifier="Shared"
+                action={
+                  events.length > 0 ? (
+                    <Link
+                      href="/photos/events"
+                      className="font-mono text-[11px] uppercase tracking-[0.08em] text-primary underline-offset-4 hover:underline"
+                    >
+                      All →
+                    </Link>
+                  ) : null
+                }
+              />
+            </Hold>
 
-          {events.length > 0 ? (
-            <div className="flex justify-center border-t border-border pt-6">
-              <StampButton href="/photos/events" tone="ghost" size="sm">
-                All events →
-              </StampButton>
+            <Hold className="mt-8">
+              {events.length > 0 ? (
+                <EventsGrid events={events} />
+              ) : (
+                <div className="py-10 text-center sm:py-14">
+                  <h3 className="font-serif text-2xl italic text-foreground">
+                    Collect a day with everyone in it
+                  </h3>
+                  <p className="mx-auto mt-3 max-w-sm text-sm leading-relaxed text-muted-foreground">
+                    Share one code. Everyone who was there adds what they shot.
+                  </p>
+                  <div className="mt-6 flex flex-wrap justify-center gap-3">
+                    <StampButton href="/photos/events/new" tone="primary" size="sm">
+                      Host an event
+                    </StampButton>
+                    <StampButton href="/join" tone="ghost" size="sm">
+                      I have a code
+                    </StampButton>
+                  </div>
+                </div>
+              )}
+            </Hold>
+          </section>
+
+          {/* ── 02 My Spaces — held in the column ─────────────────────── */}
+          <section className="mt-16 sm:mt-24">
+            <Hold>
+              <SectionHead id="spaces" index="02" label="My Spaces" qualifier="Personal" />
+              <div className="mt-8">
+                {spaces.length > 0 ? <SpacesShelf spaces={spaces} /> : <SpacesEmpty />}
+              </div>
+            </Hold>
+          </section>
+
+          {/* ── 03 Library — bleeds both edges ────────────────────────── */}
+          <section className="mt-16 sm:mt-24">
+            <Hold>
+              <SectionHead
+                id="library"
+                index="03"
+                label="Library"
+                qualifier="Everything · private"
+                action={
+                  library.total > library.photos.length ? (
+                    <Link
+                      href="/photos/library"
+                      className="font-mono text-[11px] uppercase tracking-[0.08em] text-primary underline-offset-4 hover:underline"
+                    >
+                      All {monoCount(library.total)} →
+                    </Link>
+                  ) : null
+                }
+              />
+            </Hold>
+
+            <div className="mt-8">
+              <LibrarySheet photos={library.photos} />
             </div>
-          ) : null}
-        </div>
+          </section>
+        </>
       )}
     </div>
   )
@@ -142,16 +221,15 @@ export default async function PhotosPage({
 
 function EmptyPhotos() {
   return (
-    <div className="mt-10 rounded-[4px] border border-dashed border-border px-6 py-16 text-center">
-      <MonoLabel tone="primary" size="xs" className="mb-3">
-        Unexposed
-      </MonoLabel>
-      <h2 className="font-serif text-2xl text-foreground">Nothing on the shelf yet</h2>
-      <p className="mx-auto mt-3 max-w-md text-sm leading-relaxed text-muted-foreground">
-        Host an event to collect photos from everyone who was there, or join one
-        with an invite code and find the frames you&apos;re in.
+    <div className="mt-10 border-t border-border py-20 text-center sm:py-28">
+      <h2 className="font-serif text-[clamp(1.75rem,6vw,2.5rem)] italic text-foreground">
+        Nothing on the shelf yet
+      </h2>
+      <p className="mx-auto mt-4 max-w-md text-sm leading-relaxed text-muted-foreground">
+        Host an event to collect photos from everyone who was there, join one
+        with an invite code, or make a space that stays just yours.
       </p>
-      <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
+      <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
         <StampButton href="/photos/events/new" tone="primary">
           Create an event
         </StampButton>

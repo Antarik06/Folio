@@ -103,9 +103,9 @@ export const libraryService = {
    */
   async getEventsOverview(
     userId: string,
-    { limit = 6, photosPerEvent = 12 }: { limit?: number; photosPerEvent?: number } = {}
+    { limit = 12, photosPerEvent = 12 }: { limit?: number; photosPerEvent?: number } = {}
   ): Promise<any[]> {
-    const safeLimit = Math.min(Math.max(Number(limit) || 6, 1), 24)
+    const safeLimit = Math.min(Math.max(Number(limit) || 12, 1), 24)
     const safePhotos = Math.min(Math.max(Number(photosPerEvent) || 12, 1), 40)
 
     const eventsRes = await query(
@@ -190,6 +190,12 @@ export const libraryService = {
 
     return events.map((event: any) => ({
       ...event,
+      // Shared vs personal is a property, not a type: a space you host alone is
+      // yours, and it becomes an Event the moment someone else is in it. That
+      // keeps one underlying model instead of two parallel features, and means
+      // inviting a guest needs no migration of the collection itself.
+      kind:
+        event.is_host && Number(event.guests_count) === 0 ? 'space' : 'event',
       photos: photosByEvent.get(event.id) ?? [],
       contributors: contributorsByEvent.get(event.id) ?? [],
     }))
