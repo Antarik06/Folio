@@ -12,9 +12,9 @@ export async function updateEventSettings(eventId: string, input: any) {
       body: JSON.stringify(input)
     })
     
-    revalidatePath(`/dashboard/events/${eventId}`)
-    revalidatePath('/dashboard/events')
-    revalidatePath('/dashboard')
+    revalidatePath(`/photos/events/${eventId}`)
+    revalidatePath('/photos/events')
+    revalidatePath('/photos')
     
     return result
   } catch (error: any) {
@@ -30,7 +30,7 @@ export async function joinEvent(inviteCode: string) {
       body: JSON.stringify({ inviteCode })
     })
 
-    revalidatePath(`/dashboard/events/${result.eventId}`)
+    revalidatePath(`/photos/events/${result.eventId}`)
     return result
   } catch (error: any) {
     return { error: error.message }
@@ -54,7 +54,7 @@ export async function generateCollaboratorCode(eventId: string) {
       method: 'POST'
     })
 
-    revalidatePath(`/dashboard/events/${eventId}`)
+    revalidatePath(`/photos/events/${eventId}`)
     return result
   } catch (error: any) {
     return { error: error.message }
@@ -74,8 +74,8 @@ export async function enrollFace(eventId: string, selfieUrl: string, descriptor:
       body: JSON.stringify({ selfieUrl, descriptor })
     })
 
-    revalidatePath(`/dashboard/events/${eventId}`)
-    revalidatePath(`/dashboard/events/${eventId}/my-photos`)
+    revalidatePath(`/photos/events/${eventId}`)
+    revalidatePath(`/photos/events/${eventId}/me`)
     return result
   } catch (error: any) {
     return { error: error.message }
@@ -88,7 +88,7 @@ export async function togglePhotoShared(photoId: string, currentIsShared: boolea
     const result = await serverFetch(`/api/photos/${photoId}/shared`, token, {
       method: 'PATCH'
     })
-    if (eventId) revalidatePath(`/dashboard/events/${eventId}`)
+    if (eventId) revalidatePath(`/photos/events/${eventId}`)
     return result
   } catch (error: any) {
     return { error: error.message }
@@ -102,7 +102,7 @@ export async function shareAllPhotos(eventId: string) {
       method: 'POST'
     })
     
-    revalidatePath(`/dashboard/events/${eventId}`)
+    revalidatePath(`/photos/events/${eventId}`)
     return result
   } catch (error: any) {
     return { error: error.message }
@@ -115,7 +115,7 @@ export async function approvePhoto(photoId: string, eventId?: string) {
     const result = await serverFetch(`/api/photos/${photoId}/approve`, token, {
       method: 'PATCH'
     })
-    if (eventId) revalidatePath(`/dashboard/events/${eventId}`)
+    if (eventId) revalidatePath(`/photos/events/${eventId}`)
     return result
   } catch (error: any) {
     return { error: error.message }
@@ -128,7 +128,7 @@ export async function rejectPhoto(photoId: string, eventId?: string) {
     const result = await serverFetch(`/api/photos/${photoId}/reject`, token, {
       method: 'POST'
     })
-    if (eventId) revalidatePath(`/dashboard/events/${eventId}`)
+    if (eventId) revalidatePath(`/photos/events/${eventId}`)
     return result
   } catch (error: any) {
     return { error: error.message }
@@ -141,7 +141,7 @@ export async function deletePhoto(photoId: string, eventId?: string) {
     const result = await serverFetch(`/api/photos/${photoId}`, token, {
       method: 'DELETE'
     })
-    if (eventId) revalidatePath(`/dashboard/events/${eventId}`)
+    if (eventId) revalidatePath(`/photos/events/${eventId}`)
     return result
   } catch (error: any) {
     return { error: error.message }
@@ -155,7 +155,7 @@ export async function removeGuest(guestId: string, eventId: string) {
       method: 'DELETE'
     })
 
-    revalidatePath(`/dashboard/events/${eventId}`)
+    revalidatePath(`/photos/events/${eventId}`)
     return result
   } catch (error: any) {
     return { error: error.message }
@@ -170,7 +170,7 @@ export async function renameAlbum(albumId: string, title: string) {
       body: JSON.stringify({ title })
     })
 
-    revalidatePath('/dashboard')
+    revalidatePath('/photos')
     return result
   } catch (error: any) {
     return { error: error.message }
@@ -185,7 +185,7 @@ export async function updateAlbumCoverPhoto(albumId: string, coverPhotoId: strin
       body: JSON.stringify({ coverPhotoId })
     })
 
-    revalidatePath('/dashboard')
+    revalidatePath('/photos')
     return result
   } catch (error: any) {
     return { error: error.message }
@@ -199,7 +199,7 @@ export async function deleteAlbum(albumId: string) {
       method: 'DELETE'
     })
 
-    revalidatePath('/dashboard')
+    revalidatePath('/photos')
     return result
   } catch (error: any) {
     return { error: error.message }
@@ -213,8 +213,8 @@ export async function deleteEvent(eventId: string) {
       method: 'DELETE'
     })
 
-    revalidatePath('/dashboard/events')
-    revalidatePath('/dashboard')
+    revalidatePath('/photos/events')
+    revalidatePath('/photos')
     return result
   } catch (error: any) {
     return { error: error.message }
@@ -233,8 +233,8 @@ export async function createAlbumAction(eventId: string, title: string) {
       })
     })
 
-    revalidatePath('/dashboard')
-    revalidatePath(`/dashboard/events/${eventId}`)
+    revalidatePath('/photos')
+    revalidatePath(`/photos/events/${eventId}`)
     return result
   } catch (error: any) {
     return { error: error.message }
@@ -249,7 +249,7 @@ export async function updateGuestRoleAction(eventId: string, guestId: string, ro
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ role })
     })
-    revalidatePath(`/dashboard/events/${eventId}`)
+    revalidatePath(`/photos/events/${eventId}`)
     return result
   } catch (error: any) {
     return { error: error.message }
@@ -264,7 +264,7 @@ export async function createFolderAction(eventId: string, name: string, parentId
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name, parentId: parentId || null })
     })
-    revalidatePath(`/dashboard/events/${eventId}`)
+    revalidatePath(`/photos/events/${eventId}`)
     return result
   } catch (error: any) {
     return { error: error.message }
@@ -277,7 +277,7 @@ export async function deleteFolderAction(eventId: string, folderId: string) {
     const result = await serverFetch(`/api/events/${eventId}/folders/${folderId}`, token, {
       method: 'DELETE'
     })
-    revalidatePath(`/dashboard/events/${eventId}`)
+    revalidatePath(`/photos/events/${eventId}`)
     return result
   } catch (error: any) {
     return { error: error.message }
@@ -292,7 +292,7 @@ export async function movePhotoAction(eventId: string, photoId: string, folderId
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ folderId })
     })
-    revalidatePath(`/dashboard/events/${eventId}`)
+    revalidatePath(`/photos/events/${eventId}`)
     return result
   } catch (error: any) {
     return { error: error.message }
@@ -307,7 +307,7 @@ export async function updatePhotoTagsAction(eventId: string, photoId: string, pe
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ peopleTags })
     })
-    revalidatePath(`/dashboard/events/${eventId}`)
+    revalidatePath(`/photos/events/${eventId}`)
     return result
   } catch (error: any) {
     return { error: error.message }
@@ -322,7 +322,7 @@ export async function updatePhotoLocationAction(eventId: string, photoId: string
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ location })
     })
-    revalidatePath(`/dashboard/events/${eventId}`)
+    revalidatePath(`/photos/events/${eventId}`)
     return result
   } catch (error: any) {
     return { error: error.message }

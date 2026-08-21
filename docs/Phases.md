@@ -3,7 +3,7 @@
 ## Phase 1: Core Foundation & Authentication Baseline 🟢
 - [x] Set up full-stack repository structure (`/frontend` Next.js 16 + `/backend` Express.js).
 - [x] Configure Supabase Auth (`@supabase/ssr` & JWT verification middleware).
-- [x] Set up PostgreSQL database models via Drizzle ORM (Users, Events, Albums, Pages, Photos).
+- [x] Set up PostgreSQL schema via numbered `.sql` migrations (Users, Events, Albums, Pages, Photos).
 - [x] Establish dark/light theme foundation using Tailwind CSS v4 and "Editorial Darkroom" palette.
 
 ---

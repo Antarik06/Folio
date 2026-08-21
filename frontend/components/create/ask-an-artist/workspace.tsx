@@ -7,11 +7,11 @@ import { apiClient } from '@/lib/api-client'
 import { formatPrice } from '@/lib/pricing'
 import { createClient } from '@/lib/supabase/client'
 
-interface PremiumWorkspaceProps {
+interface ArtistWorkspaceProps {
   projectId: string
 }
 
-export function PremiumWorkspace({ projectId }: PremiumWorkspaceProps) {
+export function ArtistWorkspace({ projectId }: ArtistWorkspaceProps) {
   const [project, setProject] = useState<any | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)

@@ -27,7 +27,7 @@ export function CreateAlbumFlow({ eventId, variant = 'header' }: CreateAlbumFlow
     try {
       const res = await createAlbumAction(eventId, 'Untitled Volume')
       if (res && res.id) {
-        router.push(`/editor/${res.id}`)
+        router.push(`/create/editor/${res.id}`)
       } else {
         console.error('Failed to create album:', res)
         setLoading(false)
@@ -40,7 +40,7 @@ export function CreateAlbumFlow({ eventId, variant = 'header' }: CreateAlbumFlow
 
   function handleGoToTemplates() {
     setIsOpen(false)
-    router.push(`/dashboard/templates?eventId=${eventId}`)
+    router.push(`/create?eventId=${eventId}`)
   }
 
   const triggerButton = variant === 'empty' ? (

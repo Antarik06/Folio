@@ -6,10 +6,10 @@ import { useCursor } from '@react-three/drei'
 import { useAtom } from 'jotai'
 import { easing } from 'maath'
 import * as THREE from 'three'
-import { magazinePageAtom } from './MagazinePreviewUI'
+import { viewerIndexAtom } from '../state'
 import { getAlbumAspectRatio } from '@/lib/template-engine-utils'
 
-// Animation constants (same as Book3D)
+// Animation constants (same as the book scene)
 const insideCurveStrength = 0.18
 const outsideCurveStrength = 0.05
 const turningCurveStrength = 0.09
@@ -129,12 +129,12 @@ const MagazinePage = ({
   )
 }
 
-interface Magazine3DProps {
+interface MagazineSceneProps {
   album: any
 }
 
-export function Magazine3D({ album }: Magazine3DProps) {
-  const [page] = useAtom(magazinePageAtom)
+export function MagazineScene({ album }: MagazineSceneProps) {
+  const [page] = useAtom(viewerIndexAtom)
   const [delayedPage, setDelayedPage] = useState(page)
   const spreads = album.layout_data?.spreads || []
   const [textures, setTextures] = useState<THREE.Texture[]>([])
@@ -178,7 +178,7 @@ export function Magazine3D({ album }: Magazine3DProps) {
   }, [PAGE_WIDTH, PAGE_HEIGHT, PAGE_DEPTH, PAGE_SEGMENTS, segmentWidth])
 
   useEffect(() => {
-    // See Book3D: the async pass must be cancellable, and every texture it
+    // See scenes/book: the async pass must be cancellable, and every texture it
     // allocates has to be disposed, or each album change strands a full set of
     // multi-megabyte page textures on the GPU.
     let cancelled = false

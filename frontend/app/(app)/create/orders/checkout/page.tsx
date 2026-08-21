@@ -44,11 +44,11 @@ export default async function UnifiedCheckoutPage({ searchParams }: Props) {
       album = await serverFetch(`/api/albums/${albumId}`, token)
     } catch (err) {
       console.error('Error fetching album for checkout:', err)
-      redirect('/dashboard/events')
+      redirect('/photos/events')
     }
 
     if (!album) {
-      redirect('/dashboard/events')
+      redirect('/photos/events')
     }
 
     albumTitle = album.title ?? 'Untitled Album'
@@ -63,7 +63,7 @@ export default async function UnifiedCheckoutPage({ searchParams }: Props) {
     checkoutProductType = 'polaroid'
   } else {
     // Missing correct parameters, return to events
-    redirect('/dashboard/events')
+    redirect('/photos/events')
   }
 
   return (

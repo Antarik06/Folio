@@ -131,7 +131,7 @@ export const faceService = {
     userId: string,
     selfieUrl: string,
     descriptor: number[]
-  ): Promise<{ matched: number }> {
+  ): Promise<{ matched: number; preview: { id: string; url: string }[] }> {
     const updateRes = await query(
       `UPDATE public.event_guests
        SET face_reference_url = $1,
@@ -153,11 +153,27 @@ export const faceService = {
       if (hostRes.rowCount === 0) {
         throw new HttpError(403, 'Join this event with an invite code before enrolling your face.')
       }
-      return { matched: 0 }
+      return { matched: 0, preview: [] }
     }
 
-    const matched = await this.matchGuestAgainstEvent(eventId, userId, descriptor)
-    return { matched }
+    const photoIds = await this.matchGuestAgainstEvent(eventId, userId, descriptor)
+
+    // The join flow reveals the first few frames straight away, so fetch their
+    // URLs here rather than making the client round-trip for them.
+    let preview: { id: string; url: string }[] = []
+    if (photoIds.length > 0) {
+      const previewRes = await query(
+        `SELECT id, COALESCE(thumbnail_url, blob_url) AS url
+           FROM public.photos
+          WHERE id = ANY($1::uuid[])
+          ORDER BY COALESCE(taken_at, created_at) DESC
+          LIMIT 3`,
+        [photoIds]
+      )
+      preview = previewRes.rows
+    }
+
+    return { matched: photoIds.length, preview }
   },
 
   /**
@@ -168,7 +184,7 @@ export const faceService = {
     eventId: string,
     userId: string,
     descriptor: number[]
-  ): Promise<number> {
+  ): Promise<string[]> {
     const facesRes = await query(
       'SELECT photo_id, descriptor FROM public.photo_faces WHERE event_id = $1',
       [eventId]
@@ -188,14 +204,12 @@ export const faceService = {
       }
     }
 
-    const rows = Array.from(best.entries()).map(([photoId, distance]) => ({
-      photoId,
-      userId,
-      distance
-    }))
+    // Closest first, so a preview shows the most confident matches.
+    const ranked = Array.from(best.entries()).sort((a, b) => a[1] - b[1])
+    const rows = ranked.map(([photoId, distance]) => ({ photoId, userId, distance }))
 
     await writeMatches(eventId, rows, { userId })
-    return rows.length
+    return rows.map((row) => row.photoId)
   },
 
   /**

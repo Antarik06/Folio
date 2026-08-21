@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { joinEvent } from '@/lib/actions/events'
+import { StampButton } from '@/components/folio/primitives'
 
 interface JoinEventButtonProps {
   code: string
@@ -27,7 +28,7 @@ export function JoinEventButton({ code, eventId }: JoinEventButtonProps) {
     }
 
     if (result.alreadyHost) {
-      router.push(`/dashboard/events/${result.eventId}`)
+      router.push(`/photos/events/${result.eventId}`)
       return
     }
 
@@ -36,19 +37,20 @@ export function JoinEventButton({ code, eventId }: JoinEventButtonProps) {
   }
 
   return (
-    <div className="space-y-4">
-      {error && (
-        <div className="p-4 bg-terracotta/10 border border-terracotta/30 text-terracotta text-sm">
+    <div className="space-y-3">
+      {error ? (
+        <p className="border border-primary px-3 py-2 text-center font-mono text-[11px] uppercase tracking-[0.06em] text-primary">
           {error}
-        </div>
-      )}
-      <button
+        </p>
+      ) : null}
+      <StampButton
+        tone="primary"
         onClick={handleJoin}
         disabled={loading}
-        className="w-full bg-primary text-primary-foreground py-4 text-sm font-sans uppercase tracking-[0.2em] hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        className="w-full"
       >
-        {loading ? 'Joining...' : 'Join Event →'}
-      </button>
+        {loading ? 'Joining…' : 'Join event →'}
+      </StampButton>
     </div>
   )
 }

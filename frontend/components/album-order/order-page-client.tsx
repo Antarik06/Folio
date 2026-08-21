@@ -114,7 +114,7 @@ export function OrderPageClient({
         }
       } else {
         // Fallback: If no polaroids, redirect back to studio
-        router.push('/dashboard/polaroid')
+        router.push('/create/polaroid')
       }
     }
   }, [initialProductType, router])

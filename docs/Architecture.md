@@ -14,7 +14,7 @@ Folio adopts a modern decoupled full-stack architecture comprising a **Next.js 1
              │ HTTP / REST / Websockets
              ▼
  ┌───────────────────────┐
- │ Express REST Backend  │ ◄── (Drizzle ORM, Sharp, PDF-lib, Gemini AI API)
+ │ Express REST Backend  │ ◄── (node-postgres, Sharp, PDF-lib, Gemini AI API)
  └─────┬───────────┬─────┘
        │           │
        ▼           ▼
@@ -36,7 +36,7 @@ Folio adopts a modern decoupled full-stack architecture comprising a **Next.js 1
 | **Frontend UI/Style** | Tailwind CSS v4, Radix UI, Lucide Icons, Framer Motion | Editorial design system, accessibility, micro-animations |
 | **Frontend State** | Jotai, React Hook Form, Zod, `@supabase/ssr` | Atomic canvas state, form validation, auth session |
 | **Backend API** | Node.js, Express.js (TypeScript) | API endpoints, image processing, export jobs |
-| **Database & ORM** | PostgreSQL (Supabase), Drizzle ORM, Drizzle Kit | Relational schema management, type-safe SQL queries |
+| **Database** | PostgreSQL (Supabase) via `node-postgres` (`pg`) | Raw parameterised SQL through the shared `query()` wrapper. No ORM — schema lives in numbered `.sql` migrations |
 | **Image & PDF Export** | `sharp`, `pdf-lib`, `adm-zip` | Server-side high-DPI rendering, PDF export, ZIP archives |
 | **AI Integration** | Google AI (Gemini API) | Automated layout recommendation & highlight selection |
 | **Payment Gateway** | Razorpay SDK | Checkout, order validation, payment webhook processing |
@@ -85,9 +85,9 @@ Folio/
 └── backend/                   # Express.js API Server
     ├── src/
     │   ├── controllers/       # HTTP Controller Handlers
-    │   ├── db/                # PostgreSQL Database Client (Drizzle)
+    │   ├── db/                # pg Pool + query() wrapper
     │   ├── middlewares/       # Auth Middleware & Zod Validation
-    │   ├── migrations/        # Drizzle SQL Schema Migrations
+    │   ├── migrations/        # Numbered .sql migrations + migrate.ts runner
     │   ├── routes/            # Express API Routes
     │   │   ├── aiRoutes.ts    # AI Layout & Gemini Endpoints
     │   │   ├── albumRoutes.ts # Album CRUD & Page Structure
@@ -95,7 +95,7 @@ Folio/
     │   │   ├── eventRoutes.ts # Event Creation & Invites
     │   │   ├── orderRoutes.ts # Orders & Razorpay Webhooks
     │   │   └── photoRoutes.ts # Media Uploads & Processing
-    │   ├── schema/            # Drizzle ORM Database Schemas
+    │   ├── schema/            # Zod request validation schemas
     │   │   ├── albums.ts      # Albums & Pages Tables
     │   │   ├── events.ts      # Events & Guests Tables
     │   │   ├── orders.ts      # Print Orders & Payments
@@ -105,7 +105,7 @@ Folio/
     │   │   ├── pdf-export.ts  # pdf-lib Print PDF Generator
     │   │   └── psd-service.ts # Backend PSD Buffer Engine
     │   └── utils/             # Helper Functions & Constants
-    └── drizzle.config.ts      # Drizzle Configuration
+    └── (no ORM config — see src/migrations/)
 ```
 
 ---

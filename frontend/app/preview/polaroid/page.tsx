@@ -1,83 +1,85 @@
 'use client'
 
-import React, { Suspense, useEffect, useState } from 'react'
-import { Canvas } from '@react-three/fiber'
-import { Loader } from '@react-three/drei'
-import { Provider } from 'jotai'
-import * as THREE from 'three'
-import { PolaroidExperience } from '@/components/preview/PolaroidExperience'
-import { PolaroidPreviewUI } from '@/components/preview/PolaroidPreviewUI'
+import React, { useEffect, useState } from 'react'
+import { AlbumViewer } from '@/components/viewer/AlbumViewer'
 
 const FRAME_LABELS: Record<string, string> = {
-  classic:  'Classic White',
+  classic: 'Classic White',
   midnight: 'Midnight Black',
-  vintage:  'Vintage Cream',
-  modern:   'Gallery Minimal',
+  vintage: 'Vintage Cream',
+  modern: 'Gallery Minimal',
 }
 
+interface PolaroidPreviewState {
+  images: string[]
+  frame: string
+  quantities?: number[]
+}
+
+/**
+ * Polaroid preview.
+ *
+ * Reads the selection the studio handed over in sessionStorage — these prints
+ * have no album record yet, which is why this is its own route rather than a
+ * variant of /preview/[id]. The viewer itself is the same AlbumViewer as every
+ * other style; only the `style` prop differs.
+ */
 export default function PolaroidPreviewPage() {
-  const [state, setState] = useState<{ images: string[]; frame: string; quantities?: number[] } | null>(null)
-  const [mounted, setMounted] = useState(false)
+  const [state, setState] = useState<PolaroidPreviewState | null>(null)
+  const [ready, setReady] = useState(false)
 
   useEffect(() => {
-    setMounted(true)
     try {
       const raw = sessionStorage.getItem('polaroid-preview-state')
       if (raw) setState(JSON.parse(raw))
-    } catch (_) {}
+    } catch {
+      // A malformed handoff falls through to the empty state below.
+    }
+    setReady(true)
   }, [])
 
-  if (!mounted || !state || state.images.length === 0) {
+  if (!ready) {
+    return <div className="h-[100dvh] w-full bg-[#12100D]" aria-hidden="true" />
+  }
+
+  if (!state || state.images.length === 0) {
     return (
-      <div className="w-screen h-screen bg-[#0E0C0A] flex items-center justify-center">
-        <p className="text-white/40 font-mono text-sm uppercase tracking-widest">Loading preview…</p>
+      <div className="flex h-[100dvh] w-full flex-col items-center justify-center gap-4 bg-[#12100D] px-6 text-center">
+        <p className="font-mono text-[11px] uppercase tracking-[0.1em] text-[#F5F0E8]/40">
+          Nothing loaded
+        </p>
+        <p className="max-w-xs text-sm leading-relaxed text-[#F5F0E8]/60">
+          Pick your prints in the studio first — the preview reads the selection
+          from there.
+        </p>
+        <a
+          href="/create/polaroid"
+          className="mt-2 inline-flex min-h-[44px] items-center rounded-[2px] bg-primary px-5 font-mono text-[11px] uppercase tracking-[0.08em] text-primary-foreground"
+        >
+          ← Polaroid studio
+        </a>
       </div>
     )
   }
 
+  const printCount = (state.quantities ?? state.images.map(() => 1)).reduce(
+    (sum, q) => sum + q,
+    0
+  )
+
   return (
-    <Provider>
-      <div className="relative w-screen h-screen bg-[#0E0C0A] overflow-hidden">
-        {/* Scrolling background text */}
-        <div className="fixed inset-0 flex items-center -rotate-2 select-none pointer-events-none opacity-[0.03]">
-          <div className="flex items-center gap-12 w-max animate-horizontal-scroll">
-            <h1 className="shrink-0 text-white text-[8rem] font-black uppercase whitespace-nowrap">
-              POLAROID PRINT
-            </h1>
-            <h1 className="shrink-0 text-transparent text-[8rem] font-black uppercase whitespace-nowrap outline-text">
-              FOLIO STUDIO
-            </h1>
-            <h1 className="shrink-0 text-white text-[8rem] font-black uppercase whitespace-nowrap">
-              POLAROID PRINT
-            </h1>
-            <h1 className="shrink-0 text-transparent text-[8rem] font-black uppercase whitespace-nowrap outline-text">
-              FOLIO STUDIO
-            </h1>
-          </div>
-        </div>
-
-        <Canvas
-          shadows
-          gl={{
-            antialias: true,
-            toneMapping: THREE.ACESFilmicToneMapping,
-            outputColorSpace: THREE.SRGBColorSpace,
-          }}
-          camera={{ position: [0, 0.2, state.images.length > 3 ? 5.5 : 4], fov: 46 }}
-          dpr={[1, 2]}
-        >
-          <Suspense fallback={null}>
-            <PolaroidExperience images={state.images} frameId={state.frame} />
-          </Suspense>
-        </Canvas>
-
-        <PolaroidPreviewUI
-          imageCount={state.images.length}
-          frameLabel={FRAME_LABELS[state.frame]}
-          totalPrice={(state.quantities ?? state.images.map(() => 1)).reduce((s, q) => s + q, 0) * 199}
-        />
-        <Loader />
-      </div>
-    </Provider>
+    <AlbumViewer
+      style="polaroid"
+      images={state.images}
+      frameId={state.frame}
+      title="Your Polaroids"
+      spec={[
+        `${printCount} print${printCount === 1 ? '' : 's'} · 3.5×4.2in`,
+        FRAME_LABELS[state.frame] ?? 'Classic white',
+        'Matte instant stock',
+      ]}
+      back={{ href: '/create/polaroid', label: 'Studio' }}
+      action={{ href: '/create/orders/checkout?type=polaroid', label: 'Checkout →' }}
+    />
   )
 }

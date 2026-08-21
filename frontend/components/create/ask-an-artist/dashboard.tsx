@@ -1,161 +1,205 @@
 'use client'
 
 import React, { useState } from 'react'
-import { Sparkles, ArrowRight, MessageSquare, CheckSquare, RefreshCw, FileText, ArrowLeft, Plus } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { PremiumIntake } from './premium-intake'
-import { PremiumWorkspace } from './premium-workspace'
+import {
+  LabelledBlock,
+  MonoLabel,
+  PageMasthead,
+  SpecPill,
+  StampButton,
+} from '@/components/folio/primitives'
+import { ArtistIntake } from './intake'
+import { ArtistWorkspace } from './workspace'
+import { ArtistLead, HOUSE_LEAD } from './artist-lead'
 
-interface PremiumDashboardClientProps {
+/**
+ * Screen 06 — Ask an Artist.
+ *
+ * One name for one thing. This was "Premium", "Concierge" and "Premium
+ * Concierge" across three screens; it is now a branch of Create, reached from
+ * the style gallery's "Ways in".
+ *
+ * A commission, not a ticket: the artist leads, and the status of a live
+ * commission is a lab ticket stamp rather than a coloured status chip.
+ */
+
+const STATUS_LABELS: Record<string, string> = {
+  'briefing-received': 'Briefing received',
+  'editor-assigned': 'Artist assigned',
+  'first-draft': 'First draft ready',
+  revisions: 'Revisions round',
+  'final-approval': 'Final approval',
+  printing: 'Sent to print',
+  delivered: 'Delivered',
+}
+
+/** Only a finished commission reads as settled; everything else is in hand. */
+function toneFor(status: string): 'primary' | 'secondary' | 'muted' {
+  if (status === 'delivered') return 'muted'
+  if (status === 'printing' || status === 'final-approval') return 'secondary'
+  return 'primary'
+}
+
+interface ArtistCommissionsProps {
   initialProjects: any[]
   packages: any[]
+  /** Rendered inside the Artist Studio rather than as its own screen. */
   embedded?: boolean
 }
 
-export function PremiumDashboardClient({ initialProjects, packages, embedded = false }: PremiumDashboardClientProps) {
+export function ArtistCommissions({
+  initialProjects,
+  packages,
+  embedded = false,
+}: ArtistCommissionsProps) {
   const [projects, setProjects] = useState(initialProjects)
   const [activeProject, setActiveProject] = useState<any | null>(null)
   const [view, setView] = useState<'list' | 'intake' | 'workspace'>(
     initialProjects.length > 0 ? 'list' : 'intake'
   )
 
-  const handleProjectCreated = (newProject: any) => {
-    setProjects([newProject, ...projects])
-    setActiveProject(newProject)
-    setView('workspace')
-  }
+  const shell = embedded
+    ? 'mx-auto max-w-[1200px]'
+    : 'mx-auto max-w-[1200px] px-4 py-8 sm:px-6 sm:py-12'
 
-  const handleBackToList = () => {
+  function backToList() {
     setActiveProject(null)
     setView(projects.length > 0 ? 'list' : 'intake')
   }
 
   if (view === 'intake') {
     return (
-      <div className={`${embedded ? 'max-w-4xl px-0 py-6 mt-0' : 'max-w-4xl px-4 py-16 mt-12'} mx-auto`}>
-        {projects.length > 0 && (
-          <Button variant="ghost" onClick={handleBackToList} className="gap-2 text-sm mb-8 text-muted-foreground hover:text-foreground">
-            <ArrowLeft className="w-4 h-4" /> Back to Dashboard
-          </Button>
-        )}
-        <PremiumIntake packages={packages} onComplete={handleProjectCreated} />
+      <div className={shell}>
+        {projects.length > 0 ? (
+          <StampButton tone="ghost" size="sm" onClick={backToList} className="mb-6">
+            ← Commissions
+          </StampButton>
+        ) : null}
+
+        <PageMasthead
+          eyebrow="Create — Ask an Artist"
+          title="Hand it to someone"
+          meta="Brief · photos · deposit"
+        />
+
+        <div className="mt-8 rounded-[4px] border border-border bg-card p-4 sm:p-8">
+          <ArtistLead artist={HOUSE_LEAD} />
+
+          <div className="mt-7 border-l-2 border-primary pl-5">
+            <p className="font-serif text-lg italic leading-relaxed text-ink-soft sm:text-xl">
+              Tell them about the day — what mattered, who to look for, what to
+              leave out.
+            </p>
+          </div>
+
+          <div className="mt-6">
+            <ArtistIntake
+              packages={packages}
+              onComplete={(project: any) => {
+                setProjects([project, ...projects])
+                setActiveProject(project)
+                setView('workspace')
+              }}
+            />
+          </div>
+        </div>
       </div>
     )
   }
 
   if (view === 'workspace' && activeProject) {
     return (
-      <div className={`${embedded ? 'max-w-7xl px-0 py-4 mt-0' : 'max-w-7xl px-4 py-8 mt-12'} mx-auto`}>
-        <Button variant="ghost" onClick={handleBackToList} className="gap-2 text-sm mb-6 text-muted-foreground hover:text-foreground">
-          <ArrowLeft className="w-4 h-4" /> Exit Workspace
-        </Button>
-        <PremiumWorkspace projectId={activeProject.id} />
+      <div className={shell}>
+        <StampButton tone="ghost" size="sm" onClick={backToList} className="mb-6">
+          ← Commissions
+        </StampButton>
+        <ArtistWorkspace projectId={activeProject.id} />
       </div>
     )
   }
 
   return (
-    <div className={`${embedded ? 'max-w-6xl px-0 py-2 pb-8 mt-0' : 'max-w-6xl px-6 py-16 pb-32 mt-16'} mx-auto`}>
-      <div className={`flex justify-between items-center border-b border-border ${embedded ? 'mb-8 pb-6' : 'mb-12 pb-8'}`}>
-        <div>
-          <span className="text-[10px] uppercase tracking-[0.3em] text-primary font-bold mb-3 block">
-            Premium Concierge
-          </span>
-          <h1 className="font-serif text-5xl text-foreground mb-4">Concierge Workspace</h1>
-          <p className="text-muted-foreground text-sm font-light max-w-xl leading-relaxed">
-            Collaborate directly with design artists, review layout proofs, chat, and manage print finalizations.
-          </p>
-        </div>
-        <Button onClick={() => setView('intake')} className="gap-2 bg-primary hover:bg-primary/95 text-white font-bold uppercase tracking-wider text-xs px-5 py-3 h-11">
-          <Plus className="w-4 h-4" /> Start New Project
-        </Button>
-      </div>
+    <div className={shell}>
+      <PageMasthead
+        eyebrow="Create — Ask an Artist"
+        title="Commissions"
+        meta={`${projects.length} project${projects.length === 1 ? '' : 's'} · est. 12–15 days each`}
+        actions={
+          <StampButton tone="primary" size="sm" onClick={() => setView('intake')}>
+            New commission
+          </StampButton>
+        }
+      />
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        {projects.map((project: any) => {
-          const statusColors: any = {
-            'briefing-received': 'bg-blue-950/30 text-blue-400 border-blue-900/50',
-            'editor-assigned': 'bg-amber-950/30 text-amber-400 border-amber-900/50',
-            'first-draft': 'bg-purple-950/30 text-purple-400 border-purple-900/50',
-            'revisions': 'bg-pink-950/30 text-pink-400 border-pink-900/50',
-            'final-approval': 'bg-emerald-950/30 text-emerald-400 border-emerald-900/50',
-            'printing': 'bg-cyan-950/30 text-cyan-400 border-cyan-900/50',
-            'delivered': 'bg-zinc-800 text-zinc-400 border-zinc-700'
-          }
+      <LabelledBlock label="In hand" className="mt-8">
+        <div className="grid gap-4 md:grid-cols-2">
+          {projects.map((project: any) => {
+            const status = project.status || 'briefing-received'
+            const started = new Date(project.created_at).toLocaleDateString('en-GB', {
+              day: '2-digit',
+              month: 'short',
+              year: 'numeric',
+            })
 
-          const statusLabels: any = {
-            'briefing-received': 'Briefing Received',
-            'editor-assigned': 'Artist Assigned',
-            'first-draft': 'First Draft Ready',
-            'revisions': 'Revisions Round',
-            'final-approval': 'Final Approval',
-            'printing': 'Sent to Print',
-            'delivered': 'Delivered'
-          }
+            return (
+              <article
+                key={project.id}
+                className="flex flex-col justify-between rounded-[4px] border border-border bg-card p-5"
+              >
+                <div>
+                  <div className="flex items-start justify-between gap-3">
+                    <SpecPill tone={toneFor(status)}>
+                      {STATUS_LABELS[status] || status}
+                    </SpecPill>
+                    <MonoLabel size="xs" className="shrink-0">
+                      {project.id.substring(0, 8)}
+                    </MonoLabel>
+                  </div>
 
-          const dateString = new Date(project.created_at).toLocaleDateString('en-IN', {
-            day: 'numeric',
-            month: 'long',
-            year: 'numeric'
-          })
-
-          return (
-            <div 
-              key={project.id} 
-              className="border border-border bg-card hover:border-primary/40 transition-all p-8 rounded-xl flex flex-col justify-between shadow-sm relative overflow-hidden group"
-            >
-              <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full blur-3xl group-hover:bg-primary/10 transition-colors -z-10" />
-              
-              <div className="space-y-4">
-                <div className="flex justify-between items-start gap-4">
-                  <span className={`text-[10px] uppercase font-bold tracking-wider px-2.5 py-1 rounded border ${statusColors[project.status] || statusColors['briefing-received']}`}>
-                    {statusLabels[project.status] || project.status}
-                  </span>
-                  <span className="text-[10px] text-muted-foreground font-mono">
-                    ID: {project.id.substring(0, 8).toUpperCase()}
-                  </span>
-                </div>
-
-                <div className="space-y-1">
-                  <h3 className="font-serif text-2xl text-foreground group-hover:text-primary transition-colors">
-                    {project.package_name || 'Concierge Package'} Project
+                  <h3 className="mt-4 font-serif text-xl text-foreground">
+                    {project.package_name || 'Commission'}
                   </h3>
-                  <p className="text-xs text-muted-foreground font-light">Started on {dateString}</p>
+                  <MonoLabel size="xs" className="mt-1">
+                    Opened {started.toUpperCase()}
+                  </MonoLabel>
+
+                  <dl className="mt-4 grid grid-cols-2 gap-4 border-y border-border py-4">
+                    <div>
+                      <dt className="font-mono text-[10px] uppercase tracking-[0.06em] text-ink-soft">
+                        Photos
+                      </dt>
+                      <dd className="mt-1 font-mono text-sm text-foreground">
+                        {project.photo_uploads?.length || 0}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="font-mono text-[10px] uppercase tracking-[0.06em] text-ink-soft">
+                        Messages
+                      </dt>
+                      <dd className="mt-1 font-mono text-sm text-foreground">
+                        {project.messages?.length || 0}
+                      </dd>
+                    </div>
+                  </dl>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4 py-4 border-y border-border/40 text-xs font-light">
-                  <div className="space-y-1">
-                    <span className="text-[9px] uppercase tracking-wider text-muted-foreground block">Uploaded Photos</span>
-                    <strong className="text-foreground font-semibold">{project.photo_uploads?.length || 0} files</strong>
-                  </div>
-                  <div className="space-y-1">
-                    <span className="text-[9px] uppercase tracking-wider text-muted-foreground block">Workspace Chats</span>
-                    <strong className="text-foreground font-semibold">{project.messages?.length || 0} logs</strong>
-                  </div>
+                <div className="mt-5">
+                  <StampButton
+                    tone="ink"
+                    size="sm"
+                    onClick={() => {
+                      setActiveProject(project)
+                      setView('workspace')
+                    }}
+                  >
+                    Open workspace →
+                  </StampButton>
                 </div>
-              </div>
-
-              <div className="mt-8 flex items-center justify-between">
-                <div className="text-xs font-light">
-                  <span className="text-muted-foreground">Deposit Paid: </span>
-                  <strong className="text-foreground font-semibold">Yes</strong>
-                </div>
-                
-                <Button 
-                  onClick={() => {
-                    setActiveProject(project)
-                    setView('workspace')
-                  }}
-                  className="gap-2 bg-foreground text-background dark:bg-foreground dark:text-background hover:opacity-90 font-bold uppercase tracking-wider text-[10px] h-9 px-4 rounded-lg"
-                >
-                  Enter Workspace
-                  <ArrowRight className="w-3.5 h-3.5" />
-                </Button>
-              </div>
-            </div>
-          )
-        })}
-      </div>
+              </article>
+            )
+          })}
+        </div>
+      </LabelledBlock>
     </div>
   )
 }

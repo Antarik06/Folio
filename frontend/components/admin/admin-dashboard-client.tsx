@@ -560,7 +560,7 @@ export function AdminDashboardClient({ initialUsers, initialOrders }: AdminDashb
             </div>
 
             <Link
-              href="/dashboard"
+              href="/photos"
               className="inline-flex items-center gap-2 px-3 py-1.5 border border-border/20 hover:border-primary/50 text-[10px] uppercase font-mono tracking-widest text-muted-foreground hover:text-primary transition-all duration-300 rounded"
             >
               <ArrowLeft className="w-3.5 h-3.5" />

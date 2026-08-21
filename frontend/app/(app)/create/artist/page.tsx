@@ -1,15 +1,15 @@
 import { redirect } from 'next/navigation'
 import { getAuthToken } from '@/lib/actions/auth'
 import { createClient } from '@/lib/supabase/server'
-import { PremiumDashboardClient } from '@/components/premium/premium-dashboard-client'
+import { ArtistCommissions } from '@/components/create/ask-an-artist/dashboard'
 import { serverFetch } from '@/lib/api-client'
 
 export const metadata = {
-  title: 'Premium Concierge Workspace | Folio',
-  description: 'Collaborate directly with a dedicated artist to design the perfect photobook layout.'
+  title: 'Ask an Artist — Folio',
+  description: 'Hand your photos to a photographer or designer and get a finished album back.',
 }
 
-export default async function PremiumDashboardPage() {
+export default async function AskAnArtistPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
@@ -25,12 +25,12 @@ export default async function PremiumDashboardPage() {
     projects = await serverFetch('/api/premium/projects', token)
     packages = await serverFetch('/api/premium/packages', token)
   } catch (err) {
-    console.error('Error fetching premium concierge data:', err)
+    console.error('[Ask an Artist] Failed to load commissions:', err)
   }
 
   return (
-    <div className="bg-background min-h-screen">
-      <PremiumDashboardClient initialProjects={projects} packages={packages} />
+    <div className="min-h-[100dvh] bg-background">
+      <ArtistCommissions initialProjects={projects} packages={packages} />
     </div>
   )
 }

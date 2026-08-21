@@ -132,7 +132,7 @@ export function PolaroidStudio() {
         'polaroid-preview-state',
         JSON.stringify({ images: uploaded, frame: selectedTemplate.id, quantities })
       )
-      router.push('/dashboard/orders/checkout?type=polaroid')
+      router.push('/create/orders/checkout?type=polaroid')
     }
   }, [step, images, remoteUrls, selectedTemplate.id, quantities, router])
 

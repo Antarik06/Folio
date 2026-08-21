@@ -1,8 +1,8 @@
 import { redirect } from 'next/navigation'
-import { DashboardShell } from '@/components/dashboard/shell'
+import { AppShell } from '@/components/folio/app-shell'
 import { getProfile, getUser } from '@/lib/actions/auth'
 
-export default async function DashboardLayout({
+export default async function AppLayout({
   children,
 }: {
   children: React.ReactNode
@@ -16,8 +16,8 @@ export default async function DashboardLayout({
   const profile = await getProfile()
 
   return (
-    <DashboardShell user={user} profile={profile}>
+    <AppShell user={user} profile={profile}>
       {children}
-    </DashboardShell>
+    </AppShell>
   )
 }

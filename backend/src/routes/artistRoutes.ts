@@ -1,10 +1,11 @@
 import { Router, Response } from 'express'
 import authMiddleware, { AuthenticatedRequest, requireRole } from '../middlewares/authMiddleware'
 import { query } from '../db'
-import { parseIDML } from '../utils/idmlParser'
+import { templateImportService } from '../services/templateImportService'
 import { getSignedUrl } from '../utils/storage'
 import { assertSafeExternalUrl, fetchWithLimits } from '../utils/safeFetch'
 import { notificationService } from '../services/notificationService'
+import { sendError } from '../utils/httpError'
 
 const router = Router()
 
@@ -121,16 +122,10 @@ router.post('/templates', async (req: AuthenticatedRequest, res: Response) => {
  */
 router.post('/templates/parse-idml', async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { base64Data, templateId } = req.body
-    if (!base64Data) {
-      return res.status(400).json({ error: 'Base64 data is required' })
-    }
-
-    const buffer = Buffer.from(base64Data, 'base64')
-    const parsedSchema = await parseIDML(buffer, templateId || 'parsed_idml')
-    res.json(parsedSchema)
+    const { base64Data, templateId } = req.body ?? {}
+    res.json(await templateImportService.parseIdmlUpload(base64Data, templateId))
   } catch (error: any) {
-    res.status(400).json({ error: error.message })
+    sendError(res, error)
   }
 })
 

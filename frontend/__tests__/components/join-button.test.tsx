@@ -16,9 +16,11 @@ vi.mock('../../lib/actions/events', () => ({
 }))
 
 describe('JoinEventButton Component', () => {
-  it('renders Join Event button initially', () => {
+  it('renders the join button initially', () => {
     render(<JoinEventButton code="SUMMER2026" eventId="ev-123" />)
-    expect(screen.getByText('Join Event →')).toBeInTheDocument()
+    // Uppercasing is a CSS concern in the Editorial Darkroom system, so match
+    // the label case-insensitively rather than pinning the rendered casing.
+    expect(screen.getByRole('button', { name: /join event/i })).toBeInTheDocument()
   })
 
   it('shows error message when joinEvent returns an error', async () => {

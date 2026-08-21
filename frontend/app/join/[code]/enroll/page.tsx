@@ -6,13 +6,23 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { enrollFace } from '@/lib/actions/events'
 import { detectFaces, describeEnrollmentProblem, loadFaceEngine } from '@/lib/face-recognition'
+import { MonoLabel, StampButton } from '@/components/folio/primitives'
+import { Loupe, SleeveReveal, type RevealPhoto } from '@/components/join/loupe'
+import { CrosshairMark } from '@/components/folio/marks'
 
-type Step = 'intro' | 'camera' | 'preview' | 'uploading' | 'done'
+type Step = 'intro' | 'camera' | 'preview' | 'matching' | 'done'
 
 interface EnrollFacePageProps {
   params: Promise<{ code: string }>
 }
 
+/**
+ * Screen 02, cards 2–3 — Face-Match.
+ *
+ * Nothing here is a progress bar or a modal. The scan is an instrument closing
+ * in (Loupe), and the result is a physical delivery (SleeveReveal). The camera
+ * stage borrows the same registration crosses the invitation insert carries.
+ */
 function EnrollFaceContent({ params: paramsPromise }: EnrollFacePageProps) {
   const searchParams = useSearchParams()
   const eventId = searchParams.get('event') ?? ''
@@ -23,13 +33,13 @@ function EnrollFaceContent({ params: paramsPromise }: EnrollFacePageProps) {
   const [cameraError, setCameraError] = useState<string | null>(null)
   const [capturedImage, setCapturedImage] = useState<string | null>(null)
   const [uploadError, setUploadError] = useState<string | null>(null)
-  const [uploadStage, setUploadStage] = useState<string>('Analysing your photo...')
+  const [readout, setReadout] = useState('Reading the frame…')
   const [matchedCount, setMatchedCount] = useState<number | null>(null)
+  const [preview, setPreview] = useState<RevealPhoto[]>([])
 
   const videoRef = useRef<HTMLVideoElement>(null)
   const streamRef = useRef<MediaStream | null>(null)
 
-  // Resolve params
   useEffect(() => {
     paramsPromise.then(({ code }) => setCode(code))
   }, [paramsPromise])
@@ -42,7 +52,6 @@ function EnrollFaceContent({ params: paramsPromise }: EnrollFacePageProps) {
     })
   }, [])
 
-  // Stop camera stream on unmount
   useEffect(() => {
     return () => {
       streamRef.current?.getTracks().forEach((t) => t.stop())
@@ -61,9 +70,7 @@ function EnrollFaceContent({ params: paramsPromise }: EnrollFacePageProps) {
       }
       setStep('camera')
     } catch {
-      setCameraError(
-        'Unable to access camera. Please allow camera permission and try again.'
-      )
+      setCameraError('Camera is blocked. Allow camera access in your browser and try again.')
     }
   }
 
@@ -76,15 +83,13 @@ function EnrollFaceContent({ params: paramsPromise }: EnrollFacePageProps) {
     const ctx = canvas.getContext('2d')
     if (!ctx) return
 
-    // Mirror for selfie feel
+    // Mirror, so the capture matches the preview the guest was looking at.
     ctx.translate(canvas.width, 0)
     ctx.scale(-1, 1)
     ctx.drawImage(videoRef.current, 0, 0)
 
-    const dataUrl = canvas.toDataURL('image/jpeg', 0.85)
-    setCapturedImage(dataUrl)
+    setCapturedImage(canvas.toDataURL('image/jpeg', 0.85))
 
-    // Stop camera
     streamRef.current?.getTracks().forEach((t) => t.stop())
     streamRef.current = null
     setStep('preview')
@@ -97,16 +102,15 @@ function EnrollFaceContent({ params: paramsPromise }: EnrollFacePageProps) {
 
   async function confirmAndEnroll() {
     if (!capturedImage || !eventId) return
-    setStep('uploading')
+    setStep('matching')
     setUploadError(null)
-    setUploadStage('Analysing your photo...')
+    setReadout('Reading the frame…')
 
     try {
-      // Convert dataUrl → Blob
       const res = await fetch(capturedImage)
       const blob = await res.blob()
 
-      // Extract the face embedding first. If the selfie is unusable there is no
+      // Extract the embedding first. If the selfie is unusable there is no
       // point uploading it — the guest gets told what to fix while the retake
       // button is still one tap away.
       let faces
@@ -115,240 +119,274 @@ function EnrollFaceContent({ params: paramsPromise }: EnrollFacePageProps) {
       } catch (err: any) {
         console.error('Face detection failed:', err)
         throw new Error(
-          'Face recognition could not start on this device. Please try a different browser or ask the host to add your photos manually.'
+          'Face recognition could not start on this device. Try a different browser, or ask the host to add your photos manually.'
         )
       }
 
       const problem = describeEnrollmentProblem(faces)
       if (problem) throw new Error(problem)
 
-      setUploadStage('Saving your enrollment...')
+      setReadout('Filing your reference…')
 
       const file = new File([blob], `selfie-${Date.now()}.jpg`, { type: 'image/jpeg' })
 
       const supabase = createClient()
-      const { data: { user } } = await supabase.auth.getUser()
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
       if (!user) throw new Error('Not authenticated')
 
       const filePath = `${user.id}/${eventId}.jpg`
-      const { error: uploadError } = await supabase.storage
+      const { error: storageError } = await supabase.storage
         .from('face-photos')
         .upload(filePath, file, { upsert: true })
 
-      if (uploadError) throw uploadError
+      if (storageError) throw storageError
 
-      const { data: { publicUrl } } = supabase.storage
-        .from('face-photos')
-        .getPublicUrl(filePath)
+      const {
+        data: { publicUrl },
+      } = supabase.storage.from('face-photos').getPublicUrl(filePath)
 
-      setUploadStage('Matching you against event photos...')
+      setReadout('Matching against the sheet…')
 
       const result = await enrollFace(eventId, publicUrl, faces[0].descriptor)
       if (result?.error) throw new Error(result.error)
 
       setMatchedCount(typeof result?.matched === 'number' ? result.matched : null)
+      setPreview(Array.isArray(result?.preview) ? result.preview : [])
       setStep('done')
     } catch (err: any) {
-      setUploadError(err.message || 'Something went wrong. Please try again.')
+      setUploadError(err.message || 'Something went wrong. Try again.')
       setStep('preview')
     }
   }
 
   if (!eventId) {
     return (
-      <main className="min-h-screen bg-background flex items-center justify-center px-6">
-        <p className="text-muted-foreground">Invalid enrollment link.</p>
-      </main>
+      <Shell>
+        <MonoLabel className="text-center">Invalid enrollment link</MonoLabel>
+      </Shell>
     )
   }
 
   return (
-    <main className="min-h-screen bg-background flex flex-col items-center justify-center px-6 py-12">
-      <div className="w-full max-w-md">
-        {/* Logo */}
-        <Link href="/" className="inline-block mb-10">
-          <span className="font-serif text-2xl tracking-tight text-foreground">Folio</span>
-        </Link>
+    <Shell>
+      {step === 'intro' ? (
+        <div>
+          <MonoLabel tone="primary" size="xs" className="mb-3">
+            Finding you
+          </MonoLabel>
+          <h1 className="font-serif text-[clamp(1.75rem,8vw,2.25rem)] leading-tight text-foreground">
+            One selfie, and the sheet finds you
+          </h1>
+          <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+            It stays private to this event, and it is only ever compared against
+            this event&apos;s photos.
+          </p>
 
-        {/* Step: Intro */}
-        {step === 'intro' && (
-          <div>
-            <div className="w-16 h-16 border border-secondary flex items-center justify-center mb-8">
-              <svg className="w-8 h-8 text-secondary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-            <h1 className="font-serif text-4xl text-foreground mb-3">Enroll your face</h1>
-            <p className="text-muted-foreground mb-6 leading-relaxed">
-              Take a quick selfie so our AI can identify you in event photos and build your personalized album automatically.
-            </p>
+          <ol className="mt-7 space-y-3 border-y border-border py-5">
+            {[
+              'Face a window, or any bright light',
+              'Keep your face centred and clear',
+              'Take off sunglasses and anything covering your face',
+            ].map((tip, i) => (
+              <li key={tip} className="flex items-start gap-3">
+                <span className="mt-0.5 font-mono text-[11px] text-primary">
+                  {String(i + 1).padStart(2, '0')}
+                </span>
+                <span className="text-sm text-muted-foreground">{tip}</span>
+              </li>
+            ))}
+          </ol>
 
-            <div className="space-y-3 mb-10">
-              {[
-                'Find good lighting — face a window or bright light',
-                'Keep your face centred and clearly visible',
-                'Remove sunglasses or anything covering your face',
-              ].map((tip, i) => (
-                <div key={i} className="flex items-start gap-3">
-                  <span className="font-mono text-xs text-muted-foreground mt-0.5">{String(i + 1).padStart(2, '0')}</span>
-                  <p className="text-sm text-muted-foreground">{tip}</p>
-                </div>
-              ))}
-            </div>
+          {cameraError ? <ErrorNote>{cameraError}</ErrorNote> : null}
 
-            {cameraError && (
-              <div className="mb-6 p-4 bg-terracotta/10 border border-terracotta/30 text-terracotta text-sm">
-                {cameraError}
-              </div>
-            )}
-
-            <button
-              onClick={startCamera}
-              className="w-full bg-primary text-primary-foreground py-4 text-sm font-sans uppercase tracking-[0.2em] hover:bg-primary/90 transition-colors mb-4"
-            >
-              Open Camera →
-            </button>
-            <Link
-              href={`/dashboard/events/${eventId}/my-photos`}
-              className="block text-center text-sm text-muted-foreground hover:text-foreground transition-colors"
+          <div className="mt-7 space-y-3">
+            <StampButton tone="primary" onClick={startCamera} className="w-full">
+              Open camera →
+            </StampButton>
+            <StampButton
+              href={`/photos/events/${eventId}/me`}
+              tone="ghost"
+              className="w-full"
             >
               Skip for now
-            </Link>
+            </StampButton>
           </div>
-        )}
+        </div>
+      ) : null}
 
-        {/* Step: Camera */}
-        {step === 'camera' && (
-          <div>
-            <h1 className="font-serif text-3xl text-foreground mb-2">Position your face</h1>
-            <p className="text-sm text-muted-foreground mb-6">Centre your face within the frame, then tap capture.</p>
+      {step === 'camera' ? (
+        <div>
+          <MonoLabel tone="primary" size="xs" className="mb-3">
+            Registering
+          </MonoLabel>
+          <h1 className="font-serif text-2xl text-foreground">Line yourself up</h1>
 
-            {/* Camera preview */}
-            <div className="relative w-full aspect-square bg-ink overflow-hidden mb-6">
-              {/* Oval face guide overlay */}
-              <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
-                <div className="w-48 h-64 border-2 border-primary/60 rounded-full opacity-70" />
-              </div>
-              {/* Corner guides */}
-              <div className="absolute top-4 left-4 w-8 h-8 border-t-2 border-l-2 border-primary/40 z-10" />
-              <div className="absolute top-4 right-4 w-8 h-8 border-t-2 border-r-2 border-primary/40 z-10" />
-              <div className="absolute bottom-4 left-4 w-8 h-8 border-b-2 border-l-2 border-primary/40 z-10" />
-              <div className="absolute bottom-4 right-4 w-8 h-8 border-b-2 border-r-2 border-primary/40 z-10" />
-              <video
-                ref={videoRef}
-                autoPlay
-                playsInline
-                muted
-                className="w-full h-full object-cover"
-                style={{ transform: 'scaleX(-1)' }}
-              />
+          <div className="relative mt-5 aspect-square w-full overflow-hidden border border-border bg-foreground">
+            <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center">
+              <div className="h-[62%] w-[46%] rounded-full border-2 border-primary/60" />
             </div>
+            <div className="pointer-events-none absolute left-3 top-3 z-10">
+              <CrosshairMark size={16} color="#F5F0E8" opacity={0.5} />
+            </div>
+            <div className="pointer-events-none absolute right-3 top-3 z-10">
+              <CrosshairMark size={16} color="#F5F0E8" opacity={0.5} />
+            </div>
+            <div className="pointer-events-none absolute bottom-3 left-3 z-10">
+              <CrosshairMark size={16} color="#F5F0E8" opacity={0.5} />
+            </div>
+            <div className="pointer-events-none absolute bottom-3 right-3 z-10">
+              <CrosshairMark size={16} color="#F5F0E8" opacity={0.5} />
+            </div>
+            <video
+              ref={videoRef}
+              autoPlay
+              playsInline
+              muted
+              className="h-full w-full object-cover"
+              style={{ transform: 'scaleX(-1)' }}
+            />
+          </div>
 
-            <button
-              onClick={capturePhoto}
-              className="w-full flex items-center justify-center gap-3 bg-primary text-primary-foreground py-4 text-sm font-sans uppercase tracking-[0.2em] hover:bg-primary/90 transition-colors mb-4"
-            >
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-              </svg>
-              Capture Selfie
-            </button>
-            <button
+          <div className="mt-5 space-y-3">
+            <StampButton tone="primary" onClick={capturePhoto} className="w-full">
+              Capture
+            </StampButton>
+            <StampButton
+              tone="ghost"
               onClick={() => {
                 streamRef.current?.getTracks().forEach((t) => t.stop())
                 setStep('intro')
               }}
-              className="w-full text-center text-sm text-muted-foreground hover:text-foreground transition-colors"
+              className="w-full"
             >
               Cancel
-            </button>
+            </StampButton>
           </div>
-        )}
+        </div>
+      ) : null}
 
-        {/* Step: Preview */}
-        {step === 'preview' && capturedImage && (
-          <div>
-            <h1 className="font-serif text-3xl text-foreground mb-2">Looking good?</h1>
-            <p className="text-sm text-muted-foreground mb-6">
-              Make sure your face is clearly visible. You can retake if needed.
-            </p>
+      {step === 'preview' && capturedImage ? (
+        <div>
+          <MonoLabel tone="primary" size="xs" className="mb-3">
+            Proof
+          </MonoLabel>
+          <h1 className="font-serif text-2xl text-foreground">Usable?</h1>
 
-            <div className="w-full aspect-square overflow-hidden mb-6 border border-border">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={capturedImage} alt="Your selfie" className="w-full h-full object-cover" />
-            </div>
+          <div className="mt-5 aspect-square w-full overflow-hidden border border-border">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={capturedImage}
+              alt="Your selfie"
+              className="h-full w-full object-cover"
+            />
+          </div>
 
-            {uploadError && (
-              <div className="mb-6 p-4 bg-terracotta/10 border border-terracotta/30 text-terracotta text-sm">
-                {uploadError}
-              </div>
-            )}
+          {uploadError ? <ErrorNote>{uploadError}</ErrorNote> : null}
 
-            <button
-              onClick={confirmAndEnroll}
-              className="w-full bg-primary text-primary-foreground py-4 text-sm font-sans uppercase tracking-[0.2em] hover:bg-primary/90 transition-colors mb-4"
-            >
-              Looks Good — Enroll
-            </button>
-            <button
-              onClick={retake}
-              className="w-full border border-border text-foreground py-4 text-sm font-sans uppercase tracking-[0.2em] hover:bg-card transition-colors"
-            >
+          <div className="mt-5 space-y-3">
+            <StampButton tone="primary" onClick={confirmAndEnroll} className="w-full">
+              Use this one
+            </StampButton>
+            <StampButton tone="ghost" onClick={retake} className="w-full">
               Retake
-            </button>
+            </StampButton>
           </div>
-        )}
+        </div>
+      ) : null}
 
-        {/* Step: Uploading */}
-        {step === 'uploading' && (
-          <div className="text-center">
-            <div className="w-16 h-16 border-2 border-primary/20 border-t-primary rounded-full animate-spin mx-auto mb-8" />
-            <h1 className="font-serif text-3xl text-foreground mb-3">Enrolling your face...</h1>
-            <p className="text-muted-foreground text-sm">{uploadStage}</p>
-          </div>
-        )}
+      {step === 'matching' ? (
+        <Loupe src={capturedImage} caption="Finding you" readout={readout} />
+      ) : null}
 
-        {/* Step: Done */}
-        {step === 'done' && (
-          <div>
-            <div className="w-16 h-16 border border-secondary flex items-center justify-center mb-8">
-              <svg className="w-8 h-8 text-secondary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5 13l4 4L19 7" />
-              </svg>
+      {step === 'done' ? (
+        <div>
+          {preview.length > 0 && matchedCount ? (
+            <SleeveReveal
+              photos={preview}
+              headline={`${matchedCount} photo${matchedCount === 1 ? '' : 's'} found you`}
+              caption="More arrive as the host uploads"
+            />
+          ) : (
+            <div className="rounded-[4px] border-[1.5px] border-border bg-card px-5 py-9 text-center">
+              <MonoLabel tone="secondary" size="xs" className="mb-3">
+                Reference filed
+              </MonoLabel>
+              <h2 className="font-serif text-2xl text-foreground">
+                {matchedCount === 0 ? 'Nothing matches yet' : "You're enrolled"}
+              </h2>
+              <p className="mx-auto mt-3 max-w-xs text-sm leading-relaxed text-muted-foreground">
+                New photos are matched to you as the host uploads them, so check
+                back during and after the event.
+              </p>
             </div>
-            <h1 className="font-serif text-4xl text-foreground mb-4">You&apos;re enrolled!</h1>
-            <p className="text-muted-foreground mb-3 leading-relaxed">
-              {matchedCount === null
-                ? 'Your face has been registered. We will match event photos to you as they are uploaded.'
-                : matchedCount > 0
-                ? `We already found you in ${matchedCount} ${matchedCount === 1 ? 'photo' : 'photos'} from this event.`
-                : 'Your face has been registered. No photos match you yet.'}
-            </p>
-            <p className="text-sm text-muted-foreground mb-10">
-              New photos are matched as the host uploads them, so check back during and after the event.
-            </p>
+          )}
 
-            <button
-              onClick={() => router.push(`/dashboard/events/${eventId}/my-photos`)}
-              className="w-full bg-primary text-primary-foreground py-4 text-sm font-sans uppercase tracking-[0.2em] hover:bg-primary/90 transition-colors"
+          <div className="mt-5 space-y-3">
+            <StampButton
+              tone="primary"
+              onClick={() => router.push(`/photos/events/${eventId}/me`)}
+              className="w-full"
             >
-              View My Photos →
-            </button>
+              Photos of me →
+            </StampButton>
+            <StampButton
+              href={`/photos/events/${eventId}`}
+              tone="ghost"
+              className="w-full"
+            >
+              Open the whole event
+            </StampButton>
           </div>
-        )}
+        </div>
+      ) : null}
+
+      {code ? (
+        <MonoLabel size="xs" className="mt-6 text-center">
+          Code {code.toUpperCase()}
+        </MonoLabel>
+      ) : null}
+    </Shell>
+  )
+}
+
+function Shell({ children }: { children: React.ReactNode }) {
+  return (
+    <main className="min-h-[100dvh] bg-background">
+      <div className="mx-auto flex min-h-[100dvh] max-w-md flex-col justify-center px-5 py-10 safe-bottom">
+        <Link
+          href="/"
+          className="mb-8 inline-flex min-h-[44px] items-center self-center"
+          aria-label="Folio home"
+        >
+          <span className="font-serif text-2xl tracking-tight text-foreground">Folio</span>
+        </Link>
+        {children}
       </div>
     </main>
   )
 }
 
+function ErrorNote({ children }: { children: React.ReactNode }) {
+  return (
+    <p className="mt-5 border border-primary px-3 py-2.5 text-sm leading-relaxed text-primary">
+      {children}
+    </p>
+  )
+}
+
 export default function EnrollFacePage({ params }: EnrollFacePageProps) {
   return (
-    <Suspense fallback={
-      <main className="min-h-screen bg-background flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-primary/20 border-t-primary rounded-full animate-spin" />
-      </main>
-    }>
+    <Suspense
+      fallback={
+        <main className="flex min-h-[100dvh] items-center justify-center bg-background">
+          <span className="font-mono text-[11px] uppercase tracking-[0.1em] text-ink-soft">
+            Loading…
+          </span>
+        </main>
+      }
+    >
       <EnrollFaceContent params={params} />
     </Suspense>
   )

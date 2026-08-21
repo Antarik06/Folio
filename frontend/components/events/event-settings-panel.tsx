@@ -118,7 +118,7 @@ export function EventSettingsPanel({ event, photos }: EventSettingsPanelProps) {
         setShowDeleteDialog(false)
         return
       }
-      router.push('/dashboard/events')
+      router.push('/photos/events')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to delete event')
       setIsDeleting(false)

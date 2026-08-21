@@ -33,7 +33,11 @@ export default function JoinPage() {
     <main className="min-h-screen bg-background flex items-center justify-center px-6">
       <div className="w-full max-w-md">
         {/* Logo */}
-        <Link href="/" className="inline-block mb-12">
+        <Link
+          href="/"
+          className="mb-8 inline-flex min-h-[44px] items-center self-center"
+          aria-label="Folio home"
+        >
           <span className="font-serif text-2xl tracking-tight text-foreground">Folio</span>
         </Link>
 

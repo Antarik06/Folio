@@ -69,8 +69,8 @@ export async function updateAdminOrderStatus(orderId: string, status: string) {
       body: JSON.stringify({ status })
     })
 
-    revalidatePath('/dashboard/admin')
-    revalidatePath('/dashboard/orders')
+    revalidatePath('/admin')
+    revalidatePath('/create/orders')
     
     return { success: true, order: result.order }
   } catch (error: any) {
@@ -98,7 +98,7 @@ export async function updateSystemSettings(settings: Record<string, any>) {
       method: 'PUT',
       body: JSON.stringify({ settings })
     })
-    revalidatePath('/dashboard/admin')
+    revalidatePath('/admin')
     return { success: true, message: res.message }
   } catch (error: any) {
     console.error('Error updating system settings:', error)
@@ -131,7 +131,7 @@ export async function createPromoCode(data: {
       method: 'POST',
       body: JSON.stringify(data)
     })
-    revalidatePath('/dashboard/admin')
+    revalidatePath('/admin')
     return { success: true, promoCode: res }
   } catch (error: any) {
     console.error('Error creating promo code:', error)
@@ -146,7 +146,7 @@ export async function deletePromoCode(code: string) {
     const res = await serverFetch(`/api/admin/promo-codes/${encodeURIComponent(code)}`, token, {
       method: 'DELETE'
     })
-    revalidatePath('/dashboard/admin')
+    revalidatePath('/admin')
     return { success: true, message: res.message }
   } catch (error: any) {
     console.error(`Error deleting promo code ${code}:`, error)
@@ -162,7 +162,7 @@ export async function updateUserStatus(userId: string, isBanned: boolean) {
       method: 'PATCH',
       body: JSON.stringify({ isBanned })
     })
-    revalidatePath('/dashboard/admin')
+    revalidatePath('/admin')
     return { success: true, user: res.user }
   } catch (error: any) {
     console.error(`Error toggling user ban for ${userId}:`, error)
@@ -189,7 +189,7 @@ export async function assignArtistToOrder(orderId: string, artistId: string | nu
       method: 'PATCH',
       body: JSON.stringify({ artistId })
     })
-    revalidatePath('/dashboard/admin')
+    revalidatePath('/admin')
     return { success: true, order: result.order }
   } catch (error: any) {
     console.error(`Error assigning artist to order ${orderId}:`, error)
@@ -216,7 +216,7 @@ export async function assignArtistToPremiumProject(projectId: string, artistId: 
       method: 'PATCH',
       body: JSON.stringify({ artistId })
     })
-    revalidatePath('/dashboard/admin')
+    revalidatePath('/admin')
     return { success: true, project: result.project }
   } catch (error: any) {
     console.error(`Error assigning artist to premium project ${projectId}:`, error)

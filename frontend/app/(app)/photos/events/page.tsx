@@ -56,7 +56,7 @@ export default async function EventsPage() {
           <p className="text-muted-foreground">Manage your photo events and invite guests.</p>
         </div>
         <Link
-          href="/dashboard/events/new"
+          href="/photos/events/new"
           className="flex items-center gap-2 bg-primary text-primary-foreground px-6 py-3 text-sm hover:bg-primary/90 transition-colors"
         >
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -78,7 +78,7 @@ export default async function EventsPage() {
               return (
               <Link
                 key={event.id}
-                href={`/dashboard/events/${event.id}`}
+                href={`/photos/events/${event.id}`}
                 className="group block bg-card border border-border hover:border-primary/50 transition-colors"
               >
                 {/* Cover Image */}
@@ -143,7 +143,7 @@ export default async function EventsPage() {
             <h3 className="font-serif text-xl text-foreground mb-2">No events yet</h3>
             <p className="text-muted-foreground mb-6">Create your first event to start collecting photos.</p>
             <Link
-              href="/dashboard/events/new"
+              href="/photos/events/new"
               className="inline-block bg-primary text-primary-foreground px-6 py-3 text-sm hover:bg-primary/90 transition-colors"
             >
               Create Event
@@ -167,7 +167,7 @@ export default async function EventsPage() {
               return (
                 <Link
                   key={invitedEvent.id}
-                  href={`/dashboard/events/${invitedEvent.id}`}
+                  href={`/photos/events/${invitedEvent.id}`}
                   className="group block bg-card border border-border hover:border-primary/50 transition-colors"
                 >
                   <div className="aspect-[16/9] bg-card relative overflow-hidden">

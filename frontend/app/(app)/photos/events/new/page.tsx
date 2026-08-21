@@ -47,7 +47,7 @@ export default function NewEventPage() {
 
       // We do NOT create a default album anymore - as requested by the user.
 
-      router.push(`/dashboard/events/${eventData.id}`)
+      router.push(`/photos/events/${eventData.id}`)
     } catch (insertError: any) {
       setError(insertError.message || 'Failed to initialize event creation')
       setLoading(false)
@@ -59,7 +59,7 @@ export default function NewEventPage() {
       
       {/* ── BREADCRUMB / BACK ACTIONS ─────────────────────────────────── */}
       <div className="mb-12">
-        <Link href="/dashboard/events" className="text-[10px] uppercase tracking-[0.3em] font-bold text-muted-foreground hover:text-foreground transition-all">
+        <Link href="/photos/events" className="text-[10px] uppercase tracking-[0.3em] font-bold text-muted-foreground hover:text-foreground transition-all">
           ← Back to Events
         </Link>
       </div>

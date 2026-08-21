@@ -145,14 +145,14 @@ function PolaroidCard({ src, frameId, position, rotation, isFocused, onClick }: 
 }
 
 // --- Multi-card group ---
-export interface Polaroid3DProps {
+export interface PolaroidSceneProps {
   images: string[]
   frameId: string
   focusedIndex: number
   onFocus: (i: number) => void
 }
 
-export function Polaroid3D({ images, frameId, focusedIndex, onFocus }: Polaroid3DProps) {
+export function PolaroidScene({ images, frameId, focusedIndex, onFocus }: PolaroidSceneProps) {
   const n = images.length
 
   const positions = useMemo<[number, number, number][]>(() =>

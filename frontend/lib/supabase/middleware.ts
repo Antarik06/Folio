@@ -42,13 +42,20 @@ export async function updateSession(request: NextRequest) {
   } = await supabase.auth.getUser()
 
   // Gate the authenticated areas of the app. The original check pointed at
-  // "/protected", a path this app never had, so /dashboard and /editor were
+  // "/protected", a path this app never had, so the signed-in screens were
   // reachable while signed out and only failed later, deep in a data fetch.
-  // /events, /templates and /polaroid used to be listed here too. They are now
-  // retired aliases, and next.config redirects run *before* middleware, so a
-  // request for one is already rewritten to /dashboard/* by the time this sees
-  // it — listing them again would be unreachable config.
-  const protectedPrefixes = ['/dashboard', '/editor']
+  //
+  // The three tabs plus the two role-gated areas. Retired aliases (/events,
+  // /templates, /polaroid, /dashboard/*) are not listed: next.config redirects
+  // run *before* middleware, so such a request already carries its new path by
+  // the time this sees it, and listing them would be unreachable config.
+  const protectedPrefixes = [
+    '/photos',
+    '/create',
+    '/profile',
+    '/artist-studio',
+    '/admin',
+  ]
   const { pathname } = request.nextUrl
   const isProtected = protectedPrefixes.some(
     (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)

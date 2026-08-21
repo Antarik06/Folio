@@ -31,8 +31,8 @@ function SignUpPageContent() {
     setMounted(true)
   }, [])
 
-  const next = searchParams.get('next') ?? '/dashboard'
-  const loginHref = mounted && next !== '/dashboard' 
+  const next = searchParams.get('next') ?? '/photos'
+  const loginHref = mounted && next !== '/photos' 
     ? `/auth/login?next=${encodeURIComponent(next)}` 
     : '/auth/login'
 
@@ -93,7 +93,11 @@ function SignUpPageContent() {
       {/* Right Panel - Form */}
       <div className="w-full lg:w-1/2 flex flex-col justify-center px-8 md:px-16 lg:px-24">
         <div className="max-w-md w-full mx-auto">
-          <Link href="/" className="inline-block mb-12">
+          <Link
+            href="/"
+            className="mb-10 inline-flex min-h-[44px] items-center"
+            aria-label="Folio home"
+          >
             <span className="font-serif text-2xl tracking-tight text-foreground">Folio</span>
           </Link>
           
@@ -191,7 +195,10 @@ function SignUpPageContent() {
           
           <p className="mt-8 text-center text-muted-foreground text-sm">
             Already have an account?{' '}
-            <Link href={loginHref} className="text-primary hover:text-primary/80 transition-colors">
+            <Link
+              href={loginHref}
+              className="inline-block py-3 text-primary underline-offset-4 transition-colors hover:text-primary/80 hover:underline"
+            >
               Sign in
             </Link>
           </p>

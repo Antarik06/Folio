@@ -30,13 +30,13 @@ export default async function EventSettingsPage({ params }: Props) {
   const isManager = isOwner || isCollaborator
 
   if (!isManager) {
-    redirect(`/dashboard/events/${id}`)
+    redirect(`/photos/events/${id}`)
   }
 
   return (
     <div className="max-w-7xl mx-auto px-6 py-20">
       <div className="mb-12">
-        <Link href={`/dashboard/events/${id}`} className="text-[10px] uppercase tracking-[0.3em] font-bold text-muted-foreground hover:text-foreground transition-all">
+        <Link href={`/photos/events/${id}`} className="text-[10px] uppercase tracking-[0.3em] font-bold text-muted-foreground hover:text-foreground transition-all">
           ← Back to Collection
         </Link>
       </div>

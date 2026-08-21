@@ -246,7 +246,7 @@ export default function UseTemplatePage() {
       const createdAlbumId = resolveCreatedAlbumId(album)
 
       if (createdAlbumId) {
-        router.push(`/dashboard/templates/editor/${createdAlbumId}`)
+        router.push(`/create/editor/${createdAlbumId}?mode=simple`)
         return
       }
       console.error('Album creation did not return a valid album id:', album)
@@ -373,7 +373,7 @@ export default function UseTemplatePage() {
       const createdAlbumId = resolveCreatedAlbumId(album)
 
       if (createdAlbumId) {
-        router.push(`/dashboard/templates/editor/${createdAlbumId}`)
+        router.push(`/create/editor/${createdAlbumId}?mode=simple`)
         return
       }
       console.error('Album creation from curated photos did not return a valid album id:', album)
@@ -453,7 +453,7 @@ export default function UseTemplatePage() {
       const createdAlbumId = resolveCreatedAlbumId(album)
 
       if (createdAlbumId) {
-        router.push(`/dashboard/templates/editor/${createdAlbumId}`)
+        router.push(`/create/editor/${createdAlbumId}?mode=simple`)
         return
       }
       console.error('Album creation from upload did not return a valid album id:', album)
@@ -557,7 +557,7 @@ export default function UseTemplatePage() {
             ) : (
               <div className="text-center py-12">
                 <p className="text-muted-foreground mb-4 font-light italic">No events found.</p>
-                <Link href="/dashboard/events/new" className="text-xs font-bold uppercase tracking-widest text-primary hover:underline">Create an event first</Link>
+                <Link href="/photos/events/new" className="text-xs font-bold uppercase tracking-widest text-primary hover:underline">Create an event first</Link>
               </div>
             )}
           </div>

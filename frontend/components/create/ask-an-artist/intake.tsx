@@ -6,12 +6,12 @@ import { Button } from '@/components/ui/button'
 import { apiClient } from '@/lib/api-client'
 import { formatPrice } from '@/lib/pricing'
 
-interface PremiumIntakeProps {
+interface ArtistIntakeProps {
   packages: any[]
   onComplete: (newProject: any) => void
 }
 
-export function PremiumIntake({ packages, onComplete }: PremiumIntakeProps) {
+export function ArtistIntake({ packages, onComplete }: ArtistIntakeProps) {
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)

@@ -1,173 +1,87 @@
-import { redirect } from 'next/navigation'
+import { redirect, notFound } from 'next/navigation'
 import { AlbumEditor } from '@/components/album-editor'
+import { ALL_MAGAZINE_TEMPLATES } from '@/lib/magazine-templates'
 import { serverFetch } from '@/lib/api-client'
 import { getUser, getAuthToken } from '@/lib/actions/auth'
-import { autoFillAlbum } from '@/lib/template-engine-utils'
+import { isUuid, resolveAlbumLayout, resolveEventId } from '@/lib/album-spreads'
 
-const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
-
-function isUuid(value: unknown): value is string {
-  return typeof value === 'string' && UUID_PATTERN.test(value)
-}
-
+/**
+ * The one editor.
+ *
+ * There used to be two routes here — /editor/[id] and
+ * /dashboard/templates/editor/[id] — rendering the same AlbumEditor with
+ * `mode="advanced"` and `mode="simple"` respectively, with ~120 lines of
+ * identical spread-healing copied between them. They are one route now; the
+ * mode is a search param, and the shared logic lives in lib/album-spreads.
+ */
 export default async function EditorPage({
-  params
+  params,
+  searchParams,
 }: {
-  params: Promise<{ id: string }>
+  params: Promise<{ albumId: string }>
+  searchParams: Promise<{ mode?: string }>
 }) {
-  const { id } = await params
-  if (!isUuid(id)) {
-    console.warn('[EditorPage] Invalid album id received:', id)
-    redirect('/dashboard')
+  const { albumId } = await params
+  const { mode: modeParam } = (await searchParams) || {}
+
+  if (!isUuid(albumId)) {
+    console.warn('[Editor] Invalid album id received:', albumId)
+    notFound()
   }
 
   const user = await getUser()
   if (!user) {
-    console.log('[EditorPage] No user found, redirecting to /auth/login')
     redirect('/auth/login')
   }
 
   const token = await getAuthToken()
-  console.log('[EditorPage] Resolved token:', token)
 
   let album: any = null
   try {
-    album = await serverFetch(`/api/albums/${id}`, token)
-    console.log('[EditorPage] Successfully fetched album:', album?.title)
+    // Ownership is verified server-side by the albums API.
+    album = await serverFetch(`/api/albums/${albumId}`, token)
   } catch (err) {
-    console.error('[EditorPage] Error fetching album for advanced editor:', err)
-    redirect('/dashboard')
+    console.error('[Editor] Error fetching album:', err)
+    notFound()
   }
 
   if (!album) {
-    console.log('[EditorPage] Album empty/null, redirecting to /dashboard')
-    redirect('/dashboard')
+    notFound()
   }
 
-  const albumEventId =
-    isUuid(album?.event_id) ? album.event_id : isUuid(album?.eventId) ? album.eventId : null
-
+  const eventId = resolveEventId(album)
   let photos: any[] = []
-  if (albumEventId) {
+  if (eventId) {
     try {
-      photos = await serverFetch(`/api/photos/event/${albumEventId}`, token)
+      photos = await serverFetch(`/api/photos/event/${eventId}`, token)
     } catch (err) {
-      console.error('Error fetching event photos for advanced editor:', err)
+      console.error('[Editor] Error fetching event photos:', err)
     }
   } else {
-    console.warn('[EditorPage] Album is missing a valid event id, skipping photo fetch:', {
-      albumId: id,
+    console.warn('[Editor] Album has no valid event id, skipping photo fetch:', {
+      albumId,
       event_id: album?.event_id,
       eventId: album?.eventId,
     })
   }
 
-  const rawLayout = (album as any).layout_data ?? (album as any).theme_config ?? null
-  let initialSpreads = Array.isArray(rawLayout?.spreads) ? rawLayout.spreads : undefined
-  
-  if (!initialSpreads && rawLayout?.layout_schema && Array.isArray(rawLayout.layout_schema.pages)) {
-    const converted = autoFillAlbum([], rawLayout.layout_schema, rawLayout.page_previews_urls || album.page_previews_urls)
-    if (converted.length > 0) {
-      initialSpreads = converted
-    }
-  }
+  const { rawLayout, initialSpreads, layoutField } = resolveAlbumLayout(album)
 
-  // Heal spreads if they already exist but lack Page Background image elements
-  const previews = rawLayout?.page_previews_urls || album?.page_previews_urls
-  if (initialSpreads && Array.isArray(previews) && previews.length > 0) {
-    const SPREAD_WIDTH = 700
-    const SPREAD_HEIGHT = 1000
-    initialSpreads = initialSpreads.map((spread: any, idx: number) => {
-      const clonedSpread = { ...spread }
-      if (clonedSpread.isCover) {
-        const hasBg = clonedSpread.elements?.some((el: any) => el.id === 'bg-image-1')
-        if (!hasBg && previews[0]) {
-          const coverBg = {
-            id: 'bg-image-1',
-            type: 'image',
-            name: 'Page Background',
-            src: previews[0],
-            x: 0,
-            y: 0,
-            width: SPREAD_WIDTH,
-            height: SPREAD_HEIGHT,
-            zIndex: 0,
-            rotation: 0,
-            fitMode: 'fill',
-            locked: true
-          }
-          clonedSpread.elements = [coverBg, ...(clonedSpread.elements || [])]
-          if (clonedSpread.front) {
-            clonedSpread.front.elements = [coverBg, ...(clonedSpread.front.elements || [])]
-          }
-        }
-      } else {
-        const innerPageNum = idx * 2
-        const leftPageNum = innerPageNum
-        const rightPageNum = innerPageNum + 1
-
-        const previewL = previews[leftPageNum - 1]
-        const previewR = previews[rightPageNum - 1]
-
-        if (clonedSpread.front) {
-          const hasBgL = clonedSpread.front.elements?.some((el: any) => el.id === `bg-image-${leftPageNum}`)
-          if (!hasBgL && previewL) {
-            const bgL = {
-              id: `bg-image-${leftPageNum}`,
-              type: 'image',
-              name: 'Page Background',
-              src: previewL,
-              x: 0,
-              y: 0,
-              width: SPREAD_WIDTH,
-              height: SPREAD_HEIGHT,
-              zIndex: 0,
-              rotation: 0,
-              fitMode: 'fill',
-              locked: true
-            }
-            clonedSpread.front.elements = [bgL, ...(clonedSpread.front.elements || [])]
-            clonedSpread.elements = clonedSpread.front.elements
-          }
-        }
-
-        if (clonedSpread.back) {
-          const hasBgR = clonedSpread.back.elements?.some((el: any) => el.id === `bg-image-${rightPageNum}`)
-          if (!hasBgR && previewR) {
-            const bgR = {
-              id: `bg-image-${rightPageNum}`,
-              type: 'image',
-              name: 'Page Background',
-              src: previewR,
-              x: 0,
-              y: 0,
-              width: SPREAD_WIDTH,
-              height: SPREAD_HEIGHT,
-              zIndex: 0,
-              rotation: 0,
-              fitMode: 'fill',
-              locked: true
-            }
-            clonedSpread.back.elements = [bgR, ...(clonedSpread.back.elements || [])]
-          }
-        }
-      }
-      return clonedSpread
-    })
-  }
-
-  const layoutField = Object.prototype.hasOwnProperty.call(album, 'layout_data') ? 'layout_data' : 'theme_config'
+  // `simple` is the template-driven entry (style gallery → editor); `advanced`
+  // is the full light table. Anything else falls back to advanced.
+  const mode = modeParam === 'simple' ? 'simple' : 'advanced'
 
   return (
-    <div className="bg-background min-h-screen">
+    <div className="min-h-[100dvh] bg-background">
       <AlbumEditor
-        albumId={id}
+        albumId={albumId}
         photos={photos || []}
         initialSpreads={initialSpreads}
-        layoutField={layoutField as 'layout_data' | 'theme_config'}
+        layoutField={layoutField}
         coverImageUrl={album.cover_image_url}
         initialLayoutData={rawLayout ?? undefined}
-        mode="advanced"
+        mode={mode}
+        templates={mode === 'simple' ? ALL_MAGAZINE_TEMPLATES : undefined}
       />
     </div>
   )

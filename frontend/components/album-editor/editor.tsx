@@ -12,6 +12,7 @@ import { Sidebar } from './sidebar'
 import { Topbar } from './topbar'
 import { Workspace } from './workspace'
 import { Timeline } from './timeline'
+import { SpecStrip } from './spec-strip'
 import { LayersPanel } from './layers-panel'
 import { getAlbumAspectRatio } from '@/lib/template-engine-utils'
 
@@ -821,6 +822,21 @@ export function AlbumEditor({
     return documentState.spreads.find((s) => s.id === documentState.activeSpreadId) || documentState.spreads[0]
   }, [documentState])
 
+  // 1-based position of the spread on screen, for the technical stamp above
+  // the canvas. -1 (not found) falls back to the first spread.
+  const activeSpreadIndex = useMemo(() => {
+    const i = documentState.spreads.findIndex((sp) => sp.id === documentState.activeSpreadId)
+    return (i < 0 ? 0 : i) + 1
+  }, [documentState.spreads, documentState.activeSpreadId])
+
+  const pageSizeMm = useMemo(() => {
+    const size = initialLayoutData?.layout_schema?.page_size
+    if (size?.width_mm && size?.height_mm) {
+      return { width: size.width_mm, height: size.height_mm }
+    }
+    return null
+  }, [initialLayoutData])
+
   const activeSpreadSide = useMemo(() => {
     if (!activeSpread) {
       return { background: '#ffffff', elements: [] as AlbumElement[] }
@@ -998,7 +1014,7 @@ export function AlbumEditor({
       router.back()
       return
     }
-    router.push('/dashboard')
+    router.push('/photos')
   }, [router])
 
   useEffect(() => {
@@ -1636,7 +1652,7 @@ export function AlbumEditor({
   }, [])
 
   const handleSwitchAlbum = useCallback((id: string) => {
-    router.push(`/editor/${id}`)
+    router.push(`/create/editor/${id}`)
   }, [router])
 
   const handleApplyTemplate = useCallback(async (templateId: string) => {
@@ -1717,7 +1733,7 @@ export function AlbumEditor({
     void (async () => {
       const saved = await persistDraft()
       if (!saved) return
-      router.push(`/editor/${albumId}`)
+      router.push(`/create/editor/${albumId}`)
     })()
   }, [albumId, persistDraft, router])
 
@@ -1813,6 +1829,18 @@ export function AlbumEditor({
           onToggleLayers={() => setLayersOpen(!layersOpen)}
         />
 
+        <SpecStrip
+          spreadIndex={activeSpreadIndex}
+          spreadCount={documentState.spreads.length}
+          isCover={activeSpread?.isCover}
+          widthUnits={SPREAD_WIDTH}
+          heightUnits={SPREAD_HEIGHT}
+          pageSizeMm={pageSizeMm}
+          zoom={zoom}
+          saveStatus={saveStatus}
+          lastSavedAt={lastSavedAt}
+        />
+
         <div className="flex-1 min-h-0 flex bg-[#E5E5E5] dark:bg-[#171411] transition-colors relative">
           <div
             ref={viewportRef}
@@ -1869,9 +1897,6 @@ export function AlbumEditor({
         />
       </div>
 
-      <div className="fixed bottom-4 right-4 z-50 px-3 py-2 rounded-md border border-border bg-popover/95 text-popover-foreground shadow-lg text-xs font-medium backdrop-blur-sm">
-        {formatSaveStatus(saveStatus, lastSavedAt)}
-      </div>
     </div>
   )
 }

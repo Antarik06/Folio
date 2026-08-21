@@ -4,7 +4,7 @@
 [![React](https://img.shields.io/badge/React-19.0-61DAFB?style=flat-square&logo=react)](https://react.dev/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.7-3178C6?style=flat-square&logo=typescript)](https://www.typescriptlang.org/)
 [![Express.js](https://img.shields.io/badge/Express.js-4.21-000000?style=flat-square&logo=express)](https://expressjs.com/)
-[![Drizzle ORM](https://img.shields.io/badge/Drizzle_ORM-0.45-C5F74F?style=flat-square&logo=drizzle)](https://orm.drizzle.team/)
+[![node-postgres](https://img.shields.io/badge/node--postgres-8-336791?style=flat-square&logo=postgresql)](https://node-postgres.com/)
 [![Supabase](https://img.shields.io/badge/Supabase-PostgreSQL-3ECF8E?style=flat-square&logo=supabase)](https://supabase.com/)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square)](LICENSE)
 
@@ -50,7 +50,7 @@
 
 ### **Backend** (`/backend`)
 - **Runtime & Server**: Node.js, Express.js (TypeScript)
-- **Database & ORM**: PostgreSQL (hosted on Supabase), Drizzle ORM, Drizzle Kit
+- **Database**: PostgreSQL (hosted on Supabase), accessed with raw SQL through `node-postgres` (`pg`). There is no ORM — queries go through the `query()` wrapper in `backend/src/db/index.ts`, and the schema is a set of numbered `.sql` files applied by `backend/src/migrations/migrate.ts`.
 - **Image & PDF Processing**: `sharp`, `pdf-lib`, `adm-zip`, `fast-xml-parser`
 - **Authentication & Security**: Supabase Auth (JWT verification), CORS
 - **Payments & Caching**: Razorpay API, Upstash Redis (`@upstash/redis`)
@@ -64,27 +64,36 @@
 Folio/
 ├── frontend/                  # Next.js 16 Web Application
 │   ├── app/                   # App Router pages & API routes
-│   │   ├── (dashboard)/       # Dashboard layout & sub-routes (events, templates, polaroid)
-│   │   ├── album/             # Album gallery & viewer routes
+│   │   ├── (app)/             # Signed-in shell — the three tabs + role-gated areas
+│   │   │   ├── photos/        #   Photos — library, events, "photos of me"
+│   │   │   ├── create/        #   Create — styles, editor, ask an artist, orders
+│   │   │   ├── profile/       #   Profile — my page, share cards
+│   │   │   ├── artist-studio/ #   Role-gated: photographers
+│   │   │   └── admin/         #   Role-gated: staff
+│   │   ├── album/             # Album share-link viewer
 │   │   ├── auth/              # Authentication routes (login, register, callback)
-│   │   ├── editor/            # Interactive Canvas & PSD studio editor
 │   │   ├── join/              # Event join & guest face-matching flow
-│   │   └── preview/           # 3D album flipbook preview page
-│   ├── components/            # Reusable React UI components & editor widgets
+│   │   ├── p/                 # Public profile pages (/p/[handle]) — no auth
+│   │   └── preview/           # 3D album preview
+│   ├── components/
+│   │   ├── folio/             # Editorial Darkroom primitives & press marks
+│   │   ├── viewer/            # The one 3D viewer (AlbumViewer + its scenes)
+│   │   ├── photos/  create/  profile/  join/   # One folder per tab
+│   │   └── album-editor/      # Canvas editor widgets
 │   ├── lib/                   # Utility modules (PSD parser, template engine, pricing, supabase)
 │   └── styles/                # Global CSS & Tailwind styling setup
 │
 └── backend/                   # Express.js REST API Server
     ├── src/
     │   ├── controllers/       # Route request handlers
-    │   ├── db/                # Database connection & Drizzle instance
+    │   ├── db/                # pg Pool + the query() wrapper every service uses
     │   ├── middlewares/       # Auth verification & error handling
     │   ├── migrations/        # Database schema migrations
-    │   ├── routes/            # API endpoints (artist, album, ai, event, order, premium)
-    │   ├── schema/            # Drizzle ORM database schemas
+    │   ├── routes/            # HTTP wiring only (artist, album, ai, event, library, order, premium, profile)
+    │   ├── schema/            # Zod request validation (not an ORM schema)
     │   ├── services/          # Core business logic (PDF export, PSD processing, AI layout)
     │   └── utils/             # Helper utilities
-    └── drizzle.config.ts      # Drizzle ORM configuration
+    └── src/migrations/        # Numbered .sql migrations + migrate.ts runner
 ```
 
 ---

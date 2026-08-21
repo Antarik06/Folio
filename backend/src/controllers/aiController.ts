@@ -70,7 +70,7 @@ export const aiController = {
       }
 
       const result = await faceService.enrollFace(eventId, userId, selfieUrl, parsedDescriptor)
-      res.json({ success: true, matched: result.matched })
+      res.json({ success: true, matched: result.matched, preview: result.preview })
     } catch (error: any) {
       sendError(res, error)
     }

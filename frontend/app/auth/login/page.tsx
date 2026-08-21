@@ -29,8 +29,8 @@ function LoginPageContent() {
     setMounted(true)
   }, [])
 
-  const next = searchParams.get('next') ?? '/dashboard'
-  const signUpHref = mounted && next !== '/dashboard' 
+  const next = searchParams.get('next') ?? '/photos'
+  const signUpHref = mounted && next !== '/photos' 
     ? `/auth/sign-up?next=${encodeURIComponent(next)}` 
     : '/auth/sign-up'
 
@@ -59,7 +59,11 @@ function LoginPageContent() {
       {/* Left Panel - Form */}
       <div className="w-full lg:w-1/2 flex flex-col justify-center px-8 md:px-16 lg:px-24">
         <div className="max-w-md w-full mx-auto">
-          <Link href="/" className="inline-block mb-12">
+          <Link
+            href="/"
+            className="mb-10 inline-flex min-h-[44px] items-center"
+            aria-label="Folio home"
+          >
             <span className="font-serif text-2xl tracking-tight text-foreground">Folio</span>
           </Link>
 
@@ -142,7 +146,7 @@ function LoginPageContent() {
             Don&apos;t have an account?{' '}
             <Link
               href={signUpHref}
-              className="text-primary hover:text-primary/80 transition-colors"
+              className="inline-block py-3 text-primary underline-offset-4 transition-colors hover:text-primary/80 hover:underline"
             >
               Create one
             </Link>

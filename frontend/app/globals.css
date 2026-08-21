@@ -41,13 +41,16 @@
   
   /* Custom tokens */
   --surface: #FDFAF5;
+  --surface-2: #F5F0E8;
   --ink: #1C1814;
+  --ink-soft: #7A6F64;
   --terracotta: #B85C38;
   --bottle-green: #3A7D6E;
   --paper: #F5F0E8;
   --linen: #DDD8CE;
   --pencil: #7A6F64;
   --darkroom: #1C1814;
+  --shadow-color: rgba(28, 24, 20, 0.12);
 }
 
 .dark {
@@ -58,11 +61,11 @@
   --popover: #252019;
   --popover-foreground: #F5F0E8;
   --primary: #B85C38;
-  --primary-foreground: #F5F0E8;
+  --primary-foreground: #FDFAF5;
   --secondary: #3A7D6E;
-  --secondary-foreground: #F5F0E8;
+  --secondary-foreground: #FDFAF5;
   --muted: #252019;
-  --muted-foreground: #7A6F64;
+  --muted-foreground: #A79C8E;
   --accent: #3A7D6E;
   --accent-foreground: #F5F0E8;
   --destructive: #B85C38;
@@ -81,9 +84,13 @@
   
   /* Custom tokens inversion for dark mode */
   --surface: #252019;
+  --surface-2: #2F281F;
   --ink: #F5F0E8;
+  --ink-soft: #A79C8E;
   --paper: #1C1814;
   --linen: #3a342b;
+  --pencil: #A79C8E;
+  --shadow-color: rgba(0, 0, 0, 0.5);
 }
 
 @theme inline {
@@ -129,7 +136,9 @@
   
   /* Custom color tokens */
   --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
   --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
   --color-terracotta: var(--terracotta);
   --color-bottle-green: var(--bottle-green);
   --color-paper: var(--paper);
@@ -395,4 +404,111 @@ body::-webkit-scrollbar-corner,
 
 .line-item-enter {
   animation: lineItemReveal 0.35s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   EDITORIAL DARKROOM — print-grid primitives
+   Per docs/design/design_handoff_folio_redesign. Strong rules instead of
+   shadows, flush-left labels, 4px max radius, mono for all technical metadata.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* The recurring mono metadata voice: dimensions, DPI, order ids, timestamps,
+   spec stamps. Always uppercase, always letter-spaced. */
+.mono-label {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 1.4;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.mono-label-xs {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  line-height: 1.4;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+/* Section divider — heavier than the linen border used between cards. */
+.rule-strong {
+  border-bottom: 2px solid var(--border);
+}
+
+/* Masthead rule — solid ink, the heaviest rule in the system. */
+.rule-ink {
+  border-bottom: 2px solid var(--ink);
+}
+
+/* Guest face-match loupe: an optical instrument closing in, not a spinner. */
+@keyframes loupePulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(184, 92, 56, 0.35); }
+  50%      { box-shadow: 0 0 0 8px rgba(184, 92, 56, 0); }
+}
+
+.animate-loupe-pulse {
+  animation: loupePulse 1.8s ease-in-out infinite;
+}
+
+/* Match reveal: prints dropped into a sleeve, staggered per row. */
+@keyframes slideSleeve {
+  from { opacity: 0; transform: translateX(28px) rotate(2deg); }
+  to   { opacity: 1; transform: translateX(0) rotate(0deg); }
+}
+
+.animate-slide-sleeve {
+  animation: slideSleeve 0.5s ease-out both;
+}
+
+/* Mobile: keep content clear of the bottom tab bar and the home indicator. */
+.pb-tabbar {
+  padding-bottom: calc(56px + env(safe-area-inset-bottom, 0px));
+}
+
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.safe-top {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
+/* Horizontal rails (phone-card rows, style strips) snap on touch. */
+.snap-rail {
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+}
+
+.snap-rail > * {
+  scroll-snap-align: start;
+}
+
+/* Every interactive control clears the 44px touch target minimum. */
+@media (pointer: coarse) {
+  .touch-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-loupe-pulse,
+  .animate-slide-sleeve,
+  .pulse-subtle,
+  .step-indicator-active,
+  .confirmation-dot {
+    animation: none !important;
+  }
+
+  .animate-slide-sleeve {
+    opacity: 1;
+    transform: none;
+  }
+
+  html {
+    scroll-behavior: auto;
+  }
 }

@@ -6,7 +6,7 @@ import { useCursor } from '@react-three/drei'
 import { useAtom } from 'jotai'
 import { easing } from 'maath'
 import * as THREE from 'three'
-import { previewPageAtom } from './PreviewUI'
+import { viewerIndexAtom } from '../state'
 import { getAlbumAspectRatio } from '@/lib/template-engine-utils'
 
 // Animation constants
@@ -137,12 +137,12 @@ const Page = ({
   )
 }
 
-interface Book3DProps {
+interface BookSceneProps {
   album: any
 }
 
-export function Book3D({ album }: Book3DProps) {
-  const [page] = useAtom(previewPageAtom)
+export function BookScene({ album }: BookSceneProps) {
+  const [page] = useAtom(viewerIndexAtom)
   const [delayedPage, setDelayedPage] = useState(page)
   const spreads = album.layout_data?.spreads || []
   

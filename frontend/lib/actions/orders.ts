@@ -13,8 +13,8 @@ export async function createOrder(input: any) {
       body: JSON.stringify(input)
     })
 
-    revalidatePath('/dashboard/events')
-    revalidatePath('/dashboard')
+    revalidatePath('/photos/events')
+    revalidatePath('/photos')
 
     return result
   } catch (error: any) {

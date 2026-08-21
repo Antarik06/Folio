@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { PhotoUploader } from '@/components/events/photo-uploader'
 import { PhotoGrid } from '@/components/events/photo-grid'
-import { PremiumDashboardClient } from '@/components/premium/premium-dashboard-client'
+import { ArtistCommissions } from '@/components/create/ask-an-artist/dashboard'
 import { SlotDrawingCanvas, SlotDefinition } from './slot-drawing-canvas'
 import {
   Image as ImageIcon, Layout, Plus, Trash2, Globe, Eye, Loader2,
@@ -1128,7 +1128,7 @@ export function ArtistDashboardClient({
         {/* Bottom Section */}
         <div className="px-4 py-5 border-t border-white/[0.06] space-y-1.5">
           <Link
-            href="/dashboard?mode=user"
+            href="/photos?mode=user"
             className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-white/30 hover:text-white/60 hover:bg-white/[0.04] transition-all text-[12px] group"
           >
             <ArrowLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
@@ -1263,7 +1263,7 @@ export function ArtistDashboardClient({
                            {/* Hover overlay */}
                            <div className="absolute inset-0 bg-gradient-to-t from-[#1C1814]/70 via-[#1C1814]/25 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-400 flex items-end justify-center pb-4 gap-2">
                              <Link
-                               href={`/dashboard/templates/editor/${album.id}`}
+                               href={`/create/editor/${album.id}?mode=simple`}
                                className="flex items-center gap-1.5 px-3.5 py-2 bg-white/95 text-[#1C1814] text-[10px] font-bold uppercase tracking-wider rounded-lg hover:bg-white transition-colors shadow-lg"
                              >
                                <Eye className="w-3 h-3" /> Edit
@@ -1500,7 +1500,7 @@ export function ArtistDashboardClient({
           {/* ═══════════════════════════════════════════════════════ */}
           {activeTab === 'concierge' && (
             <div className="animate-in fade-in duration-300">
-              <PremiumDashboardClient
+              <ArtistCommissions
                 initialProjects={initialConciergeProjects}
                 packages={conciergePackages}
                 embedded

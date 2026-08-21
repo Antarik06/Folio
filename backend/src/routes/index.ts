@@ -1,6 +1,7 @@
 import { Router } from 'express'
 import eventRoutes from './eventRoutes'
 import photoRoutes from './photoRoutes'
+import libraryRoutes from './libraryRoutes'
 import albumRoutes from './albumRoutes'
 import orderRoutes from './orderRoutes'
 import aiRoutes from './aiRoutes'
@@ -16,6 +17,7 @@ const router = Router()
 
 router.use('/events', eventRoutes)
 router.use('/photos', photoRoutes)
+router.use('/library', libraryRoutes)
 router.use('/albums', albumRoutes)
 router.use('/orders', orderRoutes)
 router.use('/profile', profileRoutes)

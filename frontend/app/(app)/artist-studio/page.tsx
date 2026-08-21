@@ -11,7 +11,7 @@ export const metadata = {
 export default async function ArtistDashboardPage() {
   const profile = await getProfile()
   if (!profile || profile.role !== 'artist') {
-    redirect('/dashboard')
+    redirect('/photos')
   }
 
   // Get authentication token

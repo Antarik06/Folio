@@ -219,7 +219,7 @@ export function AlbumsGrid({ albums, photos }: AlbumsGridProps) {
             key={album.id}
             className="relative overflow-hidden rounded border border-border bg-card transition-colors hover:border-primary/50"
           >
-            <Link href={`/editor/${album.id}`} className="block">
+            <Link href={`/create/editor/${album.id}`} className="block">
               <div className="h-40 w-full bg-muted/40 border-b border-border overflow-hidden">
                 {coverUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
@@ -264,7 +264,7 @@ export function AlbumsGrid({ albums, photos }: AlbumsGridProps) {
                 type="button"
                 onClick={(e) => {
                   e.preventDefault()
-                  router.push(`/dashboard/albums/${album.id}/order`)
+                  router.push(`/create/orders/${album.id}`)
                 }}
                 className="w-full flex items-center justify-center gap-2 py-2.5 rounded border border-primary bg-primary text-primary-foreground text-sm font-medium uppercase tracking-widest hover:bg-primary/90 transition-colors"
               >
@@ -290,7 +290,7 @@ export function AlbumsGrid({ albums, photos }: AlbumsGridProps) {
                   <DropdownMenuLabel>Album Actions</DropdownMenuLabel>
                   <DropdownMenuSeparator />
 
-                  <DropdownMenuItem onClick={() => router.push(`/editor/${album.id}`)}>
+                  <DropdownMenuItem onClick={() => router.push(`/create/editor/${album.id}`)}>
                     <Edit3 className="w-4 h-4" />
                     Edit album
                   </DropdownMenuItem>
@@ -307,7 +307,7 @@ export function AlbumsGrid({ albums, photos }: AlbumsGridProps) {
 
                   <DropdownMenuSeparator />
 
-                  <DropdownMenuItem onClick={() => router.push(`/dashboard/albums/${album.id}/order`)}>
+                  <DropdownMenuItem onClick={() => router.push(`/create/orders/${album.id}`)}>
                     <Printer className="w-4 h-4" />
                     Order print
                   </DropdownMenuItem>

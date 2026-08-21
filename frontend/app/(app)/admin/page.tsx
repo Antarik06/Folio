@@ -13,7 +13,7 @@ export default async function AdminDashboardPage() {
 
   // Authorization check: User must be signed in and have 'admin' role
   if (!user || user.role !== 'admin') {
-    redirect('/dashboard')
+    redirect('/photos')
   }
 
   // Fetch all initial admin data

@@ -208,7 +208,7 @@ export function OrderConfirmation({
         {/* Actions */}
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
           <Button asChild variant="outline" className="gap-2">
-            <Link href="/dashboard">
+            <Link href="/photos">
               <ArrowLeft className="w-4 h-4" />
               Back to dashboard
             </Link>

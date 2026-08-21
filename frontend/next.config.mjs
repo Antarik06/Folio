@@ -6,19 +6,83 @@ const nextConfig = {
     ignoreBuildErrors: false,
   },
   async redirects() {
-    // The app router previously carried two parallel trees for the same
-    // screens — /(dashboard)/events alongside /(dashboard)/dashboard/events —
-    // where the shorter one was part duplicated page, part redirect stub. The
-    // duplicates are gone; these keep old links, QR codes and bookmarks working.
+    // The app now has three tabs — Photos, Create, Profile — plus two
+    // role-gated areas. Everything used to hang off /dashboard, and several
+    // screens carried a second parallel tree on top of that.
     //
-    // Temporary (307) on purpose: the deleted stubs redirected with the same
-    // status, and a 308 would be cached in browsers indefinitely.
+    // These keep old links, QR codes and bookmarks working. Temporary (307) on
+    // purpose: a 308 would be cached in browsers indefinitely, and these paths
+    // are expected to retire once the old links age out.
     return [
-      { source: '/events', destination: '/dashboard/events', permanent: false },
-      { source: '/events/:path*', destination: '/dashboard/events/:path*', permanent: false },
-      { source: '/templates', destination: '/dashboard/templates', permanent: false },
-      { source: '/templates/:path*', destination: '/dashboard/templates/:path*', permanent: false },
-      { source: '/polaroid', destination: '/dashboard/polaroid', permanent: false },
+      // ── Photos ────────────────────────────────────────────────────────────
+      { source: '/dashboard', destination: '/photos', permanent: false },
+      {
+        source: '/dashboard/events/:id/my-photos',
+        destination: '/photos/events/:id/me',
+        permanent: false,
+      },
+      { source: '/dashboard/events', destination: '/photos/events', permanent: false },
+      { source: '/dashboard/events/:path*', destination: '/photos/events/:path*', permanent: false },
+      { source: '/events', destination: '/photos/events', permanent: false },
+      { source: '/events/:path*', destination: '/photos/events/:path*', permanent: false },
+
+      // ── Create ────────────────────────────────────────────────────────────
+      // Ordered before the generic /dashboard/templates/:path* catch-all.
+      {
+        source: '/dashboard/templates/use/:id',
+        destination: '/create/:id',
+        permanent: false,
+      },
+      {
+        source: '/dashboard/templates/preview/:id',
+        destination: '/create/:id/preview',
+        permanent: false,
+      },
+      {
+        source: '/dashboard/templates/editor/:id',
+        destination: '/create/editor/:id?mode=simple',
+        permanent: false,
+      },
+      {
+        source: '/dashboard/templates/builder/:id',
+        destination: '/create/editor/:id?mode=simple',
+        permanent: false,
+      },
+      // The bespoke Adventure flow is gone; Adventure is a style like any other.
+      {
+        source: '/dashboard/templates/adventure',
+        destination: '/create/adventure-travel',
+        permanent: false,
+      },
+      { source: '/dashboard/templates', destination: '/create', permanent: false },
+      { source: '/dashboard/templates/:path*', destination: '/create/:path*', permanent: false },
+      { source: '/templates', destination: '/create', permanent: false },
+      { source: '/templates/:path*', destination: '/create/:path*', permanent: false },
+
+      { source: '/dashboard/polaroid', destination: '/create/polaroid', permanent: false },
+      { source: '/polaroid', destination: '/create/polaroid', permanent: false },
+
+      // "Concierge" / "Premium" are all one thing now: Ask an Artist.
+      { source: '/dashboard/premium', destination: '/create/artist', permanent: false },
+      { source: '/dashboard/premium/:path*', destination: '/create/artist/:path*', permanent: false },
+
+      { source: '/editor/:id', destination: '/create/editor/:id', permanent: false },
+      { source: '/dashboard/orders', destination: '/create/orders', permanent: false },
+      { source: '/dashboard/orders/:path*', destination: '/create/orders/:path*', permanent: false },
+      {
+        source: '/dashboard/albums/:id/order',
+        destination: '/create/orders/:id',
+        permanent: false,
+      },
+
+      // ── Role-gated areas ──────────────────────────────────────────────────
+      { source: '/dashboard/artist', destination: '/artist-studio', permanent: false },
+      { source: '/dashboard/artist/:path*', destination: '/artist-studio/:path*', permanent: false },
+      { source: '/dashboard/admin', destination: '/admin', permanent: false },
+      { source: '/dashboard/admin/:path*', destination: '/admin/:path*', permanent: false },
+
+      // ── Preview ───────────────────────────────────────────────────────────
+      { source: '/preview/template/:id', destination: '/preview/:id', permanent: false },
     ]
   },
   async rewrites() {

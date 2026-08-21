@@ -28,12 +28,34 @@
 ### 🔵 TypeScript & Schema Strictness
 - Enable strict null checks. Avoid `any` types wherever possible.
 - All request/response validation in the backend MUST use `zod` schemas.
-- Database schemas MUST be defined cleanly using `drizzle-orm/pg-core`.
+- Database schema changes MUST be a new numbered `.sql` file in `backend/src/migrations/`, applied by `migrate.ts`. There is no ORM: queries use parameterised raw SQL through the `query()` wrapper in `backend/src/db/index.ts`. Never interpolate values into SQL strings.
 
 ### 🟢 React & Next.js Guidelines
 - Prefer React Server Components (RSC) for data fetching in Next.js pages.
 - Add `'use client';` directive ONLY on interactive components (Canvas editor, 3D flipbook, interactive dialogs).
 - Ensure all interactive elements have unique `id` attributes or accessible `aria-labels`.
+
+### 🟣 Naming & Structure Rules
+These exist because Polaroid, Adventure and Premium Concierge each grew into a
+semi-disconnected branch with its own nav item, its own components and no shared
+plumbing. The rules remove the mechanism that produced that sprawl.
+
+- The app has **three tabs**: **Photos**, **Create**, **Profile**, plus two
+  role-gated areas (**Artist Studio**, **Admin**). Before adding a top-level
+  feature, it MUST fit inside one of the three. If it fits none, that is a signal
+  an existing umbrella needs renaming or splitting — not that a fourth is needed.
+- **Label = route slug = top component name**, same words, different casing only.
+  `Ask an Artist` → `/create/artist` → `ask-an-artist/`. If a label and a filename
+  do not obviously match, rename one before adding more code.
+- **One plain word or a plain two-word phrase per feature**, in code and in UI
+  copy. No internal jargon ("Concierge", "Adventure Flow") in either.
+- **One component per concept, parameterised by a prop.** Never
+  `XStyle3D` + `XStyleExperience` + `XStylePreviewUI` repeated per style — see
+  `components/viewer/AlbumViewer.tsx`, which took nine such files down to two.
+  A new style extends the `style` union; it does not fork the files.
+- **Business logic lives in `services/`.** A `routes/*.ts` file only wires an
+  HTTP request to a service call and returns the result. A long route file means
+  logic belongs in a service, not in a bigger route file.
 
 ### 🔴 Error Handling & Logging Rules
 - Backend API endpoints MUST handle errors via centralized error-handling middlewares (`backend/src/middlewares/errorMiddleware.ts`).

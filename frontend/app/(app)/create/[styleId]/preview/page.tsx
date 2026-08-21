@@ -21,7 +21,7 @@ export default async function TemplatePreviewPage({ params }: Props) {
         <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
           <div className="flex items-center gap-8">
             <Link 
-              href="/dashboard/templates"
+              href="/create"
               className="text-sm font-bold uppercase tracking-widest text-muted-foreground hover:text-foreground transition-colors"
             >
               ← Templates
@@ -36,7 +36,7 @@ export default async function TemplatePreviewPage({ params }: Props) {
           </div>
           
           <Link
-            href={`/dashboard/templates/use/${template.id}`}
+            href={`/create/${template.id}`}
             className="bg-primary text-primary-foreground px-8 py-3 text-xs font-bold uppercase tracking-[0.2em] hover:bg-primary/90 transition-all shadow-lg shadow-primary/20"
           >
             Create with this Layout
@@ -159,7 +159,7 @@ export default async function TemplatePreviewPage({ params }: Props) {
             This magazine format is optimized for professional printing and high-res digital sharing.
          </p>
          <Link
-            href={`/dashboard/templates/use/${template.id}`}
+            href={`/create/${template.id}`}
             className="bg-primary text-primary-foreground px-12 py-5 text-sm font-bold uppercase tracking-[0.3em] hover:bg-primary/90 transition-all"
          >
             Create My Magazine

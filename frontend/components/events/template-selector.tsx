@@ -18,7 +18,7 @@ export function TemplateSelector({ eventId }: TemplateSelectorProps) {
     // We'll use a direct fetch to a new action or just use the page we created
     // But since we are already in an event, we should probably just create it directly
     // Let's call a client-side wrapper of the create action
-    router.push(`/dashboard/templates/use/${templateId}?eventId=${eventId}`)
+    router.push(`/create/${templateId}?eventId=${eventId}`)
     // Wait, I can just create a client-side action that calls the server action
   }
 

@@ -49,9 +49,9 @@ export async function getAuthToken(): Promise<string | null> {
  * Landing route for a signed-in user, based on their role in public.profiles.
  */
 function homeForRole(role?: string | null) {
-  if (role === 'admin') return '/dashboard/admin'
-  if (role === 'artist') return '/dashboard/artist'
-  return '/dashboard'
+  if (role === 'admin') return '/admin'
+  if (role === 'artist') return '/artist-studio'
+  return '/photos'
 }
 
 export async function signIn(formData: FormData, redirectTo?: string) {
@@ -111,7 +111,7 @@ export async function signInWithGoogle(next?: string) {
   const headersList = await headers()
   const origin = headersList.get('origin') || process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
 
-  const safePath = next?.startsWith('/') ? next : '/dashboard'
+  const safePath = next?.startsWith('/') ? next : '/photos'
   const callbackUrl = `${origin}/auth/callback?next=${encodeURIComponent(safePath)}`
 
   const { data, error } = await supabase.auth.signInWithOAuth({

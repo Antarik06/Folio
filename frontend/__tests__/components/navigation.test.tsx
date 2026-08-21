@@ -1,22 +1,25 @@
 import { render, screen } from '@testing-library/react'
 import { describe, it, expect } from 'vitest'
-import { Navigation } from '../../components/landing/navigation'
+import { LandingNav } from '../../components/landing/nav'
 
-describe('Navigation Component', () => {
-  it('renders brand name and main navigation links', () => {
-    render(<Navigation />)
-    
-    // Brand name
-    expect(screen.getByText('Folio')).toBeInTheDocument()
+describe('LandingNav', () => {
+  it('renders the wordmark and the three rooms', () => {
+    render(<LandingNav />)
 
-    // Nav links (desktop + mobile drawer)
-    expect(screen.getAllByText('How it works')[0]).toBeInTheDocument()
-    expect(screen.getAllByText('Products')[0]).toBeInTheDocument()
-    expect(screen.getAllByText('Pricing')[0]).toBeInTheDocument()
-    expect(screen.getAllByText('Join')[0]).toBeInTheDocument()
+    expect(screen.getAllByLabelText('Folio home')[0]).toBeInTheDocument()
 
-    // Action buttons
+    // The three tabs are the app's whole structure, so the nav must name them.
+    // Each appears twice — desktop row and mobile sheet.
+    for (const room of ['Photos', 'Create', 'Profile']) {
+      expect(screen.getAllByText(room).length).toBeGreaterThan(0)
+    }
+  })
+
+  it('offers both a sign-up and an invite-code path', () => {
+    render(<LandingNav />)
+
+    expect(screen.getAllByText('Start free')[0]).toBeInTheDocument()
     expect(screen.getAllByText('Sign in')[0]).toBeInTheDocument()
-    expect(screen.getAllByText('Get started')[0]).toBeInTheDocument()
+    expect(screen.getAllByText('I have an invite code')[0]).toBeInTheDocument()
   })
 })

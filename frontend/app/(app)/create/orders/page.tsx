@@ -32,7 +32,7 @@ export default async function MyOrdersPage() {
   // Admin panel). Keyed on the profile role rather than a hardcoded address.
   const profile = await getProfile()
   if ((profile as any)?.role === 'admin') {
-    redirect('/dashboard/admin')
+    redirect('/admin')
   }
 
   const rawOrders = await getUserOrders()
@@ -61,7 +61,7 @@ export default async function MyOrdersPage() {
             You haven't ordered any physical prints yet. Finish curating your album volume and place an order.
           </p>
           <Link
-            href="/dashboard/events"
+            href="/photos/events"
             className="inline-block bg-primary text-primary-foreground px-8 py-3.5 text-xs font-bold uppercase tracking-[0.2em] hover:bg-primary/90 transition-colors shadow-lg shadow-primary/10"
           >
             Explore Events & Albums

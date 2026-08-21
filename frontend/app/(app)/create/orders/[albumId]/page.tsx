@@ -6,5 +6,5 @@ interface Props {
 
 export default async function LegacyAlbumOrderPage({ params }: Props) {
   const { id } = await params
-  redirect(`/dashboard/orders/checkout?albumId=${id}`)
+  redirect(`/create/orders/checkout?albumId=${id}`)
 }

@@ -28,7 +28,7 @@ export default async function MyPhotosPage({ params }: Props) {
 
   // Host should use the regular event page
   if (event.host_id === user.id) {
-    redirect(`/dashboard/events/${eventId}`)
+    redirect(`/photos/events/${eventId}`)
   }
 
   // Verify user is a guest
@@ -58,7 +58,7 @@ export default async function MyPhotosPage({ params }: Props) {
     <div className="max-w-7xl mx-auto px-6 py-12">
       {/* Back */}
       <div className="mb-12">
-        <Link href="/dashboard/events" className="text-[10px] uppercase tracking-[0.3em] font-bold text-muted-foreground hover:text-foreground transition-all">
+        <Link href="/photos/events" className="text-[10px] uppercase tracking-[0.3em] font-bold text-muted-foreground hover:text-foreground transition-all">
           ← Back to Events
         </Link>
       </div>
@@ -78,10 +78,10 @@ export default async function MyPhotosPage({ params }: Props) {
         </div>
 
         {/* Order CTA. Ordering starts from an album, which lives on the event
-            page — /dashboard/events/[id]/order was never a real route. */}
+            page — /photos/events/[id]/order was never a real route. */}
         <div className="flex-shrink-0">
           <Link
-            href={`/dashboard/events/${eventId}`}
+            href={`/photos/events/${eventId}`}
             className="inline-block bg-primary text-primary-foreground px-10 py-4 text-[10px] uppercase tracking-[0.3em] font-bold hover:bg-primary/90 transition-all shadow-xl shadow-primary/20"
           >
             Order Magazine Volume
