@@ -48,6 +48,9 @@ export function StylesGallery({
             >
               Ask an artist
             </StampButton>
+            <StampButton href="/create/photo" tone="ghost" size="sm">
+              Photo Studio
+            </StampButton>
             <StampButton href="/create/orders" tone="ghost" size="sm">
               Orders
             </StampButton>
@@ -110,24 +113,67 @@ export function StylesGallery({
         </section>
       ))}
 
-      {/* One way out, at the end, for people who would rather not choose. */}
+      {/* ── The other two rooms ─────────────────────────────────────── */}
       <section className="mt-20 sm:mt-28">
         <Hold>
-          <div className="border-t border-border pt-10 text-center sm:pt-14">
-            <h2 className="font-serif text-[clamp(1.75rem,5vw,2.5rem)] italic text-foreground">
-              Or hand it to someone
-            </h2>
-            <p className="mx-auto mt-3 max-w-sm text-sm leading-relaxed text-muted-foreground">
-              A photographer picks the shape, lays it out, and sends back proofs.
-              Twelve to fifteen days.
-            </p>
-            <div className="mt-7">
-              <StampButton
-                href={eventId ? `/create/artist?eventId=${eventId}` : '/create/artist'}
-                tone="primary"
+          <div className="border-t border-border pt-10 sm:pt-14">
+            <div className="grid gap-4 md:grid-cols-2">
+              {/* Photo Studio — the darkroom. Shown in its own colours so the
+                  card looks like the room it opens. */}
+              <Link
+                href="/create/photo"
+                className="group flex flex-col justify-between overflow-hidden rounded-[4px] bg-[#0E0C0A] p-6 transition-transform hover:-translate-y-0.5 sm:p-8"
               >
-                Ask an artist
-              </StampButton>
+                <div>
+                  <div className="font-mono text-[10px] uppercase tracking-[0.16em] text-primary">
+                    Photo Studio
+                  </div>
+                  <h3 className="mt-3 font-serif text-[clamp(1.5rem,4vw,2rem)] leading-tight text-[#F5F0E8]">
+                    Grade one photograph
+                  </h3>
+                  <p className="mt-2.5 max-w-[36ch] text-[13px] leading-relaxed text-[#F5F0E8]/55">
+                    Film stocks, exposure, crop. For when a single frame needs
+                    work before it goes anywhere.
+                  </p>
+                </div>
+                {/* A strip of stocks, as a sign of what is inside. */}
+                <div className="mt-7 flex gap-1.5">
+                  {[
+                    'linear-gradient(135deg,#f7b731,#e8590c)',
+                    'linear-gradient(135deg,#d4a373,#e9c46a)',
+                    'linear-gradient(135deg,#c0392b,#e67e22)',
+                    'linear-gradient(135deg,#aab,#dde)',
+                    'linear-gradient(135deg,#111,#555)',
+                  ].map((g) => (
+                    <span key={g} className="h-7 flex-1 rounded-[1px]" style={{ background: g }} />
+                  ))}
+                </div>
+              </Link>
+
+              {/* Ask an artist — paper, the opposite ground. */}
+              <div className="flex flex-col justify-between rounded-[4px] border border-border bg-card p-6 sm:p-8">
+                <div>
+                  <div className="font-mono text-[10px] uppercase tracking-[0.16em] text-secondary">
+                    Ask an artist
+                  </div>
+                  <h3 className="mt-3 font-serif text-[clamp(1.5rem,4vw,2rem)] leading-tight text-foreground">
+                    Or hand the whole thing over
+                  </h3>
+                  <p className="mt-2.5 max-w-[36ch] text-[13px] leading-relaxed text-muted-foreground">
+                    A photographer picks the shape, lays it out, and sends back
+                    proofs. Twelve to fifteen days.
+                  </p>
+                </div>
+                <div className="mt-7">
+                  <StampButton
+                    href={eventId ? `/create/artist?eventId=${eventId}` : '/create/artist'}
+                    tone="primary"
+                    size="sm"
+                  >
+                    Ask an artist
+                  </StampButton>
+                </div>
+              </div>
             </div>
           </div>
         </Hold>

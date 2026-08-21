@@ -7,7 +7,6 @@ import {
   Trash2,
   PanelLeft,
   Image as ImageIcon,
-  Wand2,
   Crop,
   AlignLeft,
   AlignCenter,
@@ -51,8 +50,6 @@ interface TopbarProps {
   onRedo: () => void
   onSaveNow: () => void
   saving?: boolean
-  /** Opens the photo editor on the selected image. */
-  onEditPhoto?: (element: AlbumElement) => void
   /** Opens the Photos panel so a different picture can be chosen. */
   onReplacePhoto?: () => void
   isMobile?: boolean
@@ -72,7 +69,6 @@ export function Topbar({
   onRedo,
   onSaveNow,
   saving,
-  onEditPhoto,
   onReplacePhoto,
   isMobile,
   onToggleSidebar,
@@ -136,9 +132,6 @@ export function Topbar({
             <>
               <BarButton onClick={() => onReplacePhoto?.()} icon={<ImageIcon className="h-4 w-4" />}>
                 Replace
-              </BarButton>
-              <BarButton onClick={() => onEditPhoto?.(image)} icon={<Wand2 className="h-4 w-4" />}>
-                Edit photo
               </BarButton>
               <BarButton
                 onClick={() =>

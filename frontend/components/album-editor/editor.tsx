@@ -10,7 +10,6 @@ import { MagazineTemplate } from '@/lib/magazine-templates'
 import { AlbumSpread, AlbumElement, AlbumPageSide, TextElement } from './types'
 import { Sidebar, type SidebarPanel } from './sidebar'
 import { Topbar } from './topbar'
-import { PhotoEditor } from '@/components/events/photo-editor'
 import { Workspace } from './workspace'
 import { Timeline } from './timeline'
 import { SpecStrip } from './spec-strip'
@@ -711,8 +710,6 @@ export function AlbumEditor({
   const brushSize = 5
   const [showGrid, setShowGrid] = useState(true)
 
-  // The image currently open in the photo editor, if any.
-  const [editingPhoto, setEditingPhoto] = useState<AlbumElement | null>(null)
 
   const [isMobile, setIsMobile] = useState(false)
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -1106,47 +1103,6 @@ export function AlbumEditor({
       console.error('Failed to localize remote image:', error)
     }
   }, [albumId, supabase, updateElement])
-
-  /**
-   * Saves an edit made in the photo editor.
-   *
-   * The album editor and the standalone photo editor used to be separate
-   * places — you cropped and filtered a picture in the event gallery, then
-   * came here to lay it out. Now the same editor opens over the canvas on the
-   * selected frame, and the result is uploaded and swapped in place, so a
-   * photograph never has to leave the album to be adjusted.
-   */
-  const handleSavePhotoEdit = useCallback(
-    async (blob: Blob) => {
-      const element = editingPhoto
-      if (!element) return
-
-      try {
-        const filePath = `albums/${albumId}/edit-${Date.now()}-${Math.random()
-          .toString(36)
-          .slice(2, 8)}.jpg`
-
-        const { error: uploadError } = await supabase.storage
-          .from('photos')
-          .upload(filePath, blob, { contentType: 'image/jpeg' })
-
-        if (uploadError) throw uploadError
-
-        const {
-          data: { publicUrl },
-        } = supabase.storage.from('photos').getPublicUrl(filePath)
-
-        updateElement(element.id, { src: publicUrl } as Partial<AlbumElement>, {
-          historyGroup: 'photo-edit',
-        })
-      } catch (error) {
-        console.error('Failed to save the edited photo:', error)
-      } finally {
-        setEditingPhoto(null)
-      }
-    },
-    [albumId, editingPhoto, supabase, updateElement]
-  )
 
   const addElement = useCallback(
     (element: Omit<AlbumElement, 'id' | 'zIndex'>) => {
@@ -1817,7 +1773,6 @@ export function AlbumEditor({
               if (saved) handleBackToSite()
             })()
           }}
-          onEditPhoto={(element) => setEditingPhoto(element)}
           onReplacePhoto={() => {
             setActivePanel('photos')
             if (isMobile) setSidebarOpen(true)
@@ -1875,16 +1830,6 @@ export function AlbumEditor({
         />
       </div>
 
-      {/* Photo editing, over the canvas rather than in another part of the app. */}
-      {editingPhoto && (editingPhoto as any).src ? (
-        <div className="fixed inset-0 z-50 bg-[#1C1814]">
-          <PhotoEditor
-            imageUrl={(editingPhoto as any).src}
-            onCancel={() => setEditingPhoto(null)}
-            onSave={handleSavePhotoEdit}
-          />
-        </div>
-      ) : null}
     </div>
   )
 }
