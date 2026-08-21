@@ -2,7 +2,11 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getAuthToken } from '@/lib/actions/auth'
 import { serverFetch } from '@/lib/api-client'
-import { TEMPLATES_BY_STYLE, type MagazineTemplate } from '@/lib/magazine-templates'
+import {
+  TEMPLATES_BY_STYLE,
+  styleForCategory,
+  type MagazineTemplate,
+} from '@/lib/magazine-templates'
 import { StylesGallery } from '@/components/create/styles-gallery'
 
 export const metadata = {
@@ -45,21 +49,22 @@ export default async function CreatePage({
   const groups = TEMPLATES_BY_STYLE.map((g) => ({ ...g, templates: [...g.templates] }))
 
   for (const album of published) {
-    const category = String(album.category ?? '').toLowerCase()
-    const target =
-      groups.find((g) => g.style.id === category) ??
-      groups.find((g) => g.style.name.toLowerCase() === category)
-    if (!target) continue
-
     const spreads = Array.isArray(album.layout_data?.spreads) ? album.layout_data.spreads : []
+    // A template with no spreads has nothing to preview or apply.
     if (spreads.length === 0) continue
+
+    // Never drop published work: an unrecognised category resolves to a style
+    // rather than disappearing from the catalogue.
+    const style = styleForCategory(album.category)
+    const target = groups.find((g) => g.style.id === style.id)
+    if (!target) continue
 
     const artistTemplate: MagazineTemplate = {
       id: album.id,
       name: album.title,
       description: album.description || 'An original layout published by a Folio artist.',
       thumbnail: '',
-      category: target.style.name,
+      category: style.name,
       productType: 'magazine',
       spreads,
       isDynamic: true,

@@ -42,7 +42,11 @@ export async function getEventByInviteCode(code: string) {
     // Public endpoint, token is optional
     return await serverFetch(`/api/events/lookup?code=${encodeURIComponent(code)}`, null)
   } catch (error: any) {
-    console.error('Error fetching event by invite code:', error)
+    // A code that matches nothing is ordinary user input; the page renders a
+    // "no such insert" state for it. Only log the unexpected.
+    if (!/not found/i.test(String((error as Error)?.message))) {
+      console.error('Error fetching event by invite code:', error)
+    }
     return null
   }
 }

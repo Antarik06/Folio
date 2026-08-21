@@ -44,6 +44,24 @@ const RemoteImage = ({ imageSrc, fitMode = 'fit', width, height, ...props }: URL
     }
   }
 
+  // Templates ship with empty photo slots, and use-image ignores a falsy url —
+  // so without this an unfilled slot rendered as literally nothing and a
+  // freshly applied template looked like a blank page. Draw the frame instead,
+  // so the slot reads as somewhere a photograph goes.
+  if (!imageSrc) {
+    return (
+      <Rect
+        width={width}
+        height={height}
+        fill="rgba(28,24,20,0.045)"
+        stroke="rgba(28,24,20,0.22)"
+        strokeWidth={1}
+        dash={[6, 5]}
+        {...props}
+      />
+    )
+  }
+
   return <KonvaImage image={image} crop={crop} width={width} height={height} {...props} />
 }
 

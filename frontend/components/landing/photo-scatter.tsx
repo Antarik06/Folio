@@ -94,10 +94,19 @@ export function PhotoScatter() {
   const ref = useRef<HTMLDivElement>(null)
   const [pointer, setPointer] = useState({ x: 0, y: 0 })
 
+  // useReducedMotion() resolves to null during SSR and to a boolean on the
+  // client, so branching on it directly changed the markup between the two —
+  // drag attributes, cursor classes and the hint all differed, and React threw
+  // a hydration mismatch. Gate on mount instead: server and first client paint
+  // both render the static stack, and interactivity switches on afterwards.
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => setMounted(true), [])
+  const interactive = mounted && !reduced
+
   // Parallax follows the pointer across the stack's own box, so the effect is
   // the same wherever the section sits on the page.
   useEffect(() => {
-    if (reduced) return
+    if (!interactive) return
     const el = ref.current
     if (!el) return
     // Coarse pointers have no hover position to track.
@@ -113,7 +122,7 @@ export function PhotoScatter() {
 
     window.addEventListener('pointermove', onMove, { passive: true })
     return () => window.removeEventListener('pointermove', onMove)
-  }, [reduced])
+  }, [interactive])
 
   return (
     <div
@@ -123,18 +132,19 @@ export function PhotoScatter() {
       {CARDS.map((card) => (
         <motion.div
           key={card.id}
-          drag={!reduced}
+          drag={interactive}
           dragMomentum={false}
           dragConstraints={{ left: -120, right: 120, top: -120, bottom: 120 }}
           whileDrag={{ scale: 1.05, zIndex: 60 }}
-          animate={{
-            x: pointer.x * card.depth * 34,
-            y: pointer.y * card.depth * 34,
-          }}
+          animate={
+            interactive
+              ? { x: pointer.x * card.depth * 34, y: pointer.y * card.depth * 34 }
+              : { x: 0, y: 0 }
+          }
           transition={{ type: 'spring', damping: 22, stiffness: 80 }}
           style={{ rotate: card.rotate }}
           className={`absolute ${card.at} ${card.w} ${card.z} ${
-            reduced ? '' : 'cursor-grab active:cursor-grabbing'
+            interactive ? 'cursor-grab active:cursor-grabbing' : ''
           } bg-[#FDFAF5] p-2.5 pb-7 shadow-[0_10px_30px_rgba(0,0,0,0.45)]`}
         >
           <div className="relative">
@@ -156,7 +166,7 @@ export function PhotoScatter() {
         </motion.div>
       ))}
 
-      {!reduced ? (
+      {interactive ? (
         <div className="pointer-events-none absolute -bottom-1 right-2 font-mono text-[9px] uppercase tracking-[0.1em] text-[#F5F0E8]/25">
           [ drag to arrange ]
         </div>

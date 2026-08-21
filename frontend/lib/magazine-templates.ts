@@ -331,6 +331,52 @@ export const TEMPLATES_BY_STYLE: { style: AlbumStyle; templates: MagazineTemplat
     ),
   }))
 
+/**
+ * Resolves any category string onto one of the five styles.
+ *
+ * Artists choose their own category text when publishing, so the catalogue sees
+ * values like "love", "nostalgic" or "fashion" that match no style id. Dropping
+ * those silently hid published work from the gallery, so unknown values map
+ * through a synonym table and anything still unrecognised lands in Editorial,
+ * which is the most general of the five.
+ */
+const CATEGORY_SYNONYMS: Record<string, string> = {
+  love: 'wedding',
+  romance: 'wedding',
+  engagement: 'wedding',
+  luxury: 'wedding',
+  journey: 'travel',
+  adventure: 'travel',
+  holiday: 'travel',
+  baby: 'portrait',
+  birthday: 'portrait',
+  family: 'portrait',
+  kids: 'portrait',
+  fashion: 'editorial',
+  portfolio: 'editorial',
+  modern: 'editorial',
+  art: 'editorial',
+  nostalgic: 'year',
+  legacy: 'year',
+  archive: 'year',
+  anniversary: 'year',
+}
+
+export function styleForCategory(category?: string | null): AlbumStyle {
+  const key = String(category ?? '').trim().toLowerCase()
+  if (!key) return styleFor('editorial')
+
+  const direct = ALBUM_STYLES.find(
+    (s) => s.id === key || s.name.toLowerCase() === key
+  )
+  if (direct) return direct
+
+  const mapped = CATEGORY_SYNONYMS[key]
+  if (mapped) return styleFor(mapped)
+
+  return styleFor('editorial')
+}
+
 /** The style a template belongs to. */
 export function styleOfTemplate(templateId: string): AlbumStyle | undefined {
   const spec = SPECS.find((s) => s.id === templateId)
