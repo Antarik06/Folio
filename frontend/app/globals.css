@@ -16,7 +16,7 @@
   --secondary: #3A7D6E; /* bottle green - forest depth */
   --secondary-foreground: #FDFAF5;
   --muted: #F5F0E8;
-  --muted-foreground: #7A6F64; /* pencil on ivory */
+  --muted-foreground: #736859; /* pencil on ivory — 4.8:1 on paper, 5.2:1 on card */
   --accent: #3A7D6E;
   --accent-foreground: #FDFAF5;
   --destructive: #B85C38;
@@ -43,7 +43,7 @@
   --surface: #FDFAF5;
   --surface-2: #F5F0E8;
   --ink: #1C1814;
-  --ink-soft: #7A6F64;
+  --ink-soft: #736859;
   --terracotta: #B85C38;
   --bottle-green: #3A7D6E;
   --paper: #F5F0E8;
