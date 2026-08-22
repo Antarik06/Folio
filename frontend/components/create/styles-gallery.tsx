@@ -1,16 +1,15 @@
 import Link from 'next/link'
 import type { ReactNode } from 'react'
-import { StampButton } from '@/components/folio/primitives'
 import { AlbumMiniature } from './album-miniature'
 import { CompassMark, SprocketRail } from '@/components/folio/marks'
 import type { AlbumStyle, MagazineTemplate } from '@/lib/magazine-templates'
 
 /**
- * The Create catalogue.
+ * The template catalogue — one section of the Create page, not the whole page.
  *
  * Five styles, each with two or three templates. An earlier version gave every
  * style the same three-across row, which made five sections read as one section
- * repeated — so the page is now composed rather than tiled:
+ * repeated — so the catalogue is composed rather than tiled:
  *
  *   · the lead template of each style takes a large slot, the rest sit smaller
  *   · the big slot alternates side, so the eye zig-zags down the page
@@ -18,7 +17,8 @@ import type { AlbumStyle, MagazineTemplate } from '@/lib/magazine-templates'
  *   · each style keeps its own print idiom, so the cards differ by more than
  *     which photograph is in them
  *
- * There is no separate "featured" rail: featuring the style *is* the feature.
+ * The masthead, the section nav and the other rooms of Create live in the
+ * workbench around it.
  */
 export function StylesGallery({
   groups,
@@ -27,54 +27,10 @@ export function StylesGallery({
   groups: { style: AlbumStyle; templates: MagazineTemplate[] }[]
   eventId?: string
 }) {
-  const total = groups.reduce((n, g) => n + g.templates.length, 0)
   const href = (id: string) => (eventId ? `/create/${id}?eventId=${eventId}` : `/create/${id}`)
 
   return (
-    <div className="pb-10 sm:pb-14">
-      <Hold className="pt-10 sm:pt-14">
-        <header className="flex flex-wrap items-end justify-between gap-x-8 gap-y-5">
-          <div>
-            <div className="font-mono text-[11px] uppercase tracking-[0.16em] text-primary">
-              Create
-            </div>
-            <h1 className="mt-3 font-serif text-[clamp(2.4rem,8vw,4rem)] leading-[0.95] tracking-[-0.025em] text-foreground">
-              Pick a shape
-            </h1>
-          </div>
-          <div className="flex items-center gap-2 pb-1">
-            <StampButton
-              href={eventId ? `/create/artist?eventId=${eventId}` : '/create/artist'}
-              tone="primary"
-              size="sm"
-            >
-              Ask an artist
-            </StampButton>
-            <StampButton href="/create/photo" tone="ghost" size="sm">
-              Photo Studio
-            </StampButton>
-          </div>
-        </header>
-
-        <nav aria-label="Styles" className="mt-6 flex flex-wrap items-center gap-x-6 gap-y-2">
-          {groups.map((g, i) => (
-            <Link
-              key={g.style.id}
-              href={`#${g.style.id}`}
-              className="group inline-flex min-h-[44px] items-baseline gap-2 font-mono text-[11px] uppercase tracking-[0.12em] text-ink-soft transition-colors hover:text-foreground"
-            >
-              <span className="text-primary">{String(i + 1).padStart(2, '0')}</span>
-              <span className="group-hover:underline group-hover:underline-offset-4">
-                {g.style.name}
-              </span>
-            </Link>
-          ))}
-          <span className="font-mono text-[10px] uppercase tracking-[0.1em] text-ink-soft/60">
-            {total} templates
-          </span>
-        </nav>
-      </Hold>
-
+    <div>
       {groups.map((group, i) => (
         <StyleSection
           key={group.style.id}
@@ -87,66 +43,6 @@ export function StylesGallery({
           leadRight={i % 2 === 1}
         />
       ))}
-
-      {/* ── The other two rooms ─────────────────────────────────────────── */}
-      <Hold className="mt-20 sm:mt-28">
-        <div className="border-t border-border pt-10 sm:pt-14">
-          <div className="grid gap-4 md:grid-cols-2">
-            <Link
-              href="/create/photo"
-              className="group flex flex-col justify-between overflow-hidden rounded-[4px] bg-[#0E0C0A] p-6 transition-transform hover:-translate-y-0.5 sm:p-8"
-            >
-              <div>
-                <div className="font-mono text-[10px] uppercase tracking-[0.16em] text-primary">
-                  Photo Studio
-                </div>
-                <h3 className="mt-3 font-serif text-[clamp(1.5rem,4vw,2rem)] leading-tight text-[#F5F0E8]">
-                  Grade one photograph
-                </h3>
-                <p className="mt-2.5 max-w-[36ch] text-[13px] leading-relaxed text-[#F5F0E8]/55">
-                  Film stocks, exposure, crop. For when a single frame needs work
-                  before it goes anywhere.
-                </p>
-              </div>
-              <div className="mt-7 flex gap-1.5">
-                {[
-                  'linear-gradient(135deg,#f7b731,#e8590c)',
-                  'linear-gradient(135deg,#d4a373,#e9c46a)',
-                  'linear-gradient(135deg,#c0392b,#e67e22)',
-                  'linear-gradient(135deg,#aab,#dde)',
-                  'linear-gradient(135deg,#111,#555)',
-                ].map((g) => (
-                  <span key={g} className="h-7 flex-1 rounded-[1px]" style={{ background: g }} />
-                ))}
-              </div>
-            </Link>
-
-            <div className="flex flex-col justify-between rounded-[4px] border border-border bg-card p-6 sm:p-8">
-              <div>
-                <div className="font-mono text-[10px] uppercase tracking-[0.16em] text-secondary">
-                  Ask an artist
-                </div>
-                <h3 className="mt-3 font-serif text-[clamp(1.5rem,4vw,2rem)] leading-tight text-foreground">
-                  Or hand the whole thing over
-                </h3>
-                <p className="mt-2.5 max-w-[36ch] text-[13px] leading-relaxed text-muted-foreground">
-                  A photographer picks the shape, lays it out, and sends back
-                  proofs. Twelve to fifteen days.
-                </p>
-              </div>
-              <div className="mt-7">
-                <StampButton
-                  href={eventId ? `/create/artist?eventId=${eventId}` : '/create/artist'}
-                  tone="primary"
-                  size="sm"
-                >
-                  Ask an artist
-                </StampButton>
-              </div>
-            </div>
-          </div>
-        </div>
-      </Hold>
     </div>
   )
 }
@@ -170,8 +66,10 @@ function StyleSection({
   return (
     <section
       id={group.style.id}
-      className={`scroll-mt-20 ${banded ? 'bg-surface-2' : ''} ${
-        banded ? 'border-y border-border py-16 sm:py-24' : 'pt-16 sm:pt-24'
+      className={`scroll-mt-32 ${
+        banded
+          ? 'border-y border-border bg-surface-2 py-14 sm:py-20'
+          : 'py-14 sm:py-20'
       }`}
     >
       <Hold>

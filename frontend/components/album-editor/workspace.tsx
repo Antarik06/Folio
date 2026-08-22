@@ -13,15 +13,33 @@ interface URLImageProps {
   fitMode?: 'fit' | 'fill'
   width: number
   height: number
+  /** A reframe saved by the user, normalised 0–1 against the source image. */
+  userCrop?: { x: number; y: number; width: number; height: number }
   [key: string]: any
 }
 
-const RemoteImage = ({ imageSrc, fitMode = 'fit', width, height, ...props }: URLImageProps) => {
+const RemoteImage = ({
+  imageSrc,
+  fitMode = 'fit',
+  width,
+  height,
+  userCrop,
+  ...props
+}: URLImageProps) => {
   const [image] = useImage(imageSrc, 'anonymous')
 
   let crop: { x: number; y: number; width: number; height: number } | undefined
 
-  if (image && fitMode === 'fill') {
+  if (image && userCrop) {
+    // A reframe the user set by hand wins over the automatic centre crop —
+    // it was saved but never read, so repositioning a photo did nothing.
+    crop = {
+      x: userCrop.x * image.width,
+      y: userCrop.y * image.height,
+      width: Math.max(1, userCrop.width * image.width),
+      height: Math.max(1, userCrop.height * image.height),
+    }
+  } else if (image && fitMode === 'fill') {
     const imageRatio = image.width / image.height
     const frameRatio = width / height
 
@@ -764,6 +782,7 @@ export function Workspace({
                       id={el.id}
                       imageSrc={el.src}
                       fitMode={el.fitMode}
+                      userCrop={el.crop}
                       x={el.x}
                       y={el.y}
                       width={el.width}

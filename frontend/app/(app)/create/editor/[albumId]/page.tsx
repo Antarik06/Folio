@@ -67,6 +67,8 @@ export default async function EditorPage({
     <div className="min-h-[100dvh] bg-background">
       <AlbumEditor
         albumId={albumId}
+        albumTitle={album.title || 'Untitled album'}
+        eventId={eventId}
         photos={photos || []}
         initialSpreads={initialSpreads}
         layoutField={layoutField}

@@ -14,10 +14,14 @@ interface AppShellProps {
 
 /**
  * Routes that take over the whole viewport and supply their own chrome: the
- * editor light table, and the two role-gated areas that are a different
- * persona rather than a stage of the guest/host journey.
+ * editor light table, the darkroom bench, and the two role-gated areas that
+ * are a different persona rather than a stage of the guest/host journey.
+ *
+ * The Photo Studio belongs here for the same reason the editor does — it is a
+ * full-height tool with its own header and its own way back, and under the
+ * app nav its bench was 56px taller than the screen.
  */
-const FULL_BLEED = ['/create/editor', '/admin', '/artist-studio']
+const FULL_BLEED = ['/create/editor', '/create/photo', '/admin', '/artist-studio']
 
 export function AppShell({ user, profile, children }: AppShellProps) {
   const pathname = usePathname()

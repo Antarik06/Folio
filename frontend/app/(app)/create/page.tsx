@@ -7,20 +7,21 @@ import {
   styleForCategory,
   type MagazineTemplate,
 } from '@/lib/magazine-templates'
-import { StylesGallery } from '@/components/create/styles-gallery'
+import { CreateWorkbench } from '@/components/create/create-workbench'
 
 export const metadata = {
   title: 'Create — Folio',
   description:
-    'Turn your photos into an album — five styles, or hand the whole thing to an artist.',
+    'Your albums, five shapes to pour photographs into, and the darkroom for a single frame.',
 }
 
 /**
  * The Create tab.
  *
- * Five styles, each with its templates. Artist-published templates join the
- * style their category names, so the catalogue stays five sections however many
- * artists contribute.
+ * Four sections: albums you have made, the template catalogue, the Photo
+ * Studio, and the prints that came out of it. Each of the four loads
+ * independently — a failure fetching prints should cost you the prints
+ * section, not the page.
  */
 export default async function CreatePage({
   searchParams,
@@ -37,12 +38,22 @@ export default async function CreatePage({
 
   const token = await getAuthToken()
 
-  let published: any[] = []
-  try {
-    published = await serverFetch('/api/albums/published', token)
-  } catch (err) {
-    console.error('[Create] Failed to load artist-published templates:', err)
-  }
+  const [published, albums, library, prints] = await Promise.all([
+    load<any[]>('/api/albums/published', token, [], 'artist-published templates'),
+    load<any[]>('/api/albums', token, [], 'albums'),
+    load<{ total: number; photos: any[] }>(
+      '/api/library/photos?limit=24',
+      token,
+      { total: 0, photos: [] },
+      'library photos'
+    ),
+    load<{ total: number; photos: any[] }>(
+      '/api/library/prints?limit=20',
+      token,
+      { total: 0, photos: [] },
+      'studio prints'
+    ),
+  ])
 
   // Fold artist templates into whichever style their category matches, so one
   // more artist never means one more top-level section.
@@ -73,5 +84,50 @@ export default async function CreatePage({
     target.templates.push(artistTemplate)
   }
 
-  return <StylesGallery groups={groups} eventId={eventId} />
+  return (
+    <CreateWorkbench
+      groups={groups}
+      eventId={eventId}
+      albums={(albums ?? []).map((album: any) => ({
+        id: album.id,
+        title: album.title,
+        description: album.description,
+        status: album.status,
+        is_published: album.is_published,
+        event_id: album.event_id,
+        event_title: album.event_title,
+        cover_image_url: album.cover_image_url,
+        preview_images: Array.isArray(album.preview_images) ? album.preview_images : [],
+        spread_count: Number(album.spread_count) || 0,
+        created_at: album.created_at,
+        updated_at: album.updated_at,
+      }))}
+      studioPhotos={(library.photos ?? []).map((p: any) => ({
+        id: p.id,
+        url: p.url,
+        event_title: p.event_title,
+      }))}
+      studioTotal={library.total ?? 0}
+      prints={(prints.photos ?? []).map((p: any) => ({
+        id: p.id,
+        url: p.url,
+        event_title: p.event_title,
+        created_at: p.created_at,
+        width: p.width,
+        height: p.height,
+      }))}
+      printsTotal={prints.total ?? 0}
+    />
+  )
+}
+
+/** One failing section should never take the page down with it. */
+async function load<T>(path: string, token: string | null, fallback: T, label: string): Promise<T> {
+  try {
+    const result = await serverFetch(path, token)
+    return (result ?? fallback) as T
+  } catch (err) {
+    console.error(`[Create] Failed to load ${label}:`, err)
+    return fallback
+  }
 }

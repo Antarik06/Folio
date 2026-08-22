@@ -21,6 +21,18 @@ export interface PhotoFilters {
   rotation: number
   flipH: boolean
   flipV: boolean
+  /**
+   * The kept rectangle, normalised 0–1 against the *source* image and applied
+   * before rotation. `null` is the whole frame.
+   */
+  crop: CropRect | null
+}
+
+export interface CropRect {
+  x: number
+  y: number
+  width: number
+  height: number
 }
 
 export const DEFAULT_FILTERS: PhotoFilters = {
@@ -36,6 +48,7 @@ export const DEFAULT_FILTERS: PhotoFilters = {
   rotation: 0,
   flipH: false,
   flipV: false,
+  crop: null,
 }
 
 export interface FilmStock {
@@ -134,59 +147,110 @@ export function buildTransform(f: PhotoFilters): string {
 
 /** True when nothing has been changed from the stock image. */
 export function isUntouched(f: PhotoFilters): boolean {
-  return (Object.keys(DEFAULT_FILTERS) as (keyof PhotoFilters)[]).every(
-    (k) => f[k] === DEFAULT_FILTERS[k]
+  return (Object.keys(DEFAULT_FILTERS) as (keyof PhotoFilters)[]).every((k) =>
+    k === 'crop' ? !f.crop : f[k] === DEFAULT_FILTERS[k]
   )
 }
 
 /**
- * Bakes the grade into a JPEG.
+ * Where the kept rectangle lands, and how big the result is.
  *
- * The vignette and the fade are overlays in the preview, so they have to be
- * painted here too or the export would not match what was on screen.
+ * `maxEdge` caps the long edge — the live preview paints at screen size, the
+ * export paints at full size, and both go through here so they cannot drift
+ * apart.
  */
+function measureOutput(
+  naturalWidth: number,
+  naturalHeight: number,
+  filters: PhotoFilters,
+  maxEdge?: number
+) {
+  const crop = filters.crop
+  const cw = Math.max(1, Math.round((crop ? crop.width : 1) * naturalWidth))
+  const ch = Math.max(1, Math.round((crop ? crop.height : 1) * naturalHeight))
+  const cx = Math.round((crop ? crop.x : 0) * naturalWidth)
+  const cy = Math.round((crop ? crop.y : 0) * naturalHeight)
+
+  // The crop comes off the source first, so rotation turns the kept rectangle
+  // rather than the whole negative.
+  const quarterTurned = Math.abs(filters.rotation % 180) === 90
+  const fullW = quarterTurned ? ch : cw
+  const fullH = quarterTurned ? cw : ch
+
+  const scale = maxEdge ? Math.min(1, maxEdge / Math.max(fullW, fullH)) : 1
+
+  return {
+    cx,
+    cy,
+    cw,
+    ch,
+    scale,
+    width: Math.max(1, Math.round(fullW * scale)),
+    height: Math.max(1, Math.round(fullH * scale)),
+  }
+}
+
+/**
+ * Paints one graded frame onto a canvas, sizing the canvas to match.
+ *
+ * The fade and the vignette are painted here rather than layered in CSS, so
+ * the preview on screen and the JPEG that gets saved are the same picture.
+ */
+export function paintPhoto(
+  canvas: HTMLCanvasElement,
+  img: HTMLImageElement,
+  filters: PhotoFilters,
+  maxEdge?: number
+) {
+  const { cx, cy, cw, ch, scale, width, height } = measureOutput(
+    img.naturalWidth || img.width,
+    img.naturalHeight || img.height,
+    filters,
+    maxEdge
+  )
+
+  canvas.width = width
+  canvas.height = height
+  const ctx = canvas.getContext('2d')
+  if (!ctx) throw new Error('Canvas is unavailable in this browser.')
+
+  ctx.clearRect(0, 0, width, height)
+  ctx.save()
+  ctx.translate(width / 2, height / 2)
+  ctx.rotate((filters.rotation * Math.PI) / 180)
+  ctx.scale(filters.flipH ? -1 : 1, filters.flipV ? -1 : 1)
+  ctx.filter = buildCssFilter(filters)
+  ctx.drawImage(img, cx, cy, cw, ch, (-cw * scale) / 2, (-ch * scale) / 2, cw * scale, ch * scale)
+  ctx.restore()
+
+  // Fade lifts the blacks with a thin white wash.
+  if (filters.fade > 0) {
+    ctx.fillStyle = `rgba(255,255,255,${(filters.fade / 100) * 0.35})`
+    ctx.fillRect(0, 0, width, height)
+  }
+
+  // Vignette darkens the corners.
+  if (filters.vignette > 0) {
+    const grad = ctx.createRadialGradient(
+      width / 2, height / 2, Math.min(width, height) * 0.25,
+      width / 2, height / 2, Math.max(width, height) * 0.75
+    )
+    grad.addColorStop(0, 'rgba(0,0,0,0)')
+    grad.addColorStop(1, `rgba(0,0,0,${(filters.vignette / 100) * 0.85})`)
+    ctx.fillStyle = grad
+    ctx.fillRect(0, 0, width, height)
+  }
+}
+
+/** Bakes the grade into a JPEG at full resolution. */
 export async function renderEditedPhoto(
   imageUrl: string,
   filters: PhotoFilters,
   quality = 0.95
 ): Promise<Blob> {
   const img = await loadImage(imageUrl)
-
-  const rotated = Math.abs(filters.rotation % 180) === 90
-  const w = rotated ? img.naturalHeight : img.naturalWidth
-  const h = rotated ? img.naturalWidth : img.naturalHeight
-
   const canvas = document.createElement('canvas')
-  canvas.width = w
-  canvas.height = h
-  const ctx = canvas.getContext('2d')
-  if (!ctx) throw new Error('Canvas is unavailable in this browser.')
-
-  ctx.save()
-  ctx.translate(w / 2, h / 2)
-  ctx.rotate((filters.rotation * Math.PI) / 180)
-  ctx.scale(filters.flipH ? -1 : 1, filters.flipV ? -1 : 1)
-  ctx.filter = buildCssFilter(filters)
-  ctx.drawImage(img, -img.naturalWidth / 2, -img.naturalHeight / 2)
-  ctx.restore()
-
-  // Fade lifts the blacks with a thin white wash.
-  if (filters.fade > 0) {
-    ctx.fillStyle = `rgba(255,255,255,${(filters.fade / 100) * 0.35})`
-    ctx.fillRect(0, 0, w, h)
-  }
-
-  // Vignette darkens the corners.
-  if (filters.vignette > 0) {
-    const grad = ctx.createRadialGradient(
-      w / 2, h / 2, Math.min(w, h) * 0.25,
-      w / 2, h / 2, Math.max(w, h) * 0.75
-    )
-    grad.addColorStop(0, 'rgba(0,0,0,0)')
-    grad.addColorStop(1, `rgba(0,0,0,${(filters.vignette / 100) * 0.85})`)
-    ctx.fillStyle = grad
-    ctx.fillRect(0, 0, w, h)
-  }
+  paintPhoto(canvas, img, filters)
 
   return await new Promise<Blob>((resolve, reject) => {
     canvas.toBlob(
@@ -197,7 +261,7 @@ export async function renderEditedPhoto(
   })
 }
 
-function loadImage(src: string): Promise<HTMLImageElement> {
+export function loadImage(src: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const img = new Image()
     // Supabase serves these cross-origin; without this the canvas taints and

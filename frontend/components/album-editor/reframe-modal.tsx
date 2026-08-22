@@ -1,14 +1,30 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useMemo, useState } from 'react'
 import Cropper from 'react-easy-crop'
-import { ZoomIn, ZoomOut, Check, X } from 'lucide-react'
+import { Check, X, ZoomIn, ZoomOut } from 'lucide-react'
+
+/**
+ * Reframe: which part of a photograph the slot shows.
+ *
+ * The crop it produces is normalised 0–1 against the source image and stored
+ * on the element, so it survives a save and is applied by the canvas rather
+ * than only living in this dialog.
+ */
+
+interface CropRect {
+  x: number
+  y: number
+  width: number
+  height: number
+}
 
 interface ReframeModalProps {
   imageSrc: string
-  aspectRatio: number // e.g. 1 (square), 1.33 (4:3), etc.
-  initialCrop?: { x: number; y: number; width: number; height: number }
-  onSave: (crop: { x: number; y: number; width: number; height: number }) => void
+  /** The slot's own shape, so the crop matches the frame it will fill. */
+  aspectRatio: number
+  initialCrop?: CropRect
+  onSave: (crop: CropRect) => void
   onClose: () => void
 }
 
@@ -17,94 +33,99 @@ export function ReframeModal({
   aspectRatio = 1,
   initialCrop,
   onSave,
-  onClose
+  onClose,
 }: ReframeModalProps) {
-  // Convert standard percentage coordinates to react-easy-crop coordinates
-  // react-easy-crop uses { x, y } in pixels or percentages offset from center
   const [crop, setCrop] = useState({ x: 0, y: 0 })
   const [zoom, setZoom] = useState(1)
-  const [croppedAreaPixels, setCroppedAreaPixels] = useState<any>(null)
+  const [area, setArea] = useState<CropRect | null>(initialCrop ?? null)
 
-  const handleCropComplete = (croppedArea: any, croppedAreaPixels: any) => {
-    // Save the relative crop area (percentages)
-    setCroppedAreaPixels(croppedArea)
-  }
-
-  const handleDone = () => {
-    if (croppedAreaPixels) {
-      // Convert 0-100 percentages to 0-1 decimals
-      onSave({
-        x: croppedAreaPixels.x / 100,
-        y: croppedAreaPixels.y / 100,
-        width: croppedAreaPixels.width / 100,
-        height: croppedAreaPixels.height / 100
-      })
+  // react-easy-crop takes percentages; the element stores 0–1 decimals.
+  const initialArea = useMemo(() => {
+    if (!initialCrop) return undefined
+    return {
+      x: initialCrop.x * 100,
+      y: initialCrop.y * 100,
+      width: initialCrop.width * 100,
+      height: initialCrop.height * 100,
     }
-  }
+  }, [initialCrop])
 
   return (
-    <div className="fixed inset-0 z-[110] bg-black/80 flex items-center justify-center animate-in fade-in duration-300">
-      <div className="bg-paper border border-[#DDD8CE] shadow-2xl w-full max-w-2xl h-[550px] flex flex-col justify-between rounded-lg overflow-hidden">
-        
-        {/* Modal Header */}
-        <div className="px-6 py-4 bg-white border-b border-[#EBE6DD] flex justify-between items-center">
+    <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/70 p-4">
+      <div className="flex h-[min(620px,92dvh)] w-full max-w-2xl flex-col overflow-hidden rounded-[4px] border border-border bg-card shadow-2xl">
+        <div className="flex shrink-0 items-center justify-between border-b border-border px-5 py-3.5">
           <div>
-            <h3 className="font-serif text-lg text-ink font-semibold">Position Photo</h3>
-            <p className="text-[10px] text-pencil uppercase tracking-wider">Drag to reframe · Scroll to zoom</p>
+            <h3 className="font-serif text-lg italic text-foreground">Reframe</h3>
+            <p className="mt-0.5 font-mono text-[10px] uppercase tracking-[0.08em] text-ink-soft">
+              Drag to reposition · scroll or pinch to zoom
+            </p>
           </div>
-          <button onClick={onClose} className="text-pencil hover:text-ink">
-            <X className="w-5 h-5" />
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close"
+            className="flex h-9 w-9 items-center justify-center rounded-[2px] text-ink-soft transition-colors hover:bg-foreground/5 hover:text-foreground"
+          >
+            <X className="h-5 w-5" />
           </button>
         </div>
 
-        {/* Cropper Workspace */}
-        <div className="relative flex-1 bg-neutral-900">
+        <div className="relative min-h-0 flex-1 bg-[#14110E]">
           <Cropper
             image={imageSrc}
             crop={crop}
             zoom={zoom}
             aspect={aspectRatio}
+            initialCroppedAreaPercentages={initialArea}
             onCropChange={setCrop}
-            onCropComplete={handleCropComplete}
             onZoomChange={setZoom}
-            showGrid={true}
+            onCropComplete={(percent) =>
+              setArea({
+                x: percent.x / 100,
+                y: percent.y / 100,
+                width: percent.width / 100,
+                height: percent.height / 100,
+              })
+            }
+            showGrid
           />
         </div>
 
-        {/* Controls and Footer */}
-        <div className="p-6 bg-white border-t border-[#EBE6DD] space-y-4">
-          <div className="flex items-center gap-4">
-            <ZoomOut className="w-4 h-4 text-pencil" />
+        <div className="shrink-0 space-y-3 border-t border-border px-5 py-4">
+          <div className="flex items-center gap-3">
+            <ZoomOut className="h-4 w-4 shrink-0 text-ink-soft" />
             <input
               type="range"
               value={zoom}
               min={1}
               max={3}
-              step={0.05}
+              step={0.02}
               aria-label="Zoom"
               onChange={(e) => setZoom(Number(e.target.value))}
-              className="flex-1 accent-ink h-1 bg-[#EBE6DD] rounded-lg appearance-none cursor-pointer"
+              className="h-8 flex-1 accent-[var(--primary)]"
             />
-            <ZoomIn className="w-4 h-4 text-pencil" />
+            <ZoomIn className="h-4 w-4 shrink-0 text-ink-soft" />
           </div>
 
-          <div className="flex gap-4">
+          <div className="flex gap-2">
             <button
-              onClick={handleDone}
-              className="flex-1 py-3 bg-ink hover:bg-ink/90 text-white text-[10px] uppercase font-bold tracking-[0.2em] transition-colors flex items-center justify-center gap-1 shadow-md"
+              type="button"
+              onClick={() => area && onSave(area)}
+              disabled={!area}
+              className="inline-flex min-h-[44px] flex-1 items-center justify-center gap-1.5 rounded-[2px] bg-primary px-5 font-mono text-[11px] uppercase tracking-[0.1em] text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-40"
             >
-              <Check className="w-4 h-4" />
-              Save Crop Settings
+              <Check className="h-4 w-4" />
+              Use this framing
             </button>
             <button
+              type="button"
               onClick={onClose}
-              className="px-6 py-3 border border-border text-pencil hover:text-ink text-[10px] uppercase font-bold tracking-wider transition-colors"
+              className="inline-flex min-h-[44px] items-center justify-center rounded-[2px] border border-border px-5 font-mono text-[11px] uppercase tracking-[0.08em] text-ink-soft transition-colors hover:border-foreground hover:text-foreground"
             >
               Cancel
             </button>
           </div>
         </div>
-
       </div>
     </div>
   )

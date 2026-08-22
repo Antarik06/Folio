@@ -9,15 +9,23 @@ export const metadata = {
 }
 
 /**
- * The Photo Studio: the second of the two making tools in Create.
+ * The Photo Studio: the darkroom of the Create tab.
  *
  * Deliberately its own route rather than a panel inside the album editor. One
  * tool lays out a book, the other grades a single photograph, and each gets a
- * room that looks like what it does.
+ * room that looks like what it does. Create's Photo Studio section links
+ * straight here with `?photo=` so the common case — "grade this one" — skips
+ * the picker entirely.
  */
-export default async function PhotoStudioPage() {
+export default async function PhotoStudioPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ photo?: string }>
+}) {
   const token = await getAuthToken()
   if (!token) redirect('/auth/login')
+
+  const { photo: initialPhotoId } = (await searchParams) || {}
 
   let library: { total: number; photos: any[] } = { total: 0, photos: [] }
   try {
@@ -28,6 +36,7 @@ export default async function PhotoStudioPage() {
 
   return (
     <PhotoStudio
+      initialPhotoId={initialPhotoId}
       photos={(library.photos ?? []).map((p: any) => ({
         id: p.id,
         url: p.url,

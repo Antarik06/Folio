@@ -13,11 +13,14 @@ import { Topbar } from './topbar'
 import { Workspace } from './workspace'
 import { Timeline } from './timeline'
 import { SpecStrip } from './spec-strip'
-import { getAlbumAspectRatio } from '@/lib/template-engine-utils'
+import { Inspector, type AlignMode } from './inspector'
+import { ReframeModal } from './reframe-modal'
 
 
 interface EditorProps {
   albumId: string
+  albumTitle?: string
+  eventId?: string | null
   initialSpreads?: AlbumSpread[]
   photos?: any[]
   layoutField?: 'layout_data' | 'theme_config'
@@ -383,31 +386,6 @@ function rgbToSaturation(r: number, g: number, b: number) {
   return (max - min) / max
 }
 
-function parseHexColor(hex: string) {
-  const normalized = hex.trim()
-
-  const short = normalized.match(/^#([0-9A-Fa-f]{3})$/)
-  if (short) {
-    const [r, g, b] = short[1].split('')
-    return {
-      r: Number.parseInt(r + r, 16),
-      g: Number.parseInt(g + g, 16),
-      b: Number.parseInt(b + b, 16),
-    }
-  }
-
-  const full = normalized.match(/^#([0-9A-Fa-f]{6})$/)
-  if (full) {
-    return {
-      r: Number.parseInt(full[1].slice(0, 2), 16),
-      g: Number.parseInt(full[1].slice(2, 4), 16),
-      b: Number.parseInt(full[1].slice(4, 6), 16),
-    }
-  }
-
-  return null
-}
-
 async function loadImageForProcessing(src: string) {
   return await new Promise<HTMLImageElement>((resolve, reject) => {
     const image = new window.Image()
@@ -569,82 +547,10 @@ async function removeBackgroundHeuristic(src: string) {
   return canvas.toDataURL('image/png')
 }
 
-async function recolorLikelyMonochromeImage(src: string, colorHex: string) {
-  const target = parseHexColor(colorHex)
-  if (!target) {
-    throw new Error('Invalid color format')
-  }
-
-  const image = await loadImageForProcessing(src)
-  const width = image.naturalWidth || image.width
-  const height = image.naturalHeight || image.height
-
-  if (!width || !height) {
-    throw new Error('Invalid image dimensions')
-  }
-
-  const canvas = document.createElement('canvas')
-  canvas.width = width
-  canvas.height = height
-  const context = canvas.getContext('2d', { willReadFrequently: true })
-
-  if (!context) {
-    throw new Error('Canvas is not available')
-  }
-
-  context.drawImage(image, 0, 0, width, height)
-
-  let imageData: ImageData
-  try {
-    imageData = context.getImageData(0, 0, width, height)
-  } catch {
-    throw new Error('Image pixels are not readable (cross-origin restrictions)')
-  }
-
-  const data = imageData.data
-  let opaqueCount = 0
-  let translucentCount = 0
-  let saturationTotal = 0
-
-  for (let i = 0; i < data.length; i += 4) {
-    const alpha = data[i + 3]
-    if (alpha < 10) continue
-    opaqueCount += 1
-    if (alpha < 250) translucentCount += 1
-    saturationTotal += rgbToSaturation(data[i], data[i + 1], data[i + 2])
-  }
-
-  if (opaqueCount === 0) {
-    throw new Error('No drawable pixels')
-  }
-
-  const alphaCoverage = opaqueCount / (width * height)
-  const avgSaturation = saturationTotal / opaqueCount
-  const translucentRatio = translucentCount / opaqueCount
-  const likelyGraphic = alphaCoverage < 0.86 || translucentRatio > 0.03 || avgSaturation < 0.25
-
-  if (!likelyGraphic) {
-    return null
-  }
-
-  for (let i = 0; i < data.length; i += 4) {
-    const alpha = data[i + 3]
-    if (alpha < 10) continue
-
-    const luminance = (0.2126 * data[i] + 0.7152 * data[i + 1] + 0.0722 * data[i + 2]) / 255
-    const tone = 0.36 + luminance * 0.64
-
-    data[i] = Math.round(target.r * tone)
-    data[i + 1] = Math.round(target.g * tone)
-    data[i + 2] = Math.round(target.b * tone)
-  }
-
-  context.putImageData(imageData, 0, 0)
-  return canvas.toDataURL('image/png')
-}
-
 export function AlbumEditor({
   albumId,
+  albumTitle = 'Untitled album',
+  eventId,
   initialSpreads,
   photos = [],
   layoutField = 'layout_data',
@@ -713,6 +619,20 @@ export function AlbumEditor({
 
   const [isMobile, setIsMobile] = useState(false)
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [inspectorOpen, setInspectorOpen] = useState(false)
+
+  // The album's own title, edited in place from the top bar. Held here rather
+  // than read straight from the prop so a rename shows immediately instead of
+  // waiting on a round trip.
+  const [title, setTitle] = useState(albumTitle)
+  const [renamingTitle, setRenamingTitle] = useState(false)
+
+  // Photographs available to place. Starts as whatever the event holds and
+  // grows as the user uploads more without leaving the editor.
+  const [photoList, setPhotoList] = useState<any[]>(photos)
+  const [uploading, setUploading] = useState(false)
+
+  const [reframeId, setReframeId] = useState<string | null>(null)
 
   // Screen size listener for < 1024px (mobile + tablet)
   useEffect(() => {
@@ -731,32 +651,35 @@ export function AlbumEditor({
   // collapsing fires `resize`, so re-fitting unconditionally used to throw away
   // a pinch (or a toolbar zoom) the moment the page scrolled.
   const userSetZoomRef = useRef(false)
+  const viewportRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (typeof window === 'undefined') return
 
-    const calculateFitZoom = () => {
+    // Fit the page to the room it has, once, and again on resize until the
+    // user picks a zoom of their own. Measured from the viewport rather than
+    // the window: the rails and the page rail take real width.
+    const fit = () => {
       if (userSetZoomRef.current) return
-      if (isMobile) {
-        // On mobile, panels are overlay drawers and do not take document flow space.
-        // We only subtract workspace padding (p-4 = 16px * 2 = 32px).
-        const availableWidth = window.innerWidth - 32
-        const fitZoom = Math.floor((availableWidth / SPREAD_WIDTH) * 100)
-        const clampedZoom = Math.max(15, Math.min(150, fitZoom))
-        setZoomState(clampedZoom)
-      } else {
-        // On desktop/web, default zoom is set to 50%
-        setZoomState(50)
-      }
+      const node = viewportRef.current
+      if (!node) return
+
+      const padding = isMobile ? 24 : 56
+      const availableWidth = node.clientWidth - padding
+      const availableHeight = node.clientHeight - padding
+      if (availableWidth <= 0 || availableHeight <= 0) return
+
+      const scale = Math.min(availableWidth / SPREAD_WIDTH, availableHeight / SPREAD_HEIGHT)
+      setZoomState(Math.max(10, Math.min(150, Math.floor(scale * 100))))
     }
 
-    calculateFitZoom()
-
-    if (isMobile) {
-      window.addEventListener('resize', calculateFitZoom)
-      return () => window.removeEventListener('resize', calculateFitZoom)
+    const frame = window.requestAnimationFrame(fit)
+    window.addEventListener('resize', fit)
+    return () => {
+      window.cancelAnimationFrame(frame)
+      window.removeEventListener('resize', fit)
     }
-  }, [SPREAD_WIDTH, isMobile])
+  }, [SPREAD_WIDTH, SPREAD_HEIGHT, isMobile])
 
   const supabase = useMemo(() => createBrowserClient(), [])
   const skipAutosaveRef = useRef(true)
@@ -1004,13 +927,105 @@ export function AlbumEditor({
     }
   }, [activeTemplateId, albumId, documentState, layoutMeta, layoutSaveField, supabase])
 
+  /**
+   * Leaving the editor goes to Create, not back through history.
+   *
+   * router.back() sent people wherever they happened to arrive from — often
+   * the order desk or a share link — when the one place an album belongs to
+   * is the shelf it now sits on.
+   */
   const handleBackToSite = useCallback(() => {
-    if (typeof window !== 'undefined' && window.history.length > 1) {
-      router.back()
-      return
-    }
-    router.push('/photos')
+    router.push('/create#albums')
   }, [router])
+
+  const handleRenameAlbum = useCallback(
+    async (nextTitle: string) => {
+      const trimmed = nextTitle.trim()
+      if (!trimmed || trimmed === title) return
+
+      const previous = title
+      setTitle(trimmed)
+      setRenamingTitle(true)
+      try {
+        await apiClient.patch(`/api/albums/${albumId}/rename`, { title: trimmed })
+      } catch (err) {
+        console.error('[Editor] Rename failed:', err)
+        setTitle(previous)
+      } finally {
+        setRenamingTitle(false)
+      }
+    },
+    [albumId, title]
+  )
+
+  /**
+   * Upload straight into the editor.
+   *
+   * The Photos panel has always had an upload button in its markup, but the
+   * editor never passed a handler down, so it never rendered — the only way
+   * to get a new photograph into a layout was to leave, upload it to the
+   * event, and come back.
+   */
+  const handleUploadPhotos = useCallback(
+    async (files: FileList) => {
+      if (!files.length) return
+      setUploading(true)
+
+      try {
+        for (const file of Array.from(files)) {
+          if (!file.type.startsWith('image/')) continue
+
+          const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '-')
+          const path = `albums/${albumId}/uploads/${Date.now()}-${safeName}`
+
+          const { error: uploadError } = await supabase.storage
+            .from('photos')
+            .upload(path, file, { contentType: file.type })
+          if (uploadError) throw uploadError
+
+          const {
+            data: { publicUrl },
+          } = supabase.storage.from('photos').getPublicUrl(path)
+
+          let registered: any = null
+          if (eventId) {
+            // Filed against the event when there is one, so the photograph
+            // joins the library rather than living only inside this layout.
+            try {
+              const result = await apiClient.post('/api/photos', {
+                eventId,
+                blobUrl: publicUrl,
+                blobPathname: path,
+                thumbnailUrl: publicUrl,
+                originalFilename: file.name,
+                fileSize: file.size,
+              })
+              registered = result?.photo ?? null
+            } catch (err) {
+              console.error('[Editor] Could not file the upload against the event:', err)
+            }
+          }
+
+          setPhotoList((prev) => [
+            registered ?? {
+              id: `local-${path}`,
+              blob_url: publicUrl,
+              thumbnail_url: publicUrl,
+              url: publicUrl,
+              original_filename: file.name,
+            },
+            ...prev,
+          ])
+        }
+      } catch (err) {
+        console.error('[Editor] Upload failed:', err)
+        window.alert('That upload did not go through. Check the file and try again.')
+      } finally {
+        setUploading(false)
+      }
+    },
+    [albumId, eventId, supabase]
+  )
 
   useEffect(() => {
     if (skipAutosaveRef.current) {
@@ -1249,6 +1264,46 @@ export function AlbumEditor({
     setSelection(coverSelectionId ? [coverSelectionId] : [])
   }, [applyDocumentChange])
 
+  const duplicateSpread = useCallback(
+    (spreadId: string) => {
+      applyDocumentChange(
+        (doc) => {
+          const index = doc.spreads.findIndex((spread) => spread.id === spreadId)
+          if (index < 0) return doc
+
+          const source = doc.spreads[index]
+          const newId = uuidv4()
+          // Fresh element ids, or the copy and the original would be the same
+          // objects as far as selection and the transformer are concerned.
+          const cloneSide = (side: AlbumPageSide | undefined): AlbumPageSide => ({
+            background: side?.background ?? '#ffffff',
+            elements: (side?.elements ?? []).map((el) => ({ ...el, id: uuidv4() })),
+          })
+
+          const front = cloneSide(getSpreadSide(source, 'front'))
+          const copy: AlbumSpread = {
+            id: newId,
+            // Only one spread may be the cover, so a duplicated cover becomes
+            // an ordinary page rather than a second one.
+            isCover: false,
+            background: source.background,
+            elements: front.elements,
+            front,
+            back: cloneSide(getSpreadSide(source, 'back')),
+          }
+
+          const nextSpreads = [...doc.spreads]
+          nextSpreads.splice(index + 1, 0, copy)
+
+          return { ...doc, spreads: nextSpreads, activeSpreadId: newId, activeSide: 'front' }
+        },
+        { historyGroup: 'spread' }
+      )
+      setSelection([])
+    },
+    [applyDocumentChange]
+  )
+
   const canDeleteSpread = useCallback(
     (spreadId: string) => {
       if (!documentState.spreads.some((spread) => spread.id === spreadId)) {
@@ -1326,11 +1381,31 @@ export function AlbumEditor({
     setZoomState(Math.max(10, Math.min(300, Math.round(value))))
   }, [])
 
+  /**
+   * Fit the page to whatever room the canvas actually has.
+   *
+   * The old default was a flat 50%, which on a laptop left the page floating
+   * in a third of the screen and on a wide monitor wasted half of it.
+   */
+  const zoomToFit = useCallback(() => {
+    const node = viewportRef.current
+    if (!node) return
+    const padding = 48
+    const available = {
+      width: node.clientWidth - padding,
+      height: node.clientHeight - padding,
+    }
+    if (available.width <= 0 || available.height <= 0) return
+
+    const fit = Math.min(available.width / SPREAD_WIDTH, available.height / SPREAD_HEIGHT) * 100
+    userSetZoomRef.current = true
+    setZoomState(Math.max(10, Math.min(300, Math.floor(fit))))
+  }, [SPREAD_WIDTH, SPREAD_HEIGHT])
+
   // Pinch-to-zoom on the canvas viewport. The container sets
   // `touch-action: pan-x pan-y`, which suppresses the browser's own pinch, so
   // without this a two-finger gesture on the canvas did nothing at all and the
   // only way to zoom on a phone was the toolbar buttons.
-  const viewportRef = useRef<HTMLDivElement>(null)
   const pinchRef = useRef<{ startDistance: number; startZoom: number } | null>(null)
 
   useEffect(() => {
@@ -1383,13 +1458,6 @@ export function AlbumEditor({
   const setSelectionSafe = useCallback((ids: string[]) => {
     setSelection(ids)
   }, [])
-
-  const handleRenameLayer = useCallback(
-    (id: string, name: string) => {
-      updateElement(id, { name }, { historyGroup: 'rename-layer' })
-    },
-    [updateElement]
-  )
 
   const handleToggleLock = useCallback(
     (id: string) => {
@@ -1580,39 +1648,48 @@ export function AlbumEditor({
     deleteElements(selection)
   }, [selection, deleteElements])
 
-  const handleAiFillColor = useCallback(
-    async (color: string) => {
-      const target = selectedElements[0]
-      if (!target) return false
+  /** Copy the selection, offset a little so it reads as a second object. */
+  const duplicateSelection = useCallback(() => {
+    if (selection.length === 0) return
 
-      if (target.type === 'text' || target.type === 'shape') {
-        updateElement(target.id, { fill: color }, { historyGroup: 'ai-fill-color' })
-        return true
-      }
+    const created: string[] = []
+    applyDocumentChange(
+      (doc) => {
+        const spreadIndex = doc.spreads.findIndex((sp) => sp.id === doc.activeSpreadId)
+        if (spreadIndex < 0) return doc
+        const spread = doc.spreads[spreadIndex]
+        const side = getSpreadSide(spread, doc.activeSide)
 
-      if (target.type === 'image') {
-        try {
-          const processed = await recolorLikelyMonochromeImage(target.src, color)
-          if (!processed) return false
+        const targets = side.elements.filter((el) => selection.includes(el.id))
+        if (targets.length === 0) return doc
 
-          updateElement(
-            target.id,
-            {
-              src: processed,
-              fitMode: 'fit',
-            },
-            { historyGroup: 'ai-fill-color' }
-          )
-          return true
-        } catch {
-          return false
-        }
-      }
+        let nextZ = Math.max(0, ...side.elements.map((el) => el.zIndex))
+        const copies = targets.map((el) => {
+          nextZ += 1
+          const id = uuidv4()
+          created.push(id)
+          return {
+            ...el,
+            id,
+            zIndex: nextZ,
+            locked: false,
+            x: Math.min(SPREAD_WIDTH - el.width, el.x + 24),
+            y: Math.min(SPREAD_HEIGHT - el.height, el.y + 24),
+          } as AlbumElement
+        })
 
-      return false
-    },
-    [selectedElements, updateElement]
-  )
+        const nextSpreads = [...doc.spreads]
+        nextSpreads[spreadIndex] = withSpreadSide(spread, doc.activeSide, {
+          ...side,
+          elements: normalizeZIndex([...side.elements, ...copies]),
+        })
+        return { ...doc, spreads: nextSpreads }
+      },
+      { historyGroup: 'duplicate' }
+    )
+
+    if (created.length > 0) setSelection(created)
+  }, [applyDocumentChange, selection, SPREAD_WIDTH, SPREAD_HEIGHT])
 
   const handleAiRemoveBackground = useCallback(async () => {
     const target = selectedElements.find((el) => el.type === 'image')
@@ -1634,26 +1711,17 @@ export function AlbumEditor({
     }
   }, [selectedElements, updateElement])
 
-  const handleSelectSpread = useCallback((id: string) => {
-    setDocumentState((doc) => ({ ...doc, activeSpreadId: id, activeSide: 'front' }))
+  const handleSelectSpread = useCallback((id: string, side: SpreadSide = 'front') => {
+    setDocumentState((doc) => ({ ...doc, activeSpreadId: id, activeSide: side }))
     setSelection([])
   }, [])
-
-  const handleChangeSide = useCallback((side: SpreadSide) => {
-    setDocumentState((doc) => ({ ...doc, activeSide: side }))
-    setSelection([])
-  }, [])
-
-  const handleSwitchAlbum = useCallback((id: string) => {
-    router.push(`/create/editor/${id}`)
-  }, [router])
 
   const handleApplyTemplate = useCallback(async (templateId: string) => {
     const targetTemplate = templates.find((template) => template.id === templateId)
     if (!targetTemplate || !targetTemplate.spreads.length) return false
 
     const normalizedTemplate = normalizeSpreads(targetTemplate.spreads)
-    const imagePool = collectPhotoPool(documentState.spreads, photos)
+    const imagePool = collectPhotoPool(documentState.spreads, photoList)
     const remappedSpreads = applyImagePoolToSpreads(normalizedTemplate, imagePool)
 
     applyDocumentChange(
@@ -1671,7 +1739,7 @@ export function AlbumEditor({
     setLayoutMeta((previous) => ({ ...previous, templateId, productType: 'magazine' }))
     setActivePanel('photos')
     return true
-  }, [applyDocumentChange, documentState.spreads, photos, templates])
+  }, [applyDocumentChange, documentState.spreads, photoList, templates])
 
   const setSpreadBackground = useCallback(
     (background: string, applyToAll: boolean = false) => {
@@ -1712,22 +1780,16 @@ export function AlbumEditor({
     [applyDocumentChange]
   )
 
-  const handleExport = useCallback(async () => {
-    const confirmed = window.confirm("Do you want to go to the order page? Designing is complete.")
-    if (confirmed) {
-      const saved = await persistDraft()
-      if (saved) {
-        router.push(`/preview/${albumId}`)
-      }
-    }
-  }, [albumId, persistDraft, router])
-
   if (!activeSpread) {
     return null
   }
 
+  const reframeElement = reframeId
+    ? activeSpreadSide.elements.find((el) => el.id === reframeId && el.type === 'image')
+    : null
+
   return (
-    <div className="flex h-screen w-screen overflow-hidden bg-[#F1F2F4] dark:bg-[#12100D] text-foreground font-sans transition-colors relative">
+    <div className="relative flex h-[100dvh] w-full overflow-hidden bg-background font-sans text-foreground">
       <Sidebar
         activePanel={activePanel}
         onChangePanel={(panel) => {
@@ -1735,50 +1797,60 @@ export function AlbumEditor({
           if (isMobile) setSidebarOpen(true)
         }}
         onAddElement={addElement}
-        photos={photos}
-        onGoBack={handleBackToSite}
+        photos={photoList}
+        onUploadPhotos={handleUploadPhotos}
+        uploading={uploading}
         spreadBackground={activeSpreadSide.background}
         onSetSpreadBackground={setSpreadBackground}
         templates={templates}
         activeTemplateId={activeTemplateId}
         onApplyTemplate={handleApplyTemplate}
+        elements={activeSpreadSide.elements}
+        selection={selection}
+        onSelect={setSelectionSafe}
+        onToggleLock={handleToggleLock}
+        onToggleHidden={handleToggleHidden}
+        onMoveLayer={moveLayer}
         isMobile={isMobile}
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
       />
 
-      {/* Sidebar Backdrop Overlay on Mobile */}
-      {isMobile && sidebarOpen && (
-        <div 
-          className="fixed inset-0 bg-black/40 z-20 transition-opacity animate-in fade-in duration-200"
-          onClick={() => setSidebarOpen(false)}
+      {/* One backdrop for whichever drawer is open on a small screen. */}
+      {isMobile && (sidebarOpen || inspectorOpen) ? (
+        <div
+          className="fixed inset-0 z-20 bg-black/40 transition-opacity"
+          onClick={() => {
+            setSidebarOpen(false)
+            setInspectorOpen(false)
+          }}
         />
-      )}
+      ) : null}
 
-      <div className="flex-1 flex flex-col h-full min-w-0 transition-all duration-300">
+      <div className="flex h-full min-w-0 flex-1 flex-col">
         <Topbar
+          albumTitle={title}
+          onRenameAlbum={(next) => void handleRenameAlbum(next)}
+          renaming={renamingTitle}
           zoom={zoom}
           setZoom={setZoom}
-          selectedElements={selectedElements}
-          onUpdateElement={updateElement}
-          onDeleteSelected={handleDeleteSelection}
+          onZoomToFit={zoomToFit}
+          showGrid={showGrid}
+          onToggleGrid={toggleGrid}
           canUndo={canUndo}
           canRedo={canRedo}
           onUndo={undo}
           onRedo={redo}
+          saveLabel={formatSaveStatus(saveStatus, lastSavedAt)}
+          saveTone={saveStatus === 'error' ? 'error' : saveStatus === 'saving' || saveStatus === 'dirty' ? 'busy' : 'idle'}
           saving={saveStatus === 'saving'}
-          onSaveNow={() => {
-            void (async () => {
-              const saved = await persistDraft()
-              if (saved) handleBackToSite()
-            })()
-          }}
-          onReplacePhoto={() => {
-            setActivePanel('photos')
-            if (isMobile) setSidebarOpen(true)
-          }}
+          onSaveNow={() => void persistDraft()}
+          onBack={handleBackToSite}
+          albumId={albumId}
           isMobile={isMobile}
-          onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
+          onToggleSidebar={() => setSidebarOpen((open) => !open)}
+          onToggleInspector={() => setInspectorOpen((open) => !open)}
+          inspectorOpen={inspectorOpen}
         />
 
         <SpecStrip
@@ -1788,48 +1860,90 @@ export function AlbumEditor({
           widthUnits={SPREAD_WIDTH}
           heightUnits={SPREAD_HEIGHT}
           pageSizeMm={pageSizeMm}
-          zoom={zoom}
-          saveStatus={saveStatus}
-          lastSavedAt={lastSavedAt}
         />
 
-        <div className="flex-1 min-h-0 flex bg-[#E5E5E5] dark:bg-[#171411] transition-colors relative">
-          <div
-            ref={viewportRef}
-            className="flex-1 relative overflow-auto touch-pan-x touch-pan-y flex items-center justify-center p-4 md:p-8"
-          >
-            <Workspace
-              spread={activeSpreadView || activeSpread}
-              zoom={zoom}
-              showGrid={showGrid}
-              selection={selection}
-              setSelection={setSelectionSafe}
-              updateElement={updateElement}
-              deleteElements={deleteElements}
-              onDropElement={addElementAt}
-              isDrawingMode={isDrawingMode}
-              brushColor={brushColor}
-              brushSize={brushSize}
-              photos={photos}
-            />
-          </div>
-
+        <div
+          ref={viewportRef}
+          className="relative flex min-h-0 flex-1 items-center justify-center overflow-auto bg-surface-2 p-3 touch-pan-x touch-pan-y md:p-7"
+          style={{
+            // A faint measuring grid on the table itself, so the page reads as
+            // a sheet laid on a surface rather than a floating rectangle.
+            backgroundImage:
+              'linear-gradient(var(--border) 1px, transparent 1px), linear-gradient(90deg, var(--border) 1px, transparent 1px)',
+            backgroundSize: '32px 32px',
+            backgroundPosition: '-1px -1px',
+          }}
+        >
+          <Workspace
+            spread={activeSpreadView || activeSpread}
+            zoom={zoom}
+            showGrid={showGrid}
+            selection={selection}
+            setSelection={setSelectionSafe}
+            updateElement={updateElement}
+            deleteElements={deleteElements}
+            onDropElement={addElementAt}
+            isDrawingMode={isDrawingMode}
+            brushColor={brushColor}
+            brushSize={brushSize}
+            photos={photoList}
+          />
         </div>
 
         <Timeline
           spreads={documentState.spreads}
           activeSpreadId={documentState.activeSpreadId}
           activeSide={documentState.activeSide}
+          pageWidth={SPREAD_WIDTH}
+          pageHeight={SPREAD_HEIGHT}
           onSelectSpread={handleSelectSpread}
-          onChangeSide={handleChangeSide}
           onAddSpread={addSpread}
           onAddCoverSpread={addCoverSpread}
+          onDuplicateSpread={duplicateSpread}
           onDeleteSpread={deleteSpread}
           canDeleteSpread={canDeleteSpread}
           onReorderSpreads={reorderSpreads}
         />
       </div>
 
+      <Inspector
+        selected={selectedElements}
+        onUpdate={updateElement}
+        onDelete={handleDeleteSelection}
+        onDuplicate={duplicateSelection}
+        onAlign={alignSelection}
+        onDistribute={distributeSelection}
+        onMoveLayer={moveLayer}
+        onToggleLock={handleToggleLock}
+        onToggleHidden={handleToggleHidden}
+        onReplacePhoto={() => {
+          setActivePanel('photos')
+          if (isMobile) {
+            setInspectorOpen(false)
+            setSidebarOpen(true)
+          }
+        }}
+        onReframe={(id) => setReframeId(id)}
+        onRemoveBackground={handleAiRemoveBackground}
+        pageWidth={SPREAD_WIDTH}
+        pageHeight={SPREAD_HEIGHT}
+        isMobile={isMobile}
+        isOpen={inspectorOpen}
+        onClose={() => setInspectorOpen(false)}
+      />
+
+      {reframeElement && reframeElement.type === 'image' ? (
+        <ReframeModal
+          imageSrc={reframeElement.src}
+          aspectRatio={reframeElement.width / reframeElement.height}
+          initialCrop={reframeElement.crop}
+          onSave={(crop) => {
+            updateElement(reframeElement.id, { crop, fitMode: 'fill' }, { historyGroup: 'reframe' })
+            setReframeId(null)
+          }}
+          onClose={() => setReframeId(null)}
+        />
+      ) : null}
     </div>
   )
 }

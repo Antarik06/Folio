@@ -264,14 +264,20 @@ export const albumService = {
                    ELSE 0 END AS spread_count,
               a.layout_data->>'templateId' AS template_id_ref,
               -- The photographs already placed in the layout, so a card can
-              -- show the album rather than a placeholder. Two paths because
-              -- older layouts kept elements on the spread itself, newer ones
-              -- under front/back. jsonpath runs in lax mode, so a layout
-              -- missing either shape yields an empty array instead of an error.
+              -- show the album rather than a placeholder. Three paths because
+              -- a spread carries its pages under front/back, while older
+              -- layouts kept elements on the spread itself. jsonpath runs in
+              -- lax mode, so a layout missing any of those shapes yields an
+              -- empty array rather than an error.
               (
                 jsonb_path_query_array(
                   COALESCE(a.layout_data, '{}'::jsonb),
                   '$.spreads[*].front.elements[*] ? (@.type == "image").src'
+                )
+                ||
+                jsonb_path_query_array(
+                  COALESCE(a.layout_data, '{}'::jsonb),
+                  '$.spreads[*].back.elements[*] ? (@.type == "image").src'
                 )
                 ||
                 jsonb_path_query_array(
