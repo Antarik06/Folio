@@ -236,7 +236,7 @@ function PageSettings({
             <span className="pl-3 font-mono text-sm text-ink-soft">@</span>
             <input
               value={handle}
-              onChange={(e) => setHandle(e.target.value)}
+              onChange={(event) => setHandle(event.target.value)}
               placeholder="yourname"
               autoCapitalize="none"
               autoCorrect="off"
@@ -255,7 +255,7 @@ function PageSettings({
           </MonoLabel>
           <textarea
             value={bio}
-            onChange={(e) => setBio(e.target.value)}
+            onChange={(event) => setBio(event.target.value)}
             rows={2}
             maxLength={200}
             placeholder="Shoots weddings in Udaipur. Mostly film."
@@ -268,27 +268,30 @@ function PageSettings({
         <input
           type="checkbox"
           checked={isPublic}
-          onChange={(e) => setIsPublic(e.target.checked)}
+          onChange={(event) => setIsPublic(event.target.checked)}
           className="mt-0.5 h-5 w-5 shrink-0 accent-[var(--primary)]"
         />
         <span>
-          <span className="block text-sm text-foreground">
-            Make my page public
-          </span>
+          <span className="block text-sm text-foreground">Make my page public</span>
           <span className="mt-0.5 block text-xs leading-relaxed text-muted-foreground">
-            Anyone with the link sees the albums you promoted and the cards you
-            marked public. Nothing else — your library and events stay private.
+            Anyone with the link sees your card, the images and albums you added,
+            and nothing else — your library and events stay private.
           </span>
         </span>
       </label>
 
-      <div className="mt-5 flex items-center gap-3 border-t border-border pt-4">
-        <StampButton tone="primary" size="sm" onClick={save} disabled={saving}>
+      <div className="mt-5 flex flex-wrap items-center gap-3 border-t border-border pt-4">
+        <StampButton tone="primary" size="sm" onClick={() => void save()} disabled={saving}>
           {saving ? 'Saving…' : 'Save'}
         </StampButton>
-        {data.handle ? (
-          <MonoLabel size="xs">folio.app/p/{data.handle}</MonoLabel>
-        ) : null}
+        {data.handle ? <MonoLabel size="xs">folio.app/p/{data.handle}</MonoLabel> : null}
+        <button
+          type="button"
+          onClick={onRerunOnboarding}
+          className="ml-auto font-mono text-[11px] uppercase tracking-[0.06em] text-ink-soft underline-offset-4 hover:text-primary hover:underline"
+        >
+          Answer the questions again
+        </button>
       </div>
     </div>
   )
