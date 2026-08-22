@@ -78,9 +78,12 @@ export const profileService = {
    * The signed-in user's own page, including unpromoted albums so they have
    * something to promote.
    */
-  async getOwnPage(userId: string): Promise<ProfilePage & { draft_albums: any[] }> {
+  async getOwnPage(
+    userId: string
+  ): Promise<ProfilePage & { draft_albums: any[]; onboarded_at: string | null }> {
     const profileRes = await query(
-      `SELECT id, email, full_name, handle, bio, avatar_url, role, page_is_public, created_at
+      `SELECT id, email, full_name, handle, bio, avatar_url, role, page_is_public,
+              onboarded_at, created_at
          FROM public.profiles WHERE id = $1`,
       [userId]
     )
