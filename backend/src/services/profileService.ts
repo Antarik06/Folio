@@ -195,6 +195,7 @@ export const profileService = {
       member_since: profile.created_at,
       ...counts,
       albums: albumsRes.rows,
+      photos: photosRes.rows,
       cards: cardBundle.cards,
       card_templates: cardBundle.templates,
       card_styles: cardBundle.styles,
