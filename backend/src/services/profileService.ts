@@ -24,9 +24,40 @@ export interface ProfilePage {
   events_joined: number
   events_hosted: number
   albums: any[]
+  photos: any[]
   cards: any[]
   card_templates: Record<string, any>
   card_styles: Record<string, any>
+}
+
+/** One frame the owner promoted, or could. */
+export interface ProfilePhoto {
+  id: string
+  url: string
+  event_title: string | null
+  taken_at: string | null
+  on_profile: boolean
+}
+
+/**
+ * What the first-run questionnaire collects.
+ *
+ * Every field is optional and every one maps onto `card_profiles.data`, which
+ * is what the card engine renders from — so answering three questions and
+ * skipping the rest still produces a card, just a quieter one.
+ */
+export interface OnboardingAnswers {
+  name?: string
+  handle?: string
+  tagline?: string
+  occupation?: string
+  location?: string
+  bio?: string
+  quote?: string
+  interests?: string[]
+  photoUrl?: string
+  templateId?: string
+  styleId?: string
 }
 
 async function loadCounts(userId: string) {
