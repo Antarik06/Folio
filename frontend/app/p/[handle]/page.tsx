@@ -2,15 +2,15 @@ import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import type { Metadata } from 'next'
 import { serverFetch } from '@/lib/api-client'
-import { Frame, LabelledBlock, MonoLabel } from '@/components/folio/primitives'
-import { CardRail } from '@/components/cards/card-rail'
+import { MonoLabel } from '@/components/folio/primitives'
+import { PublicProfileView } from '@/components/profile/public-profile-view'
 
 /**
  * Someone's public page.
  *
  * Deliberately outside the (app) group: a shared profile link has to open for
  * a visitor who has never signed in, so there is no auth gate and no tab bar
- * here — just the masthead, the promoted albums, and the public cards.
+ * here — just the masthead, the card, and what its owner put underneath it.
  */
 
 async function loadPage(handle: string) {
