@@ -1,5 +1,6 @@
 import { query } from '../db'
 import { HttpError } from '../utils/httpError'
+import { cardService } from './cardService'
 
 /**
  * The Profile tab — the Share stage of the pipeline.
@@ -24,6 +25,8 @@ export interface ProfilePage {
   events_hosted: number
   albums: any[]
   cards: any[]
+  card_templates: Record<string, any>
+  card_styles: Record<string, any>
 }
 
 async function loadCounts(userId: string) {
@@ -67,10 +70,7 @@ export const profileService = {
       [userId]
     )
 
-    const cardsRes = await query(
-      `SELECT * FROM public.share_cards WHERE owner_id = $1 ORDER BY created_at DESC`,
-      [userId]
-    )
+    const cardBundle = await cardService.listCards(userId)
 
     const counts = await loadCounts(userId)
     const albums = albumsRes.rows
@@ -86,7 +86,9 @@ export const profileService = {
       ...counts,
       albums: albums.filter((a: any) => a.on_profile),
       draft_albums: albums.filter((a: any) => !a.on_profile),
-      cards: cardsRes.rows,
+      cards: cardBundle.cards,
+      card_templates: cardBundle.templates,
+      card_styles: cardBundle.styles,
     }
   },
 
@@ -117,14 +119,7 @@ export const profileService = {
       [profile.id]
     )
 
-    const cardsRes = await query(
-      `SELECT id, kind, headline, subline, occasion_date, photo_url, created_at
-         FROM public.share_cards
-        WHERE owner_id = $1 AND is_public = TRUE
-        ORDER BY created_at DESC
-        LIMIT 24`,
-      [profile.id]
-    )
+    const cardBundle = await cardService.listPublicCards(profile.id, 12)
 
     const counts = await loadCounts(profile.id)
 
@@ -138,7 +133,9 @@ export const profileService = {
       member_since: profile.created_at,
       ...counts,
       albums: albumsRes.rows,
-      cards: cardsRes.rows,
+      cards: cardBundle.cards,
+      card_templates: cardBundle.templates,
+      card_styles: cardBundle.styles,
     }
   },
 
@@ -219,111 +216,4 @@ export const profileService = {
     return res.rows[0]
   },
 
-  /* ── Cards ──────────────────────────────────────────────────────────────── */
-
-  async listCards(userId: string) {
-    const res = await query(
-      'SELECT * FROM public.share_cards WHERE owner_id = $1 ORDER BY created_at DESC',
-      [userId]
-    )
-    return res.rows
-  },
-
-  async createCard(
-    userId: string,
-    input: {
-      kind?: 'occasion' | 'profile'
-      headline: string
-      subline?: string | null
-      occasion_date?: string | null
-      photo_id?: string | null
-      photo_url?: string | null
-      album_id?: string | null
-      is_public?: boolean
-    }
-  ) {
-    const headline = (input.headline ?? '').trim()
-    if (!headline) {
-      throw new HttpError(400, 'A card needs a headline.')
-    }
-    if (headline.length > 60) {
-      throw new HttpError(400, 'Headline must be 60 characters or fewer.')
-    }
-
-    // A card may only centre a photo the owner can actually see.
-    if (input.photo_id) {
-      const allowed = await query(
-        `SELECT 1
-           FROM public.photos p
-           JOIN public.events e ON p.event_id = e.id
-          WHERE p.id = $2
-            AND p.status = 'approved'
-            AND (
-              e.host_id = $1
-              OR p.uploader_id = $1
-              OR (p.is_shared = TRUE AND EXISTS (
-                    SELECT 1 FROM public.event_guests eg
-                     WHERE eg.event_id = e.id AND eg.user_id = $1))
-            )`,
-        [userId, input.photo_id]
-      )
-      if (allowed.rowCount === 0) {
-        throw new HttpError(403, 'That photo is not yours to put on a card.')
-      }
-    }
-
-    const res = await query(
-      `INSERT INTO public.share_cards
-         (owner_id, kind, headline, subline, occasion_date, photo_id, photo_url, album_id, is_public)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-    RETURNING *`,
-      [
-        userId,
-        input.kind ?? 'occasion',
-        headline,
-        input.subline ?? null,
-        input.occasion_date ?? null,
-        input.photo_id ?? null,
-        input.photo_url ?? null,
-        input.album_id ?? null,
-        input.is_public ?? false,
-      ]
-    )
-    return res.rows[0]
-  },
-
-  async updateCard(
-    userId: string,
-    cardId: string,
-    input: { headline?: string; subline?: string | null; is_public?: boolean }
-  ) {
-    if (typeof input.headline === 'string' && input.headline.trim().length === 0) {
-      throw new HttpError(400, 'A card needs a headline.')
-    }
-
-    const res = await query(
-      `UPDATE public.share_cards
-          SET headline = COALESCE($3, headline),
-              subline = COALESCE($4, subline),
-              is_public = COALESCE($5, is_public),
-              updated_at = NOW()
-        WHERE id = $2 AND owner_id = $1
-    RETURNING *`,
-      [userId, cardId, input.headline?.trim() ?? null, input.subline ?? null, input.is_public ?? null]
-    )
-    if (res.rowCount === 0) {
-      throw new HttpError(404, 'Card not found.')
-    }
-    return res.rows[0]
-  },
-
-  async deleteCard(userId: string, cardId: string) {
-    const res = await query(
-      'DELETE FROM public.share_cards WHERE id = $2 AND owner_id = $1',
-      [userId, cardId]
-    )
-    if (res.rowCount === 0) {
-      throw new HttpError(404, 'Card not found.')
-    }
-  },
 }

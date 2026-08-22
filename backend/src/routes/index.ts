@@ -6,6 +6,7 @@ import albumRoutes from './albumRoutes'
 import orderRoutes from './orderRoutes'
 import aiRoutes from './aiRoutes'
 import profileRoutes from './profileRoutes'
+import cardRoutes from './cardRoutes'
 import adminRoutes from './adminRoutes'
 import artistRoutes from './artistRoutes'
 import premiumRoutes from './premiumRoutes'
@@ -21,6 +22,7 @@ router.use('/library', libraryRoutes)
 router.use('/albums', albumRoutes)
 router.use('/orders', orderRoutes)
 router.use('/profile', profileRoutes)
+router.use('/cards', cardRoutes)
 router.use('/admin', adminRoutes)
 router.use('/artists', artistRoutes)
 router.use('/premium', premiumRoutes)

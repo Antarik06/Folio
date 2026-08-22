@@ -74,45 +74,10 @@ router.patch('/albums/:albumId', async (req: AuthenticatedRequest, res: Response
   }
 })
 
-router.get('/cards', async (req: AuthenticatedRequest, res: Response) => {
-  try {
-    const userId = req.user?.id
-    if (!userId) return res.status(401).json({ error: 'Unauthenticated' })
-    res.json(await profileService.listCards(userId))
-  } catch (error: any) {
-    sendError(res, error)
-  }
-})
-
-router.post('/cards', async (req: AuthenticatedRequest, res: Response) => {
-  try {
-    const userId = req.user?.id
-    if (!userId) return res.status(401).json({ error: 'Unauthenticated' })
-    res.status(201).json(await profileService.createCard(userId, req.body ?? {}))
-  } catch (error: any) {
-    sendError(res, error)
-  }
-})
-
-router.patch('/cards/:cardId', async (req: AuthenticatedRequest, res: Response) => {
-  try {
-    const userId = req.user?.id
-    if (!userId) return res.status(401).json({ error: 'Unauthenticated' })
-    res.json(await profileService.updateCard(userId, req.params.cardId, req.body ?? {}))
-  } catch (error: any) {
-    sendError(res, error)
-  }
-})
-
-router.delete('/cards/:cardId', async (req: AuthenticatedRequest, res: Response) => {
-  try {
-    const userId = req.user?.id
-    if (!userId) return res.status(401).json({ error: 'Unauthenticated' })
-    await profileService.deleteCard(userId, req.params.cardId)
-    res.status(204).end()
-  } catch (error: any) {
-    sendError(res, error)
-  }
-})
+/**
+ * Cards themselves live at /api/cards — see routes/cardRoutes.ts. The profile
+ * page still carries them in its payload, because the page is where they are
+ * shown, but creating and editing one is the card engine's business.
+ */
 
 export default router
