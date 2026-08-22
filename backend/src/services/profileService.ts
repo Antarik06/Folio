@@ -279,4 +279,173 @@ export const profileService = {
     return res.rows[0]
   },
 
+  /**
+   * Promotes or withdraws one photograph.
+   *
+   * `uploader_id = $1` is not a convenience — it is the rule. A user can see
+   * plenty of frames they did not take, inside events other people shared with
+   * them, and none of those are theirs to publish. Restricting promotion to
+   * one's own uploads is what keeps the Photos tab's generous visibility from
+   * leaking into a public page.
+   */
+  async setPhotoOnProfile(userId: string, photoId: string, onProfile: boolean) {
+    const res = await query(
+      `UPDATE public.photos
+          SET on_profile = $3,
+              profile_promoted_at = CASE WHEN $3 THEN NOW() ELSE NULL END
+        WHERE id = $2 AND uploader_id = $1
+    RETURNING id, on_profile, profile_promoted_at`,
+      [userId, photoId, onProfile]
+    )
+    if (res.rowCount === 0) {
+      throw new HttpError(404, 'Photo not found, or you did not upload it.')
+    }
+    return res.rows[0]
+  },
+
+  /**
+   * The picker's contents: every frame this user uploaded, newest first, each
+   * already carrying whether it is on the page — so the sheet can render
+   * checkmarks without a second request.
+   */
+  async listPromotablePhotos(
+    userId: string,
+    { limit = 60, offset = 0 }: { limit?: number; offset?: number } = {}
+  ): Promise<{ total: number; photos: ProfilePhoto[] }> {
+    const safeLimit = Math.min(Math.max(Number(limit) || 60, 1), 200)
+    const safeOffset = Math.max(Number(offset) || 0, 0)
+
+    const countRes = await query(
+      `SELECT COUNT(*)::int AS total
+         FROM public.photos p
+        WHERE p.uploader_id = $1 AND p.status = 'approved'`,
+      [userId]
+    )
+
+    const res = await query(
+      `SELECT p.id,
+              COALESCE(p.thumbnail_url, p.blob_url) AS url,
+              p.taken_at,
+              p.on_profile,
+              e.title AS event_title
+         FROM public.photos p
+         LEFT JOIN public.events e ON p.event_id = e.id
+        WHERE p.uploader_id = $1 AND p.status = 'approved'
+        ORDER BY p.on_profile DESC, COALESCE(p.taken_at, p.created_at) DESC
+        LIMIT $2 OFFSET $3`,
+      [userId, safeLimit, safeOffset]
+    )
+
+    return { total: countRes.rows[0]?.total ?? 0, photos: res.rows as ProfilePhoto[] }
+  },
+
+  /**
+   * The first visit.
+   *
+   * A card assembled from a blank profile is a blank card, so rather than
+   * quietly making one and hoping the user finds the editor, we ask a short set
+   * of questions and build the centrepiece from the answers on the spot.
+   *
+   * The answers are written to three places, and it matters which: the handle
+   * and bio are page settings and belong on `profiles`; everything else is card
+   * copy and belongs in `card_profiles`, where every future card will read it;
+   * the card itself is then created from that, already populated.
+   *
+   * Called more than once — a re-run of the questionnaire — it updates the
+   * profile and re-snapshots the existing card rather than making a second one.
+   */
+  async completeOnboarding(userId: string, answers: OnboardingAnswers) {
+    const text = (value: unknown, max: number) =>
+      typeof value === 'string' ? value.trim().slice(0, max) : ''
+
+    // Page settings first: a rejected handle should stop the whole thing before
+    // we have written half of it.
+    const handle = text(answers.handle, 30).toLowerCase().replace(/^@/, '')
+    if (handle) {
+      await profileService.updatePage(userId, { handle })
+    }
+
+    const name = text(answers.name, 60)
+    const bio = text(answers.bio, 400)
+    if (name || bio) {
+      await query(
+        `UPDATE public.profiles
+            SET full_name = COALESCE(NULLIF($2, ''), full_name),
+                bio = COALESCE(NULLIF($3, ''), bio),
+                updated_at = NOW()
+          WHERE id = $1`,
+        [userId, name, bio]
+      )
+    }
+
+    // Merged onto whatever the card profile already holds, so re-running the
+    // questionnaire never blanks a field the user filled in the editor.
+    const existing = await cardService.getProfile(userId)
+    const interests = Array.isArray(answers.interests)
+      ? answers.interests.map((entry) => text(entry, 40)).filter(Boolean).slice(0, 16)
+      : []
+
+    const photoUrl = text(answers.photoUrl, 600)
+    const existingPhotos = existing.photos ?? []
+    const photos = photoUrl
+      ? [{ url: photoUrl }, ...existingPhotos.filter((photo) => photo.url !== photoUrl)]
+      : existingPhotos
+
+    const merged = {
+      ...existing,
+      name: name || existing.name,
+      username: handle || existing.username,
+      tagline: text(answers.tagline, 90) || existing.tagline,
+      occupation: text(answers.occupation, 80) || existing.occupation,
+      location: text(answers.location, 60) || existing.location,
+      bio: bio || existing.bio,
+      quote: text(answers.quote, 220) || existing.quote,
+      interests: interests.length > 0 ? interests : existing.interests,
+      photos: photos.slice(0, 8),
+    }
+
+    await cardService.saveProfile(userId, merged)
+
+    // The centrepiece. An existing primary card is re-snapshotted against the
+    // new answers instead of being duplicated.
+    const bundle = await cardService.listCards(userId)
+    const primary = bundle.cards.find((card) => card.isPrimary) ?? bundle.cards[0]
+
+    let result
+    if (primary) {
+      result = await cardService.regenerateCard(userId, primary.id)
+      if (answers.templateId && answers.templateId !== primary.templateId) {
+        result = await cardService.updateCard(userId, primary.id, {
+          templateId: answers.templateId,
+          styleId: answers.styleId,
+        })
+      }
+    } else {
+      const catalog = await cardService.getCatalog()
+      const template =
+        catalog.templates.find((entry) => entry.id === answers.templateId) ?? catalog.templates[0]
+      if (!template) throw new HttpError(503, 'No card templates are published yet.')
+      result = await cardService.createCard(userId, {
+        templateId: template.id,
+        styleId: answers.styleId,
+      })
+      result = await cardService.updateCard(userId, result.card.id, { isPrimary: true })
+    }
+
+    await query(
+      'UPDATE public.profiles SET onboarded_at = NOW(), updated_at = NOW() WHERE id = $1',
+      [userId]
+    )
+
+    return { page: await profileService.getOwnPage(userId), card: result.card }
+  },
+
+  /** Marks the questionnaire as asked without answering it. */
+  async skipOnboarding(userId: string) {
+    await query(
+      'UPDATE public.profiles SET onboarded_at = NOW(), updated_at = NOW() WHERE id = $1',
+      [userId]
+    )
+    return { onboarded: true }
+  },
 }
