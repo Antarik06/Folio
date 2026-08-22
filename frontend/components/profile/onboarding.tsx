@@ -21,3 +21,9 @@ import { cn } from '@/lib/utils'
  * rather than hidden: an eight-field wall would be abandoned, and an abandoned
  * profile has no centrepiece at all.
  */
+
+export interface OnboardingPhoto {
+  id: string
+  url: string
+  event_title?: string | null
+}
