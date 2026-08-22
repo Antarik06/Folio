@@ -488,3 +488,75 @@ function Field({
     </label>
   )
 }
+
+function InterestPicker({
+  value,
+  onChange,
+}: {
+  value: string[]
+  onChange(next: string[]): void
+}) {
+  const [draft, setDraft] = useState('')
+
+  function toggle(interest: string) {
+    onChange(
+      value.includes(interest)
+        ? value.filter((entry) => entry !== interest)
+        : [...value, interest].slice(0, 16)
+    )
+  }
+
+  function addDraft() {
+    const trimmed = draft.trim().slice(0, 40)
+    if (trimmed && !value.includes(trimmed)) onChange([...value, trimmed].slice(0, 16))
+    setDraft('')
+  }
+
+  return (
+    <div className="max-w-md">
+      <div className="flex flex-wrap gap-2">
+        {[...new Set([...value, ...SUGGESTED])].map((interest) => {
+          const picked = value.includes(interest)
+          return (
+            <button
+              key={interest}
+              type="button"
+              onClick={() => toggle(interest)}
+              className={cn(
+                'min-h-[38px] rounded-[2px] border px-3 font-mono text-[11px] uppercase tracking-[0.06em] transition-colors',
+                picked
+                  ? 'border-primary bg-primary text-primary-foreground'
+                  : 'border-border text-ink-soft hover:border-foreground hover:text-foreground'
+              )}
+            >
+              {interest}
+            </button>
+          )
+        })}
+      </div>
+
+      <div className="mt-4 flex items-center gap-2">
+        <input
+          value={draft}
+          onChange={(event) => setDraft(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter') {
+              event.preventDefault()
+              addDraft()
+            }
+          }}
+          placeholder="Something else"
+          maxLength={40}
+          className="min-h-[44px] flex-1 rounded-[2px] border border-border bg-card px-3 text-sm text-foreground outline-none focus:border-primary"
+        />
+        <StampButton tone="ghost" size="sm" onClick={addDraft} disabled={!draft.trim()}>
+          Add
+        </StampButton>
+      </div>
+
+      <MonoLabel size="xs" className="mt-3">
+        {value.length} chosen
+      </MonoLabel>
+    </div>
+  )
+}
