@@ -23,3 +23,9 @@ import { cn } from '@/lib/utils'
  * than nested in a menu. Export renders from the live SVG on this page, so the
  * file is exactly the card being looked at, at whatever size was asked for.
  */
+
+const SCALES = [
+  { value: 1, label: '1×' },
+  { value: 2, label: '2×' },
+  { value: 3, label: '3×' },
+]
