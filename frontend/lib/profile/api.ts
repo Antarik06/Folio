@@ -24,3 +24,18 @@ export interface ProfilePhoto {
   taken_at: string | null
   on_profile: boolean
 }
+
+/** Everything the questionnaire can collect. Every field is skippable. */
+export interface OnboardingAnswers {
+  name?: string
+  handle?: string
+  tagline?: string
+  occupation?: string
+  location?: string
+  bio?: string
+  quote?: string
+  interests?: string[]
+  photoUrl?: string
+  templateId?: string
+  styleId?: string
+}
