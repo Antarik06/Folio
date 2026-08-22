@@ -20,3 +20,12 @@
 -- onboarded is what lets a later flow re-ask without a second column.
 ALTER TABLE public.profiles
   ADD COLUMN IF NOT EXISTS onboarded_at TIMESTAMPTZ;
+
+-- ─── 2. Promoting a single photograph ───────────────────────────────────────
+-- Only the uploader may promote a frame. That restriction is enforced in
+-- profileService, and it is the whole consent story: being able to *see* a
+-- photo inside an event someone shared with you never makes it yours to
+-- publish.
+ALTER TABLE public.photos
+  ADD COLUMN IF NOT EXISTS on_profile BOOLEAN NOT NULL DEFAULT FALSE,
+  ADD COLUMN IF NOT EXISTS profile_promoted_at TIMESTAMPTZ;
