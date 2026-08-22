@@ -16,3 +16,11 @@ export interface ProfileAlbum {
   event_title: string | null
   on_profile: boolean
 }
+
+export interface ProfilePhoto {
+  id: string
+  url: string
+  event_title: string | null
+  taken_at: string | null
+  on_profile: boolean
+}
