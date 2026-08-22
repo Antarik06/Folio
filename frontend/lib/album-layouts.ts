@@ -33,6 +33,8 @@ interface Ctx {
   palette: PaletteSpec
   /** Monotonic counter so every element id in a template is unique. */
   n: () => number
+  /** Supplies the next photograph for a slot; cycles if the template is longer. */
+  photo: () => string
 }
 
 /* ── Element helpers ──────────────────────────────────────────────────────── */
@@ -49,9 +51,9 @@ function img(
     id: `${ctx.id}-i${ctx.n()}`,
     type: 'image',
     name: 'Photo',
-    // Empty on purpose: the frame is a slot, filled by the user's own photos
-    // when the template is applied (see autoFillAlbum).
-    src: '',
+    // Preview photography. Replaced with the user's own pictures the moment the
+    // template is applied — see applyImagePoolToSpreads in the editor.
+    src: ctx.photo(),
     x,
     y,
     width,
@@ -266,10 +268,17 @@ export function cover(title: string, kicker?: string): PageLayout {
 export function buildSpreads(
   id: string,
   palette: PaletteSpec,
-  pages: PageLayout[]
+  pages: PageLayout[],
+  photos: (index: number) => string
 ): AlbumSpread[] {
   let counter = 0
-  const ctx: Ctx = { id, palette, n: () => ++counter }
+  let photoIndex = 0
+  const ctx: Ctx = {
+    id,
+    palette,
+    n: () => ++counter,
+    photo: () => photos(photoIndex++),
+  }
 
   const [coverPage, ...inner] = pages
   const spreads: AlbumSpread[] = []

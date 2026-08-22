@@ -28,6 +28,28 @@ export const libraryController = {
   },
 
   /**
+   * GET /api/library/prints
+   *
+   * Only the frames the caller graded in the Photo Studio — the darkroom
+   * shelf, kept apart from the contact sheet so a saved print is findable
+   * without scrolling past every photograph the user has ever seen.
+   */
+  async getPrints(req: AuthenticatedRequest, res: Response) {
+    try {
+      const userId = req.user?.id
+      if (!userId) {
+        return res.status(401).json({ error: 'Unauthenticated' })
+      }
+
+      const limit = req.query.limit ? Number(req.query.limit) : undefined
+      const result = await libraryService.getStudioPrints(userId, { limit })
+      res.json(result)
+    } catch (error: any) {
+      sendError(res, error)
+    }
+  },
+
+  /**
    * GET /api/library/events
    *
    * The same frames grouped by occasion, with contributor provenance.

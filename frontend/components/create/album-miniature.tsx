@@ -4,13 +4,10 @@ import { PAGE_W, PAGE_H } from '@/lib/album-layouts'
 /**
  * A template drawn as itself.
  *
- * Instead of a stock photograph with a category label under it, each template
- * previews its own composition: the real element coordinates from its spreads,
- * scaled down. Photo slots read as filled blocks, type as hairlines, rules as
- * accent marks — so you are looking at the layout you would actually get.
- *
- * It is also why the catalogue needs no imagery at all. When real photographs
- * arrive they go into the album, not into a marketing thumbnail.
+ * Each template previews its own composition at the real element coordinates
+ * from its spreads, scaled down — photographs in their actual slots, type as
+ * weighted bars, rules as accent marks. You are looking at the layout you would
+ * get, not a marketing crop of one page of it.
  */
 export function AlbumMiniature({
   spreads,
@@ -53,11 +50,19 @@ export function AlbumMiniature({
             }
 
             if (el.type === 'image') {
-              return (
-                <span
+              // Templates carry real photography now, so the miniature shows
+              // the actual spread rather than a diagram of it.
+              return el.src ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
                   key={el.id}
-                  style={{ ...box, background: palette.ink, opacity: 0.13 }}
+                  src={el.src}
+                  alt=""
+                  loading="lazy"
+                  style={{ ...box, objectFit: 'cover' }}
                 />
+              ) : (
+                <span key={el.id} style={{ ...box, background: palette.ink, opacity: 0.13 }} />
               )
             }
 

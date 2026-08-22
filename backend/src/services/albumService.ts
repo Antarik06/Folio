@@ -256,7 +256,29 @@ export const albumService = {
       `SELECT a.id, a.title, a.description, a.status, a.is_published, a.event_id,
               a.cover_photo_id, a.created_at, a.updated_at,
               COALESCE(p.thumbnail_url, p.blob_url) AS cover_image_url,
-              e.title AS event_title
+              e.title AS event_title,
+              -- The Create tab prints "N spreads" on every album card, and one
+              -- count is far cheaper here than shipping every layout to it.
+              CASE WHEN jsonb_typeof(a.layout_data->'spreads') = 'array'
+                   THEN jsonb_array_length(a.layout_data->'spreads')
+                   ELSE 0 END AS spread_count,
+              a.layout_data->>'templateId' AS template_id_ref,
+              -- The photographs already placed in the layout, so a card can
+              -- show the album rather than a placeholder. Two paths because
+              -- older layouts kept elements on the spread itself, newer ones
+              -- under front/back. jsonpath runs in lax mode, so a layout
+              -- missing either shape yields an empty array instead of an error.
+              (
+                jsonb_path_query_array(
+                  COALESCE(a.layout_data, '{}'::jsonb),
+                  '$.spreads[*].front.elements[*] ? (@.type == "image").src'
+                )
+                ||
+                jsonb_path_query_array(
+                  COALESCE(a.layout_data, '{}'::jsonb),
+                  '$.spreads[*].elements[*] ? (@.type == "image").src'
+                )
+              ) AS preview_images
        FROM public.albums a
        LEFT JOIN public.photos p ON a.cover_photo_id = p.id
        LEFT JOIN public.events e ON a.event_id = e.id
@@ -264,7 +286,18 @@ export const albumService = {
        ORDER BY a.updated_at DESC NULLS LAST, a.created_at DESC`,
       [userId]
     )
-    return res.rows
+
+    return res.rows.map((row: any) => {
+      const seen = new Set<string>()
+      const previews: string[] = []
+      for (const src of Array.isArray(row.preview_images) ? row.preview_images : []) {
+        if (typeof src !== 'string' || src.length === 0 || seen.has(src)) continue
+        seen.add(src)
+        previews.push(src)
+        if (previews.length === 4) break
+      }
+      return { ...row, preview_images: previews }
+    })
   },
 
   /**

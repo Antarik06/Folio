@@ -12,6 +12,7 @@ import {
   type PageLayout,
   type PaletteSpec,
 } from '@/lib/album-layouts'
+import { photosForStyle } from '@/lib/template-photos'
 
 /**
  * The style catalogue: five styles, two or three templates each.
@@ -312,12 +313,10 @@ export const ALL_MAGAZINE_TEMPLATES: MagazineTemplate[] = SPECS.map((spec) => {
     id: spec.id,
     name: spec.name,
     description: spec.description,
-    // No stock photograph stands in for the user's work; the gallery draws the
-    // template's own geometry instead.
-    thumbnail: '',
+    thumbnail: photosForStyle(style.id)(0),
     category: style.name,
     productType: 'magazine' as const,
-    spreads: buildSpreads(spec.id, style.palette, spec.pages),
+    spreads: buildSpreads(spec.id, style.palette, spec.pages, photosForStyle(style.id)),
     pageCount: spec.pages.length,
   }
 })

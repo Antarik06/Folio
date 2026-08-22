@@ -94,6 +94,63 @@ export const libraryService = {
   },
 
   /**
+   * The darkroom shelf: frames the caller saved out of the Photo Studio.
+   *
+   * A graded print is stored as an ordinary photo — the negative stays in the
+   * library alongside it — so what marks one is where it was written:
+   * `albums/studio/<user>/…`. Matching on the path keeps prints separable
+   * without a column and a migration for a single boolean.
+   *
+   * Unlike the contact sheet this does not require approval: a print the
+   * caller made is theirs to find, even where the event it came from holds
+   * guest uploads for review.
+   */
+  async getStudioPrints(
+    userId: string,
+    { limit = 60 }: { limit?: number } = {}
+  ): Promise<{ total: number; photos: LibraryPhoto[] }> {
+    const safeLimit = Math.min(Math.max(Number(limit) || 60, 1), 200)
+
+    const countRes = await query(
+      `SELECT COUNT(*)::int AS total
+         FROM public.photos p
+        WHERE p.uploader_id = $1
+          AND p.status <> 'rejected'
+          AND p.blob_pathname LIKE 'albums/studio/%'`,
+      [userId]
+    )
+
+    const photosRes = await query(
+      `SELECT p.id,
+              p.event_id,
+              e.title              AS event_title,
+              COALESCE(p.thumbnail_url, p.blob_url) AS url,
+              p.thumbnail_url,
+              p.width,
+              p.height,
+              p.taken_at,
+              p.created_at,
+              p.location,
+              p.uploader_id,
+              up.full_name         AS uploader_name
+         FROM public.photos p
+         LEFT JOIN public.events e   ON p.event_id = e.id
+         LEFT JOIN public.profiles up ON p.uploader_id = up.id
+        WHERE p.uploader_id = $1
+          AND p.status <> 'rejected'
+          AND p.blob_pathname LIKE 'albums/studio/%'
+        ORDER BY p.created_at DESC
+        LIMIT $2`,
+      [userId, safeLimit]
+    )
+
+    return {
+      total: countRes.rows[0]?.total ?? 0,
+      photos: photosRes.rows as LibraryPhoto[],
+    }
+  },
+
+  /**
    * Events, each with the handful of recent frames and the contributor
    * initials the Photos tab stamps on them.
    *

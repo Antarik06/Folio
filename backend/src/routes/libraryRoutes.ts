@@ -8,5 +8,6 @@ router.use(authMiddleware)
 
 router.get('/photos', libraryController.getLibrary)
 router.get('/events', libraryController.getEventsOverview)
+router.get('/prints', libraryController.getPrints)
 
 export default router

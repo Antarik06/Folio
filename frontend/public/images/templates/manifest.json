@@ -1,0 +1,210 @@
+[
+  {
+    "slot": "wedding",
+    "file": "images/templates/wedding-01.jpg",
+    "pixabay_id": 6382346,
+    "tags": "man, indian, wedding, portrait, groom, marriage, ritual, hindu, hands, culture, tradition, celebration, smile, smiling, happy, bengali, india, indian, bengali, bengali, bengali, bengali, bengali",
+    "w": 3632,
+    "h": 5456
+  },
+  {
+    "slot": "wedding",
+    "file": "images/templates/wedding-02.jpg",
+    "pixabay_id": 6555890,
+    "tags": "woman, bride, wedding, female, marriage, dress, relationship, married, young, india, asian, bengali, tradition, ethnic, gold, makeup, happy, caucasian, hairstyle, jewelry, portrait, bengali, bengali, bengali, bengali, bengali",
+    "w": 3632,
+    "h": 5456
+  },
+  {
+    "slot": "wedding",
+    "file": "images/templates/wedding-03.jpg",
+    "pixabay_id": 6382366,
+    "tags": "woman, bride, indian, portrait, culture, decoration, beauty, model, jewelry, nature, traditional, marriage, betel, leaf, ethnic, ornament, tattoo, mandala, decorative, bengali, india",
+    "w": 3632,
+    "h": 5456
+  },
+  {
+    "slot": "wedding",
+    "file": "images/templates/wedding-04.jpg",
+    "pixabay_id": 7057465,
+    "tags": "wedding, indian wedding, indian marriage, marriage, ritual, mehndi, hindu, mehandi, bride, indian wedding, indian wedding, indian wedding, indian wedding, indian wedding, indian marriage, indian marriage, indian marriage, mehandi, mehandi",
+    "w": 6000,
+    "h": 4000
+  },
+  {
+    "slot": "wedding",
+    "file": "images/templates/wedding-05.jpg",
+    "pixabay_id": 4736674,
+    "tags": "bride, indian bride, wedding, indian, woman, mehndi, female, brown wedding, indian bride, indian bride, indian bride, indian bride, indian bride",
+    "w": 6480,
+    "h": 4320
+  },
+  {
+    "slot": "wedding",
+    "file": "images/templates/wedding-06.jpg",
+    "pixabay_id": 3656325,
+    "tags": "bride, wedding, marriage, indian, brown wedding, bride, indian, indian, indian, indian, indian",
+    "w": 3648,
+    "h": 5472
+  },
+  {
+    "slot": "portrait",
+    "file": "images/templates/portrait-01.jpg",
+    "pixabay_id": 4419630,
+    "tags": "indian, father, family, people, together, children, dad, daughter, parents, parent, girl",
+    "w": 3872,
+    "h": 2592
+  },
+  {
+    "slot": "portrait",
+    "file": "images/templates/portrait-02.jpg",
+    "pixabay_id": 6144869,
+    "tags": "boy, kid, indian, face, child, young, cute, diversity, closeup, portrait",
+    "w": 6240,
+    "h": 4160
+  },
+  {
+    "slot": "portrait",
+    "file": "images/templates/portrait-03.jpg",
+    "pixabay_id": 3637663,
+    "tags": "baby, indian girl, mo, female, indian, happiness, child, girl, smiling, portrait, gray smile",
+    "w": 4000,
+    "h": 6000
+  },
+  {
+    "slot": "portrait",
+    "file": "images/templates/portrait-04.jpg",
+    "pixabay_id": 6257334,
+    "tags": "baby, girl, sleep, indian, sleeping, child, kid, daughter, childhood, cute, adorable, portrait",
+    "w": 6720,
+    "h": 4480
+  },
+  {
+    "slot": "portrait",
+    "file": "images/templates/portrait-05.jpg",
+    "pixabay_id": 1195642,
+    "tags": "indian, boys, team, child, male, asian, ethnic, culture, son, outdoors, people, together, young, portrait, indian family, kid, travel, indian family, indian family, indian family, indian family, indian family",
+    "w": 3888,
+    "h": 2592
+  },
+  {
+    "slot": "travel",
+    "file": "images/templates/travel-01.jpg",
+    "pixabay_id": 165347,
+    "tags": "kerala, india, houseboat, backwaters, kerala, kerala, kerala, kerala, kerala",
+    "w": 4961,
+    "h": 3307
+  },
+  {
+    "slot": "travel",
+    "file": "images/templates/travel-02.jpg",
+    "pixabay_id": 2073391,
+    "tags": "india travels, bekal fort, kerala, bekal fort, kerala, kerala, kerala, kerala, kerala",
+    "w": 3264,
+    "h": 1836
+  },
+  {
+    "slot": "travel",
+    "file": "images/templates/travel-03.jpg",
+    "pixabay_id": 2571329,
+    "tags": "houseboats, india, boats, kerala, houseboats, kerala, kerala, kerala, kerala, kerala",
+    "w": 5184,
+    "h": 3456
+  },
+  {
+    "slot": "travel",
+    "file": "images/templates/travel-04.jpg",
+    "pixabay_id": 6156123,
+    "tags": "hawa mahal, palace, architecture, facade, ancient, heritage, culture, landmark, historical, rajasthan, jaipur, india, hawa mahal, hawa mahal, rajasthan, rajasthan, rajasthan, rajasthan, jaipur, jaipur, jaipur, jaipur, jaipur, india, india, india, india",
+    "w": 4391,
+    "h": 2998
+  },
+  {
+    "slot": "travel",
+    "file": "images/templates/travel-05.jpg",
+    "pixabay_id": 3577748,
+    "tags": "mosque, india, kerala, blue mosque, mosque, mosque, mosque, india, kerala, kerala, kerala, kerala, kerala",
+    "w": 4928,
+    "h": 3264
+  },
+  {
+    "slot": "travel",
+    "file": "images/templates/travel-06.jpg",
+    "pixabay_id": 6749438,
+    "tags": "india, sunset, backwaters, kerala, dusk, nature, fishing nets, landscape, twilight, kerala, kerala, kerala, kerala, kerala",
+    "w": 4288,
+    "h": 2177
+  },
+  {
+    "slot": "editorial",
+    "file": "images/templates/editorial-01.jpg",
+    "pixabay_id": 1050930,
+    "tags": "paithani saree, paithani silk, indian woman, fashion, model, traditional clothing, indian woman, indian woman, indian woman, indian woman, indian woman",
+    "w": 3433,
+    "h": 4578
+  },
+  {
+    "slot": "editorial",
+    "file": "images/templates/editorial-02.jpg",
+    "pixabay_id": 6366767,
+    "tags": "woman, beauty, portrait, girl, red saree, saree, black hair, earrings, necklace, jewelry, accessory, smile, model, pose, fashion, saree, saree, saree, saree, saree",
+    "w": 4000,
+    "h": 6000
+  },
+  {
+    "slot": "editorial",
+    "file": "images/templates/editorial-03.jpg",
+    "pixabay_id": 7515896,
+    "tags": "saree, woman, fashion, traditional, culture, sari, model, pose, indian, portrait, saree, saree, saree, saree, saree, sari, sari, sari",
+    "w": 3648,
+    "h": 5472
+  },
+  {
+    "slot": "editorial",
+    "file": "images/templates/editorial-04.jpg",
+    "pixabay_id": 360376,
+    "tags": "saree, fashion, silk, dress, woman, model, clothing, indian, cotton, sari, black, saree, saree, saree, saree, saree, sari",
+    "w": 2400,
+    "h": 3600
+  },
+  {
+    "slot": "festival",
+    "file": "images/templates/festival-01.jpg",
+    "pixabay_id": 4640724,
+    "tags": "happy diwali, india, diwali, light, culture, traditional, deepawali, lamp, diya, bokeh, greetings, decorative, black happy, black culture, black happiness, black bokeh, black lamp, happy diwali, diwali, diwali, diwali, diwali, diwali, diya, diya",
+    "w": 6000,
+    "h": 4000
+  },
+  {
+    "slot": "festival",
+    "file": "images/templates/festival-02.jpg",
+    "pixabay_id": 8112165,
+    "tags": "people, devotees, chhath puja, chhath, puja, durga puja, festival, tradition, culture, men, bihar, bihari, patna, india, chhath puja, chhath puja, chhath puja, chhath puja, chhath puja, chhath, puja, puja, puja, durga puja, durga puja, durga puja, durga puja, durga puja, bihar, india",
+    "w": 6000,
+    "h": 4000
+  },
+  {
+    "slot": "festival",
+    "file": "images/templates/festival-03.jpg",
+    "pixabay_id": 6763921,
+    "tags": "diwali, deepavali, indian, festival, earthenware, lamp, oil, clay, pottery",
+    "w": 4032,
+    "h": 3024
+  },
+  {
+    "slot": "festival",
+    "file": "images/templates/festival-04.jpg",
+    "pixabay_id": 7497424,
+    "tags": "candles, paper, lamps, navaratri, windows wallpaper, navratri, hd wallpaper, durga puja, cool backgrounds, 4k wallpaper 1920x1080, festival, free background, card stock, copy space, full hd wallpaper, dry fruits, 4k wallpaper, diwali, wallpaper 4k, gifting, free wallpaper, message, laptop wallpaper, wishes, festive greetings, background, indian, beautiful wallpaper, greeting card, wallpaper hd, desktop backgrounds, mac wallpaper, deepawali, festival of lights",
+    "w": 4000,
+    "h": 2667
+  },
+  {
+    "slot": "festival",
+    "file": "images/templates/festival-05.jpg",
+    "pixabay_id": 7842780,
+    "tags": "girl, happy, smile, colorful, festival, holi, india, pink, purple, holi, holi, holi, india, india, india, india, india",
+    "w": 6960,
+    "h": 4640
+  }
+]
