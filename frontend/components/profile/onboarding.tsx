@@ -27,3 +27,5 @@ export interface OnboardingPhoto {
   url: string
   event_title?: string | null
 }
+
+type StepId = 'name' | 'work' | 'line' | 'interests' | 'photo' | 'look'
