@@ -541,7 +541,7 @@ export function Workspace({
   return (
     <div
       ref={containerRef}
-      className="relative flex justify-center items-center h-full w-full"
+      className="relative flex shrink-0 items-center justify-center"
       style={{ overflow: 'visible' }}
     >
       <div

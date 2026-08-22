@@ -198,6 +198,11 @@ export function PhotoStudio({
         )
       }
 
+      // Dimensions come off the encoded print, not the negative: a crop or a
+      // quarter-turn changes them, and the print pipeline reads them back to
+      // work out whether a frame has the resolution to be printed large.
+      const size = await measureBlob(blob)
+
       await apiClient.post('/api/photos', {
         eventId: selected.event_id,
         blobUrl: publicUrl,
@@ -205,6 +210,8 @@ export function PhotoStudio({
         thumbnailUrl: publicUrl,
         originalFilename: `edit-${selected.id}.jpg`,
         fileSize: blob.size,
+        width: size?.width,
+        height: size?.height,
       })
 
       setSaved(true)
@@ -889,6 +896,18 @@ function BenchButton({
       {children}
     </button>
   )
+}
+
+/** The pixel size of an encoded image, or null where the browser cannot say. */
+async function measureBlob(blob: Blob): Promise<{ width: number; height: number } | null> {
+  try {
+    const bitmap = await createImageBitmap(blob)
+    const size = { width: bitmap.width, height: bitmap.height }
+    bitmap.close()
+    return size
+  } catch {
+    return null
+  }
 }
 
 function Sprockets() {

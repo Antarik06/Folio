@@ -43,12 +43,18 @@ interface SaveDraftPayload {
 
 type SaveStatus = 'saved' | 'saving' | 'error' | 'restored' | 'dirty'
 
-function formatSaveStatus(saveStatus: SaveStatus, lastSavedAt: Date | null) {
-  if (saveStatus === 'saving') return 'Saving...'
+/**
+ * The save state in as few characters as it can be said.
+ *
+ * It used to read "Saved 9:38:45 AM". Next to the album title in a bar barely
+ * 700px wide that timestamp squeezed the title down to one letter — and the
+ * second the save happened is not something anyone needs to the second.
+ */
+function formatSaveStatus(saveStatus: SaveStatus) {
+  if (saveStatus === 'saving') return 'Saving…'
   if (saveStatus === 'error') return 'Save failed'
-  if (saveStatus === 'dirty') return 'Unsaved changes'
-  if (saveStatus === 'restored') return 'Recovered draft'
-  if (lastSavedAt) return `Saved ${lastSavedAt.toLocaleTimeString()}`
+  if (saveStatus === 'dirty') return 'Unsaved'
+  if (saveStatus === 'restored') return 'Recovered'
   return 'Saved'
 }
 
@@ -143,6 +149,10 @@ const DEFAULT_COVER_SPREAD = (id: string, coverImageUrl: string | undefined, wid
       elements: [],
     },
   }
+}
+
+function clamp(value: number, min: number, max: number) {
+  return Math.max(min, Math.min(max, Math.round(value)))
 }
 
 const HISTORY_LIMIT = 200
@@ -591,6 +601,11 @@ export function AlbumEditor({
     activeSpreadId: fallbackSpreads[0]?.id || null,
     activeSide: 'front',
   })
+  // Mirrors documentState so an edit can be computed from the current document
+  // synchronously, outside React's updater.
+  const documentRef = useRef(documentState)
+  documentRef.current = documentState
+
   const [selection, setSelection] = useState<string[]>([])
   const [zoom, setZoomState] = useState<number>(50)
   // Mirrors `zoom` so the pinch listener can read the current value without
@@ -654,31 +669,28 @@ export function AlbumEditor({
   const viewportRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    if (typeof window === 'undefined') return
+    const node = viewportRef.current
+    if (!node || typeof ResizeObserver === 'undefined') return
 
-    // Fit the page to the room it has, once, and again on resize until the
-    // user picks a zoom of their own. Measured from the viewport rather than
-    // the window: the rails and the page rail take real width.
+    // Fit the page to the room it actually has, and keep fitting until the
+    // user picks a zoom of their own. A one-shot rAF was not enough: on a cold
+    // load it measured before the flex column had resolved and read 0, then
+    // never tried again, so the editor opened stuck at its initial 50%.
     const fit = () => {
       if (userSetZoomRef.current) return
-      const node = viewportRef.current
-      if (!node) return
-
-      const padding = isMobile ? 24 : 56
-      const availableWidth = node.clientWidth - padding
-      const availableHeight = node.clientHeight - padding
+      const availableWidth = node.clientWidth - (isMobile ? 24 : 56)
+      const availableHeight = node.clientHeight - (isMobile ? 24 : 56)
       if (availableWidth <= 0 || availableHeight <= 0) return
 
       const scale = Math.min(availableWidth / SPREAD_WIDTH, availableHeight / SPREAD_HEIGHT)
       setZoomState(Math.max(10, Math.min(150, Math.floor(scale * 100))))
     }
 
-    const frame = window.requestAnimationFrame(fit)
-    window.addEventListener('resize', fit)
-    return () => {
-      window.cancelAnimationFrame(frame)
-      window.removeEventListener('resize', fit)
-    }
+    const observer = new ResizeObserver(fit)
+    observer.observe(node)
+    fit()
+
+    return () => observer.disconnect()
   }, [SPREAD_WIDTH, SPREAD_HEIGHT, isMobile])
 
   const supabase = useMemo(() => createBrowserClient(), [])
@@ -703,11 +715,13 @@ export function AlbumEditor({
     if (!recovered?.document?.spreads?.length) return
 
     const recoveredSpreads = normalizeSpreads(recovered.document.spreads)
-    setDocumentState({
+    const recoveredDocument: EditorDocumentState = {
       spreads: recoveredSpreads,
       activeSpreadId: recovered.document.activeSpreadId || recoveredSpreads[0]?.id || null,
       activeSide: recovered.document.activeSide || 'front',
-    })
+    }
+    documentRef.current = recoveredDocument
+    setDocumentState(recoveredDocument)
     setSaveStatus('restored')
   }, [albumId])
 
@@ -781,83 +795,79 @@ export function AlbumEditor({
   const canUndo = historyVersion.past > 0
   const canRedo = historyVersion.future > 0
 
+  /**
+   * Every document edit goes through here, and the history bookkeeping happens
+   * *outside* the state updater.
+   *
+   * It used to push onto the undo stack from inside `setDocumentState`, and
+   * read a `changed` flag set in there immediately afterwards. React runs an
+   * updater lazily — and twice under StrictMode — so the flag was still false
+   * when it was checked (undo/redo never re-enabled, the "unsaved" mark never
+   * appeared) and the stack could take two entries for one edit. The current
+   * document lives in a ref so the next state can be computed synchronously.
+   */
   const applyDocumentChange = useCallback(
     (
       updater: (doc: EditorDocumentState) => EditorDocumentState,
       options?: { historyGroup?: string }
     ) => {
-      let changed = false
+      const previous = documentRef.current
+      const next = updater(previous)
+      if (next === previous) return
 
-      setDocumentState((previous) => {
-        const next = updater(previous)
-        if (next === previous) return previous
+      const now = Date.now()
+      const group = options?.historyGroup ?? null
+      // A drag or a run of keystrokes is one undo step, not sixty.
+      const canGroup =
+        Boolean(group) &&
+        historyRef.current.lastGroup === group &&
+        now - historyRef.current.lastTime < 700
 
-        changed = true
-        const now = Date.now()
-        const group = options?.historyGroup ?? null
-        const canGroup =
-          Boolean(group) &&
-          historyRef.current.lastGroup === group &&
-          now - historyRef.current.lastTime < 700
-
-        if (!canGroup) {
-          historyRef.current.past.push(previous)
-          if (historyRef.current.past.length > HISTORY_LIMIT) {
-            historyRef.current.past.shift()
-          }
+      if (!canGroup) {
+        historyRef.current.past.push(previous)
+        if (historyRef.current.past.length > HISTORY_LIMIT) {
+          historyRef.current.past.shift()
         }
-
-        historyRef.current.future = []
-        historyRef.current.lastGroup = group
-        historyRef.current.lastTime = now
-
-        return next
-      })
-
-      if (changed) {
-        setSaveStatus('dirty')
-        syncHistoryVersion()
       }
+
+      historyRef.current.future = []
+      historyRef.current.lastGroup = group
+      historyRef.current.lastTime = now
+
+      documentRef.current = next
+      setDocumentState(next)
+      setSaveStatus('dirty')
+      syncHistoryVersion()
     },
     [syncHistoryVersion]
   )
 
   const undo = useCallback(() => {
-    let changed = false
-    setDocumentState((current) => {
-      const previous = historyRef.current.past.pop()
-      if (!previous) return current
+    const previous = historyRef.current.past.pop()
+    if (!previous) return
 
-      historyRef.current.future.unshift(current)
-      historyRef.current.lastGroup = null
-      changed = true
-      return previous
-    })
+    historyRef.current.future.unshift(documentRef.current)
+    historyRef.current.lastGroup = null
+    documentRef.current = previous
 
-    if (changed) {
-      setSelection([])
-      setSaveStatus('dirty')
-      syncHistoryVersion()
-    }
+    setDocumentState(previous)
+    setSelection([])
+    setSaveStatus('dirty')
+    syncHistoryVersion()
   }, [syncHistoryVersion])
 
   const redo = useCallback(() => {
-    let changed = false
-    setDocumentState((current) => {
-      const next = historyRef.current.future.shift()
-      if (!next) return current
+    const next = historyRef.current.future.shift()
+    if (!next) return
 
-      historyRef.current.past.push(current)
-      historyRef.current.lastGroup = null
-      changed = true
-      return next
-    })
+    historyRef.current.past.push(documentRef.current)
+    historyRef.current.lastGroup = null
+    documentRef.current = next
 
-    if (changed) {
-      setSelection([])
-      setSaveStatus('dirty')
-      syncHistoryVersion()
-    }
+    setDocumentState(next)
+    setSelection([])
+    setSaveStatus('dirty')
+    syncHistoryVersion()
   }, [syncHistoryVersion])
 
   useEffect(() => {
@@ -1131,8 +1141,25 @@ export function AlbumEditor({
           const spread = doc.spreads[spreadIndex]
           const side = getSpreadSide(spread, doc.activeSide)
           const nextZ = Math.max(0, ...side.elements.map((el) => el.zIndex)) + 1
-          const inserted = normalizeElement({
+
+          // Anything added from the left rail arrives without coordinates —
+          // it was tapped, not dropped. Centre it, then step each successive
+          // one down and right so a run of three does not stack invisibly.
+          const width = element.width || 240
+          const height = element.height || 120
+          const stagger = (side.elements.length % 6) * 32
+          const placed = {
             ...element,
+            x: Number.isFinite(element.x)
+              ? element.x
+              : clamp((SPREAD_WIDTH - width) / 2 + stagger, 0, Math.max(0, SPREAD_WIDTH - width)),
+            y: Number.isFinite(element.y)
+              ? element.y
+              : clamp((SPREAD_HEIGHT - height) / 2 + stagger, 0, Math.max(0, SPREAD_HEIGHT - height)),
+          }
+
+          const inserted = normalizeElement({
+            ...placed,
             id: generatedId,
             zIndex: nextZ,
           } as AlbumElement)
@@ -1143,11 +1170,14 @@ export function AlbumEditor({
             elements: normalizeZIndex([...side.elements, inserted]),
           })
 
-          setSelection([inserted.id])
           return { ...doc, spreads: nextSpreads }
         },
         { historyGroup: 'insert' }
       )
+
+      // Selecting is a side effect, so it belongs beside the call rather than
+      // inside the updater React is free to run twice.
+      setSelection([generatedId])
 
       if (element.type === 'image') {
         const imgEl = element as any
@@ -1160,7 +1190,7 @@ export function AlbumEditor({
         }
       }
     },
-    [applyDocumentChange, localizeRemoteImage]
+    [applyDocumentChange, localizeRemoteImage, SPREAD_WIDTH, SPREAD_HEIGHT]
   )
 
   const addElementAt = useCallback(
@@ -1188,11 +1218,12 @@ export function AlbumEditor({
             elements: normalizeZIndex(nextElements),
           })
 
-          setSelection((prev) => prev.filter((id) => !elementIds.includes(id)))
           return { ...doc, spreads: nextSpreads }
         },
         { historyGroup: 'delete' }
       )
+
+      setSelection((prev) => prev.filter((id) => !elementIds.includes(id)))
     },
     [applyDocumentChange]
   )
@@ -1712,7 +1743,9 @@ export function AlbumEditor({
   }, [selectedElements, updateElement])
 
   const handleSelectSpread = useCallback((id: string, side: SpreadSide = 'front') => {
-    setDocumentState((doc) => ({ ...doc, activeSpreadId: id, activeSide: side }))
+    const next = { ...documentRef.current, activeSpreadId: id, activeSide: side }
+    documentRef.current = next
+    setDocumentState(next)
     setSelection([])
   }, [])
 
@@ -1841,7 +1874,7 @@ export function AlbumEditor({
           canRedo={canRedo}
           onUndo={undo}
           onRedo={redo}
-          saveLabel={formatSaveStatus(saveStatus, lastSavedAt)}
+          saveLabel={formatSaveStatus(saveStatus)}
           saveTone={saveStatus === 'error' ? 'error' : saveStatus === 'saving' || saveStatus === 'dirty' ? 'busy' : 'idle'}
           saving={saveStatus === 'saving'}
           onSaveNow={() => void persistDraft()}
@@ -1851,6 +1884,7 @@ export function AlbumEditor({
           onToggleSidebar={() => setSidebarOpen((open) => !open)}
           onToggleInspector={() => setInspectorOpen((open) => !open)}
           inspectorOpen={inspectorOpen}
+          hasSelection={selection.length > 0}
         />
 
         <SpecStrip
@@ -1864,7 +1898,7 @@ export function AlbumEditor({
 
         <div
           ref={viewportRef}
-          className="relative flex min-h-0 flex-1 items-center justify-center overflow-auto bg-surface-2 p-3 touch-pan-x touch-pan-y md:p-7"
+          className="relative min-h-0 flex-1 overflow-auto bg-surface-2 touch-pan-x touch-pan-y"
           style={{
             // A faint measuring grid on the table itself, so the page reads as
             // a sheet laid on a surface rather than a floating rectangle.
@@ -1874,6 +1908,7 @@ export function AlbumEditor({
             backgroundPosition: '-1px -1px',
           }}
         >
+          <div className="flex min-h-full min-w-full w-max items-center justify-center p-3 md:p-7">
           <Workspace
             spread={activeSpreadView || activeSpread}
             zoom={zoom}
@@ -1888,6 +1923,7 @@ export function AlbumEditor({
             brushSize={brushSize}
             photos={photoList}
           />
+          </div>
         </div>
 
         <Timeline

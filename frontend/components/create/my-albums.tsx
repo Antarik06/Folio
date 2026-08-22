@@ -14,6 +14,7 @@ import {
   X,
 } from 'lucide-react'
 import { apiClient } from '@/lib/api-client'
+import { useTimeAgo } from '@/lib/format-date'
 
 /**
  * My Albums — the shelf.
@@ -246,9 +247,7 @@ function AlbumCard({
             {spreads > 0 ? `${spreads} spread${spreads === 1 ? '' : 's'} · ${pages} pages` : 'Empty layout'}
             {album.event_title ? ` · ${album.event_title}` : ''}
           </div>
-          <div className="mt-0.5 font-mono text-[10px] uppercase tracking-[0.08em] text-ink-soft/70">
-            {formatEdited(album.updated_at || album.created_at)}
-          </div>
+          <EditedStamp value={album.updated_at || album.created_at} />
         </div>
 
         <div className="relative shrink-0">
@@ -424,6 +423,17 @@ function RenameField({
   )
 }
 
+/** "Edited 2h ago", once the browser is the one telling the time. */
+function EditedStamp({ value }: { value?: string | null }) {
+  const label = useTimeAgo(value, 'never')
+
+  return (
+    <div className="mt-0.5 font-mono text-[10px] uppercase tracking-[0.08em] text-ink-soft/70">
+      Edited {label}
+    </div>
+  )
+}
+
 function MenuItem({
   children,
   icon,
@@ -467,19 +477,4 @@ function MenuLink({
       {children}
     </Link>
   )
-}
-
-function formatEdited(value?: string | null): string {
-  if (!value) return 'Never edited'
-  const then = new Date(value)
-  if (Number.isNaN(then.getTime())) return 'Never edited'
-
-  const minutes = Math.round((Date.now() - then.getTime()) / 60000)
-  if (minutes < 1) return 'Edited just now'
-  if (minutes < 60) return `Edited ${minutes}m ago`
-  const hours = Math.round(minutes / 60)
-  if (hours < 24) return `Edited ${hours}h ago`
-  const days = Math.round(hours / 24)
-  if (days < 30) return `Edited ${days}d ago`
-  return `Edited ${then.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}`
 }

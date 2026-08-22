@@ -59,6 +59,8 @@ interface TopbarProps {
   onToggleSidebar?: () => void
   onToggleInspector?: () => void
   inspectorOpen?: boolean
+  /** Marks the inspector button when there is something to inspect. */
+  hasSelection?: boolean
 }
 
 export function Topbar({
@@ -84,6 +86,7 @@ export function Topbar({
   onToggleSidebar,
   onToggleInspector,
   inspectorOpen,
+  hasSelection,
 }: TopbarProps) {
   const [editingTitle, setEditingTitle] = React.useState(false)
   const [draft, setDraft] = React.useState(albumTitle)
@@ -100,7 +103,7 @@ export function Topbar({
   }
 
   return (
-    <div className="flex h-14 shrink-0 items-center gap-1.5 border-b border-border bg-card px-2 sm:px-3">
+    <div className="@container flex h-14 shrink-0 items-center gap-1.5 border-b border-border bg-card px-2 sm:px-3">
       <IconButton label="Back" onClick={onBack}>
         <ArrowLeft className="h-[18px] w-[18px]" />
       </IconButton>
@@ -112,7 +115,10 @@ export function Topbar({
       ) : null}
 
       {/* ── The album ─────────────────────────────────────────────── */}
-      <div className="mr-auto flex min-w-0 items-center gap-2 pl-1">
+      {/* flex-1, not mr-auto: as a content-sized item this was the only
+          shrinkable thing in the row, so on a laptop the whole title
+          collapsed to a single truncated letter. */}
+      <div className="flex min-w-[90px] flex-1 items-center gap-2 pl-1">
         {editingTitle ? (
           <input
             autoFocus
@@ -134,7 +140,7 @@ export function Topbar({
             type="button"
             onClick={() => setEditingTitle(true)}
             title="Rename album"
-            className="max-w-[min(46vw,320px)] truncate rounded-[2px] px-1.5 py-1 text-left font-serif text-base italic text-foreground transition-colors hover:bg-foreground/5 sm:text-lg"
+            className="min-w-0 max-w-[min(46vw,340px)] truncate rounded-[2px] px-1.5 py-1 text-left font-serif text-base italic text-foreground transition-colors hover:bg-foreground/5 sm:text-lg"
           >
             {albumTitle || 'Untitled album'}
           </button>
@@ -143,7 +149,7 @@ export function Topbar({
         <span
           role="status"
           aria-live="polite"
-          className={`hidden shrink-0 font-mono text-[10px] uppercase tracking-[0.08em] lg:inline ${
+          className={`inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap font-mono text-[10px] uppercase tracking-[0.08em] ${
             saveTone === 'error'
               ? 'text-primary'
               : saveTone === 'busy'
@@ -151,7 +157,17 @@ export function Topbar({
                 : 'text-ink-soft'
           }`}
         >
-          {renaming ? 'Renaming…' : saveLabel}
+          <span
+            aria-hidden="true"
+            className={`h-1.5 w-1.5 rounded-full ${
+              saveTone === 'error'
+                ? 'bg-primary'
+                : saveTone === 'busy'
+                  ? 'bg-foreground'
+                  : 'bg-secondary'
+            }`}
+          />
+          <span className="hidden @[780px]:inline">{renaming ? 'Renaming…' : saveLabel}</span>
         </span>
       </div>
 
@@ -192,8 +208,19 @@ export function Topbar({
       </IconButton>
 
       {isMobile ? (
-        <IconButton label="Inspector" onClick={onToggleInspector} active={inspectorOpen}>
-          <PanelRight className="h-[18px] w-[18px]" />
+        <IconButton
+          label={hasSelection ? 'Controls for the selection' : 'Inspector'}
+          onClick={onToggleInspector}
+          active={inspectorOpen}
+        >
+          <span className="relative">
+            <PanelRight className="h-[18px] w-[18px]" />
+            {/* On a phone the inspector is a closed drawer, so a selection
+                would otherwise give no sign that its controls exist. */}
+            {hasSelection && !inspectorOpen ? (
+              <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-primary" />
+            ) : null}
+          </span>
         </IconButton>
       ) : null}
 
@@ -203,19 +230,19 @@ export function Topbar({
       <Link
         href={`/preview/${albumId}`}
         title="Proof this album"
-        className="hidden min-h-[38px] items-center gap-1.5 rounded-[2px] border border-border px-3 font-mono text-[10px] uppercase tracking-[0.08em] text-ink-soft transition-colors hover:border-foreground hover:text-foreground md:inline-flex"
+        className="hidden min-h-[38px] items-center gap-1.5 rounded-[2px] border border-border px-2.5 font-mono text-[10px] uppercase tracking-[0.08em] text-ink-soft transition-colors hover:border-foreground hover:text-foreground md:inline-flex @[900px]:px-3"
       >
         <Eye className="h-3.5 w-3.5" />
-        Proof
+        <span className="hidden @[900px]:inline">Proof</span>
       </Link>
 
       <Link
         href={`/create/orders/checkout?albumId=${albumId}`}
         title="Order a print"
-        className="hidden min-h-[38px] items-center gap-1.5 rounded-[2px] border border-border px-3 font-mono text-[10px] uppercase tracking-[0.08em] text-ink-soft transition-colors hover:border-foreground hover:text-foreground lg:inline-flex"
+        className="hidden min-h-[38px] items-center gap-1.5 rounded-[2px] border border-border px-2.5 font-mono text-[10px] uppercase tracking-[0.08em] text-ink-soft transition-colors hover:border-foreground hover:text-foreground md:inline-flex @[900px]:px-3"
       >
         <ShoppingBag className="h-3.5 w-3.5" />
-        Order
+        <span className="hidden @[900px]:inline">Order</span>
       </Link>
 
       <button

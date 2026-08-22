@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { ChevronLeft, ChevronRight, Download, Sparkles, X } from 'lucide-react'
+import { absoluteDate } from '@/lib/format-date'
 
 /**
  * Saved photos — the drying line.
@@ -91,7 +92,7 @@ export function SavedPrints({ prints, total }: { prints: SavedPrint[]; total: nu
               </span>
             </button>
             <figcaption className="mt-1.5 truncate font-mono text-[9px] uppercase tracking-[0.08em] text-ink-soft">
-              {print.event_title || 'Studio'} · {formatDay(print.created_at)}
+              {print.event_title || 'Studio'} · {absoluteDate(print.created_at, false) ?? 'Undated'}
             </figcaption>
           </figure>
         ))}
@@ -119,7 +120,7 @@ export function SavedPrints({ prints, total }: { prints: SavedPrint[]; total: nu
               Print
             </span>
             <span className="truncate font-mono text-[10px] uppercase tracking-[0.1em] text-[#F5F0E8]/45">
-              {open.event_title || 'Studio'} · {formatDay(open.created_at)}
+              {open.event_title || 'Studio'} · {absoluteDate(open.created_at) ?? 'Undated'}
               {open.width && open.height ? ` · ${open.width}×${open.height}` : ''}
             </span>
             <a
@@ -182,11 +183,4 @@ export function SavedPrints({ prints, total }: { prints: SavedPrint[]; total: nu
       ) : null}
     </div>
   )
-}
-
-function formatDay(value?: string | null): string {
-  if (!value) return 'Undated'
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return 'Undated'
-  return date.toLocaleDateString(undefined, { day: 'numeric', month: 'short' })
 }

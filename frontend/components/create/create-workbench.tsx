@@ -64,15 +64,19 @@ export function CreateWorkbench({
           </div>
         </header>
 
-        <SectionNav
-          sections={[
-            { id: 'albums', label: 'My albums', count: String(albums.length) },
-            { id: 'templates', label: 'Pick a shape', count: String(templateCount) },
-            { id: 'studio', label: 'Photo studio' },
-            { id: 'prints', label: 'Saved photos', count: String(printsTotal) },
-          ]}
-        />
       </Hold>
+
+      {/* Outside the Hold on purpose: a sticky element can only travel inside
+          its containing block, so nested in the masthead wrapper the running
+          head unstuck itself the moment the masthead scrolled away. */}
+      <SectionNav
+        sections={[
+          { id: 'albums', label: 'My albums', count: String(albums.length) },
+          { id: 'templates', label: 'Pick a shape', count: String(templateCount) },
+          { id: 'studio', label: 'Photo studio' },
+          { id: 'prints', label: 'Saved photos', count: String(printsTotal) },
+        ]}
+      />
 
       {/* ── 01 · My albums ──────────────────────────────────────────── */}
       <Room
@@ -86,8 +90,8 @@ export function CreateWorkbench({
       </Room>
 
       {/* ── 02 · Templates ──────────────────────────────────────────── */}
-      <div id="templates" className="scroll-mt-32">
-        <Hold className="pt-16 sm:pt-24">
+      <div id="templates" className="scroll-mt-28">
+        <Hold className="mt-16 sm:mt-24">
           <RoomHead
             index="02"
             title="Pick a shape"
@@ -159,8 +163,8 @@ function Room({
   children: ReactNode
 }) {
   return (
-    <section id={id} className="scroll-mt-32">
-      <Hold className="pt-16 sm:pt-24">
+    <section id={id} className="scroll-mt-28">
+      <Hold className="mt-16 sm:mt-24">
         <RoomHead index={index} title={title} line={line} aside={aside} />
         {children}
       </Hold>

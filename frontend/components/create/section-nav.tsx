@@ -44,9 +44,9 @@ export function SectionNav({ sections }: { sections: NavSection[] }) {
   return (
     <nav
       aria-label="Create sections"
-      className="sticky top-14 z-20 -mx-5 border-b border-border bg-background/92 px-5 backdrop-blur-sm sm:-mx-8 sm:top-16 sm:px-8"
+      className="sticky top-14 z-20 border-b border-border bg-background/92 backdrop-blur-sm sm:top-16"
     >
-      <div className="scrollbar-hide -mb-px flex items-center gap-x-6 overflow-x-auto py-3">
+      <div className="scrollbar-hide mx-auto flex max-w-[1320px] items-center gap-x-6 overflow-x-auto px-5 py-3 sm:px-8">
         {sections.map((section, i) => {
           const current = active === section.id
           return (
