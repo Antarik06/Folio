@@ -20,3 +20,5 @@ import { cn } from '@/lib/utils'
  * shipped, and extending it to single frames is what lets the Photos tab exist
  * at all without turning a shared event into a publication.
  */
+
+type Tab = 'photos' | 'albums'
