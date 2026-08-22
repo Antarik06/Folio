@@ -42,5 +42,28 @@ export default async function ProfilePage() {
     )
   }
 
-  return <ProfilePageClient initial={page} />
+  const page = pageResult.value as ProfilePageData
+  const catalog: Catalog =
+    catalogResult.status === 'fulfilled'
+      ? catalogResult.value
+      : { templates: [], styles: [], categories: [] }
+
+  const onboardingPhotos =
+    libraryResult.status === 'fulfilled'
+      ? (libraryResult.value.photos ?? [])
+          .filter((photo: { url?: string }) => !!photo.url)
+          .map((photo: { id: string; url: string; event_title?: string | null }) => ({
+            id: photo.id,
+            url: photo.url,
+            event_title: photo.event_title ?? null,
+          }))
+      : []
+
+  return (
+    <ProfilePageClient
+      initial={page}
+      catalog={catalog}
+      onboardingPhotos={onboardingPhotos}
+    />
+  )
 }
