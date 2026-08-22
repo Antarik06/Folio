@@ -192,10 +192,12 @@ function PageSettings({
   data,
   onSaved,
   onError,
+  onRerunOnboarding,
 }: {
   data: ProfilePageData
   onSaved: (next: Partial<ProfilePageData>) => void
   onError: (message: string | null) => void
+  onRerunOnboarding: () => void
 }) {
   const [handle, setHandle] = useState(data.handle ?? '')
   const [bio, setBio] = useState(data.bio ?? '')
@@ -206,17 +208,14 @@ function PageSettings({
     setSaving(true)
     onError(null)
     try {
-      const next = await clientFetch('/api/profile/page', {
-        method: 'PATCH',
-        body: JSON.stringify({ handle, bio, page_is_public: isPublic }),
-      })
+      const next = await profileApi.updatePage({ handle, bio, page_is_public: isPublic })
       onSaved({
         handle: next.handle,
         bio: next.bio,
         page_is_public: next.page_is_public,
       })
-    } catch (err) {
-      onError((err as Error).message)
+    } catch (saveError) {
+      onError((saveError as Error).message)
     } finally {
       setSaving(false)
     }
