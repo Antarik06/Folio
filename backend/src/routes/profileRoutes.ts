@@ -95,6 +95,17 @@ router.get('/photos/library', async (req: AuthenticatedRequest, res: Response) =
   }
 })
 
+router.patch('/photos/:photoId', async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.user?.id
+    if (!userId) return res.status(401).json({ error: 'Unauthenticated' })
+    const onProfile = req.body?.on_profile === true
+    res.json(await profileService.setPhotoOnProfile(userId, req.params.photoId, onProfile))
+  } catch (error: any) {
+    sendError(res, error)
+  }
+})
+
 /**
  * Cards themselves live at /api/cards — see routes/cardRoutes.ts. The profile
  * page still carries them in its payload, because the page is where they are
