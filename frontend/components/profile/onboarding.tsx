@@ -68,3 +68,18 @@ const STEPS: { id: StepId; label: string; question: string; note: string }[] = [
     note: 'Every one of these is your answers, set differently. Nothing is locked in.',
   },
 ]
+
+const SUGGESTED = [
+  'Photography',
+  'Film',
+  'Reading',
+  'Travel',
+  'Music',
+  'Cooking',
+  'Running',
+  'Design',
+  'Coffee',
+  'Hiking',
+  'Writing',
+  'Cycling',
+]
