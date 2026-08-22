@@ -164,3 +164,29 @@ export function ProfileShowcase({
 }
 
 /* ── Pieces ───────────────────────────────────────────────────────────────── */
+
+function TabButton({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean
+  onClick(): void
+  children: React.ReactNode
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        'min-h-[40px] border-b-2 px-3 font-mono text-[11px] uppercase tracking-[0.06em] transition-colors',
+        active
+          ? 'border-foreground text-foreground'
+          : 'border-transparent text-ink-soft hover:text-foreground'
+      )}
+      aria-pressed={active}
+    >
+      {children}
+    </button>
+  )
+}
