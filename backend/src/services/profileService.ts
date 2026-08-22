@@ -104,6 +104,19 @@ export const profileService = {
       [userId]
     )
 
+    const photosRes = await query(
+      `SELECT p.id,
+              COALESCE(p.thumbnail_url, p.blob_url) AS url,
+              p.taken_at,
+              p.on_profile,
+              e.title AS event_title
+         FROM public.photos p
+         LEFT JOIN public.events e ON p.event_id = e.id
+        WHERE p.uploader_id = $1 AND p.on_profile = TRUE
+        ORDER BY p.profile_promoted_at DESC`,
+      [userId]
+    )
+
     const cardBundle = await cardService.listCards(userId)
 
     const counts = await loadCounts(userId)
