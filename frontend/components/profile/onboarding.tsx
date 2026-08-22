@@ -560,3 +560,50 @@ function InterestPicker({
     </div>
   )
 }
+
+function PhotoPicker({
+  photos,
+  value,
+  onChange,
+}: {
+  photos: OnboardingPhoto[]
+  value: string
+  onChange(url: string): void
+}) {
+  if (photos.length === 0) {
+    return (
+      <div className="max-w-md rounded-[4px] border border-dashed border-border px-5 py-8 text-center">
+        <MonoLabel size="xs">Nothing uploaded yet</MonoLabel>
+        <p className="mx-auto mt-2 max-w-xs text-sm leading-relaxed text-muted-foreground">
+          Templates that want a photograph will leave the frame empty until you
+          have one. Everything else on the card still works.
+        </p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="max-w-md">
+      <div className="grid max-h-[320px] grid-cols-4 gap-2 overflow-y-auto sm:grid-cols-5">
+        {photos.map((photo) => (
+          <button
+            key={photo.id}
+            type="button"
+            onClick={() => onChange(photo.url === value ? '' : photo.url)}
+            className={cn(
+              'relative aspect-square overflow-hidden bg-surface-2 outline outline-1 -outline-offset-1 transition-all',
+              photo.url === value
+                ? 'outline-2 outline-primary'
+                : 'outline-border hover:outline-foreground'
+            )}
+            aria-pressed={photo.url === value}
+            aria-label={photo.event_title ? `Photo from ${photo.event_title}` : 'Photo'}
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={photo.url} alt="" loading="lazy" className="h-full w-full object-cover" />
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
