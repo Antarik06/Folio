@@ -190,3 +190,71 @@ function TabButton({
     </button>
   )
 }
+
+function ShowcaseTile({
+  src,
+  caption,
+  href,
+  badge,
+  editable,
+  onRemove,
+}: {
+  src: string | null
+  caption: string | null
+  href?: string
+  badge?: string
+  editable?: boolean
+  onRemove?(): void
+}) {
+  const frame = (
+    <div className="relative aspect-square overflow-hidden bg-surface-2">
+      {src ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={src} alt={caption ?? ''} loading="lazy" className="h-full w-full object-cover" />
+      ) : (
+        <div className="h-full w-full border border-dashed border-border" />
+      )}
+
+      {/* One overlay carries the caption and the badge, so a tile is never
+          decorated at rest — the grid stays flat until it is pointed at. */}
+      <span className="pointer-events-none absolute inset-0 flex flex-col justify-between bg-gradient-to-b from-black/35 via-transparent to-black/55 p-2 opacity-0 transition-opacity duration-200 group-hover:opacity-100 group-focus-visible:opacity-100">
+        {badge ? (
+          <span className="self-start font-mono text-[9px] uppercase tracking-[0.08em] text-white/90">
+            {badge}
+          </span>
+        ) : (
+          <span />
+        )}
+        {caption ? (
+          <span className="truncate font-mono text-[10px] uppercase tracking-[0.06em] text-white/95">
+            {caption}
+          </span>
+        ) : null}
+      </span>
+    </div>
+  )
+
+  return (
+    <figure className="group relative">
+      {href ? (
+        <Link href={href} className="block focus-visible:z-10">
+          {frame}
+        </Link>
+      ) : (
+        frame
+      )}
+
+      {editable && onRemove ? (
+        <button
+          type="button"
+          onClick={onRemove}
+          title="Take off the page"
+          aria-label="Take off the page"
+          className="absolute right-1 top-1 z-10 flex h-7 w-7 items-center justify-center rounded-[2px] bg-background/85 font-mono text-[13px] leading-none text-foreground opacity-0 transition-opacity hover:bg-background focus-visible:opacity-100 group-hover:opacity-100"
+        >
+          ×
+        </button>
+      ) : null}
+    </figure>
+  )
+}
