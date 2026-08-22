@@ -66,36 +66,32 @@ export function ProfilePageClient({
     `Member since ${Number.isNaN(memberSince) ? '—' : memberSince}`,
   ].join(' · ')
 
-  async function togglePromotion(album: ProfileAlbum) {
-    setError(null)
-    const next = !album.on_profile
-    try {
-      await clientFetch(`/api/profile/albums/${album.id}`, {
-        method: 'PATCH',
-        body: JSON.stringify({ on_profile: next }),
-      })
-      setData((d) => {
-        const moved = { ...album, on_profile: next }
-        return next
-          ? {
-              ...d,
-              albums: [moved, ...d.albums],
-              draft_albums: d.draft_albums.filter((a) => a.id !== album.id),
-            }
-          : {
-              ...d,
-              albums: d.albums.filter((a) => a.id !== album.id),
-              draft_albums: [moved, ...d.draft_albums],
-            }
-      })
-      startTransition(() => router.refresh())
-    } catch (err) {
-      setError((err as Error).message)
-    }
+  function refresh() {
+    startTransition(() => router.refresh())
+  }
+
+  if (onboarding) {
+    return (
+      <ProfileOnboarding
+        catalog={catalog}
+        photos={onboardingPhotos}
+        initial={{ name: data.full_name, handle: data.handle, bio: data.bio }}
+        onDone={() => {
+          setOnboarding(false)
+          // The questionnaire wrote a card, a handle and a bio server-side, so
+          // the page is re-fetched rather than patched from the response.
+          refresh()
+        }}
+        onSkip={() => {
+          setOnboarding(false)
+          setData((current) => ({ ...current, onboarded_at: new Date().toISOString() }))
+        }}
+      />
+    )
   }
 
   return (
-    <div className="mx-auto max-w-[1440px] px-4 py-8 sm:px-6 sm:py-12">
+    <div className="mx-auto max-w-[1240px] px-4 py-8 sm:px-6 sm:py-12">
       {/* ── Masthead ──────────────────────────────────────────────────────── */}
       <div className="flex flex-wrap items-end justify-between gap-4 border-b-2 border-foreground pb-4">
         <div className="min-w-0">
