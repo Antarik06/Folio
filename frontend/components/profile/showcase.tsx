@@ -258,3 +258,41 @@ function ShowcaseTile({
     </figure>
   )
 }
+
+function EmptyShowcase({
+  tab,
+  editable,
+  onAdd,
+  hasDrafts,
+}: {
+  tab: Tab
+  editable: boolean
+  onAdd(): void
+  hasDrafts: boolean
+}) {
+  if (!editable) {
+    return (
+      <div className="rounded-[4px] border border-dashed border-border px-6 py-14 text-center">
+        <MonoLabel>{tab === 'photos' ? 'No images here' : 'No albums here'}</MonoLabel>
+      </div>
+    )
+  }
+
+  return (
+    <div className="rounded-[4px] border border-dashed border-border px-6 py-14 text-center">
+      <MonoLabel>{tab === 'photos' ? 'No images on your page' : 'No albums on your page'}</MonoLabel>
+      <p className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-muted-foreground">
+        {tab === 'photos'
+          ? 'Frames stay in your library until you put one here. Add them one at a time — only photographs you uploaded yourself can go on a page.'
+          : hasDrafts
+            ? 'Albums stay private until you promote one. Add them one at a time.'
+            : 'Albums you make will be offered here once you have one.'}
+      </p>
+      <div className="mt-5">
+        <StampButton tone="primary" size="sm" onClick={onAdd}>
+          Add to profile
+        </StampButton>
+      </div>
+    </div>
+  )
+}
