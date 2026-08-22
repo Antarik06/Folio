@@ -29,3 +29,42 @@ export interface OnboardingPhoto {
 }
 
 type StepId = 'name' | 'work' | 'line' | 'interests' | 'photo' | 'look'
+
+const STEPS: { id: StepId; label: string; question: string; note: string }[] = [
+  {
+    id: 'name',
+    label: 'Who',
+    question: 'What should the card say?',
+    note: 'Your name as you would want it printed. The handle is the address of your page.',
+  },
+  {
+    id: 'work',
+    label: 'What',
+    question: 'What do you do, and where?',
+    note: 'One or both. Templates set these as the credit line beneath your name.',
+  },
+  {
+    id: 'line',
+    label: 'Voice',
+    question: 'Say one thing about yourself.',
+    note: 'A short line, and a longer one you keep coming back to. Either can be blank.',
+  },
+  {
+    id: 'interests',
+    label: 'Into',
+    question: 'What are you into?',
+    note: 'Three or four is plenty. They set as tags across the bottom of most templates.',
+  },
+  {
+    id: 'photo',
+    label: 'Face',
+    question: 'Pick a photograph.',
+    note: 'From what you have uploaded. You can swap it for any other later.',
+  },
+  {
+    id: 'look',
+    label: 'Look',
+    question: 'Pick the look.',
+    note: 'Every one of these is your answers, set differently. Nothing is locked in.',
+  },
+]
