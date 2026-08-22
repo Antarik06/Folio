@@ -164,7 +164,20 @@ export const profileService = {
          LEFT JOIN public.photos ph ON a.cover_photo_id = ph.id
         WHERE a.owner_id = $1 AND a.on_profile = TRUE
         ORDER BY a.promoted_at DESC NULLS LAST
-        LIMIT 24`,
+        LIMIT 48`,
+      [profile.id]
+    )
+
+    const photosRes = await query(
+      `SELECT p.id,
+              COALESCE(p.thumbnail_url, p.blob_url) AS url,
+              p.taken_at,
+              e.title AS event_title
+         FROM public.photos p
+         LEFT JOIN public.events e ON p.event_id = e.id
+        WHERE p.uploader_id = $1 AND p.on_profile = TRUE
+        ORDER BY p.profile_promoted_at DESC
+        LIMIT 60`,
       [profile.id]
     )
 
