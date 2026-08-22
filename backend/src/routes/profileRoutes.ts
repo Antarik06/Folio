@@ -122,6 +122,16 @@ router.post('/onboarding', async (req: AuthenticatedRequest, res: Response) => {
   }
 })
 
+router.post('/onboarding/skip', async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.user?.id
+    if (!userId) return res.status(401).json({ error: 'Unauthenticated' })
+    res.json(await profileService.skipOnboarding(userId))
+  } catch (error: any) {
+    sendError(res, error)
+  }
+})
+
 /**
  * Cards themselves live at /api/cards — see routes/cardRoutes.ts. The profile
  * page still carries them in its payload, because the page is where they are
