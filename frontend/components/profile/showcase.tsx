@@ -298,3 +298,51 @@ function EmptyShowcase({
 }
 
 /* ── Pickers ──────────────────────────────────────────────────────────────── */
+
+function Sheet({
+  title,
+  note,
+  onClose,
+  children,
+  footer,
+}: {
+  title: string
+  note: string
+  onClose(): void
+  children: React.ReactNode
+  footer?: React.ReactNode
+}) {
+  useEffect(() => {
+    function onKey(event: KeyboardEvent) {
+      if (event.key === 'Escape') onClose()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [onClose])
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
+      <button
+        type="button"
+        aria-label="Close"
+        onClick={onClose}
+        className="absolute inset-0 bg-foreground/40"
+      />
+      <div className="relative flex max-h-[88dvh] w-full max-w-[900px] flex-col rounded-t-[4px] border border-border bg-card sm:rounded-[4px]">
+        <div className="flex items-start justify-between gap-4 border-b border-border p-4 sm:p-5">
+          <div className="min-w-0">
+            <h2 className="font-serif text-xl leading-tight text-foreground">{title}</h2>
+            <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{note}</p>
+          </div>
+          <StampButton tone="ghost" size="sm" onClick={onClose}>
+            Done
+          </StampButton>
+        </div>
+
+        <div className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-5">{children}</div>
+
+        {footer ? <div className="border-t border-border p-4 sm:p-5">{footer}</div> : null}
+      </div>
+    </div>
+  )
+}
