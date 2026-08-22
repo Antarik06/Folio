@@ -100,11 +100,15 @@ export function ProfilePageClient({
           </h1>
           <MonoLabel className="mt-1.5">{creditLine}</MonoLabel>
         </div>
+
         <div className="flex flex-wrap items-center gap-2">
           <SpecPill tone={data.page_is_public ? 'secondary' : 'muted'}>
             {data.page_is_public ? 'Page is public' : 'Page is private'}
           </SpecPill>
-          <StampButton tone="ghost" size="sm" onClick={() => setEditing((v) => !v)}>
+          <StampButton tone="ink" size="sm" onClick={() => setSharing(true)}>
+            Share page
+          </StampButton>
+          <StampButton tone="ghost" size="sm" onClick={() => setEditing((value) => !value)}>
             {editing ? 'Close' : 'Settings'}
           </StampButton>
         </div>
@@ -126,155 +130,60 @@ export function ProfilePageClient({
         <PageSettings
           data={data}
           onSaved={(next) => {
-            setData((d) => ({ ...d, ...next }))
+            setData((current) => ({ ...current, ...next }))
             setEditing(false)
-            startTransition(() => router.refresh())
+            refresh()
           }}
           onError={setError}
+          onRerunOnboarding={() => {
+            setEditing(false)
+            setOnboarding(true)
+          }}
         />
       ) : null}
 
-      {/* ── What's on the page ────────────────────────────────────────────── */}
-      <LabelledBlock
-        label={`On your page — ${data.albums.length} album${data.albums.length === 1 ? '' : 's'}`}
-        className="mt-10"
-        action={
-          data.handle && data.page_is_public ? (
-            <Link
-              href={`/p/${data.handle}`}
-              className="font-mono text-[11px] uppercase tracking-[0.06em] text-primary underline-offset-4 hover:underline"
-            >
-              View public page →
-            </Link>
-          ) : null
-        }
-      >
-        {data.albums.length === 0 ? (
-          <div className="rounded-[4px] border border-dashed border-border px-6 py-12 text-center">
-            <MonoLabel>Nothing promoted yet</MonoLabel>
-            <p className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-muted-foreground">
-              Albums stay private until you put one here. Promote them one at a
-              time from the list below.
-            </p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 lg:gap-4">
-            {data.albums.map((album) => (
-              <figure key={album.id} className="group">
-                <Link href={`/preview/${album.id}`} className="block">
-                  <Frame src={album.cover_url} alt={album.title} ratio="4/5" />
-                </Link>
-                <figcaption className="mt-2 flex items-start justify-between gap-2">
-                  <div className="min-w-0">
-                    <div className="truncate font-serif text-base text-foreground">
-                      {album.title}
-                    </div>
-                    {album.event_title ? (
-                      <MonoLabel size="xs" className="truncate">
-                        {album.event_title}
-                      </MonoLabel>
-                    ) : null}
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => togglePromotion(album)}
-                    disabled={pending}
-                    className="shrink-0 font-mono text-[10px] uppercase tracking-[0.06em] text-ink-soft underline-offset-4 hover:text-primary hover:underline"
-                  >
-                    Remove
-                  </button>
-                </figcaption>
-              </figure>
-            ))}
-          </div>
-        )}
-      </LabelledBlock>
-
-      {/* ── What could go on it ───────────────────────────────────────────── */}
-      {data.draft_albums.length > 0 ? (
-        <LabelledBlock
-          label={`Private — ${data.draft_albums.length} album${data.draft_albums.length === 1 ? '' : 's'}`}
-          className="mt-10"
-        >
-          <ul className="divide-y divide-border rounded-[4px] border border-border bg-card">
-            {data.draft_albums.map((album) => (
-              <li
-                key={album.id}
-                className="flex items-center gap-3 p-3 sm:gap-4 sm:p-4"
-              >
-                <div className="h-12 w-12 shrink-0 overflow-hidden bg-surface-2 sm:h-14 sm:w-14">
-                  {album.cover_url ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={album.cover_url}
-                      alt=""
-                      loading="lazy"
-                      className="h-full w-full object-cover"
-                    />
-                  ) : (
-                    <div className="h-full w-full border border-dashed border-border" />
-                  )}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="truncate font-serif text-base text-foreground">
-                    {album.title}
-                  </div>
-                  {album.event_title ? (
-                    <MonoLabel size="xs" className="truncate">
-                      {album.event_title}
-                    </MonoLabel>
-                  ) : null}
-                </div>
-                <StampButton
-                  tone="ghost"
-                  size="sm"
-                  onClick={() => togglePromotion(album)}
-                  disabled={pending}
-                >
-                  Promote
-                </StampButton>
-              </li>
-            ))}
-          </ul>
-        </LabelledBlock>
-      ) : null}
-
-      {/* ── Cards ─────────────────────────────────────────────────────────── */}
-      <LabelledBlock
-        label={`Cards — ${data.cards.length}`}
-        className="mt-10"
-        action={
+      {/* ── The centrepiece ───────────────────────────────────────────────── */}
+      <section className="mt-10">
+        <div className="mb-4 flex items-baseline justify-between gap-3">
+          <MonoLabel tone="primary">Your card</MonoLabel>
           <Link
             href="/profile/cards"
             className="font-mono text-[11px] uppercase tracking-[0.06em] text-primary underline-offset-4 hover:underline"
           >
-            {data.cards.length > 0 ? 'Manage →' : 'Make one →'}
+            All cards →
           </Link>
+        </div>
+
+        <ProfileCardStage
+          cards={data.cards}
+          templates={data.card_templates}
+          styles={data.card_styles}
+          onCardsChanged={(cards) => setData((current) => ({ ...current, cards }))}
+        />
+      </section>
+
+      {/* ── What is under it ──────────────────────────────────────────────── */}
+      <ProfileShowcase
+        photos={data.photos}
+        albums={data.albums}
+        draftAlbums={data.draft_albums}
+        onPhotosChanged={(photos) => setData((current) => ({ ...current, photos }))}
+        onAlbumsChanged={(albums, draftAlbums) =>
+          setData((current) => ({ ...current, albums, draft_albums: draftAlbums }))
         }
-      >
-        {data.cards.length === 0 ? (
-          <div className="rounded-[4px] border border-dashed border-border px-6 py-10 text-center">
-            <MonoLabel>No cards yet</MonoLabel>
-            <p className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-muted-foreground">
-              A card is your life at a glance — a photograph, your name and the
-              few things you would actually mention. Pick a template and it
-              builds itself from what Folio already knows about you.
-            </p>
-            <div className="mt-5">
-              <StampButton href="/profile/cards" tone="primary" size="sm">
-                Make a card
-              </StampButton>
-            </div>
-          </div>
-        ) : (
-          <CardRail
-            cards={data.cards.slice(0, 8)}
-            templates={data.card_templates}
-            styles={data.card_styles}
-            hrefFor={(card) => `/profile/cards/${card.id}`}
-          />
-        )}
-      </LabelledBlock>
+      />
+
+      {sharing ? (
+        <ShareProfileDialog
+          handle={data.handle}
+          isPublic={data.page_is_public}
+          onClose={() => setSharing(false)}
+          onPublished={(next) => {
+            setData((current) => ({ ...current, ...next }))
+            refresh()
+          }}
+        />
+      ) : null}
     </div>
   )
 }
