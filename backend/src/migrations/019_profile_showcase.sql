@@ -29,3 +29,7 @@ ALTER TABLE public.profiles
 ALTER TABLE public.photos
   ADD COLUMN IF NOT EXISTS on_profile BOOLEAN NOT NULL DEFAULT FALSE,
   ADD COLUMN IF NOT EXISTS profile_promoted_at TIMESTAMPTZ;
+
+CREATE INDEX IF NOT EXISTS idx_photos_on_profile
+  ON public.photos(uploader_id, profile_promoted_at DESC)
+  WHERE on_profile = TRUE;
