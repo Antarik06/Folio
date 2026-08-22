@@ -75,6 +75,27 @@ router.patch('/albums/:albumId', async (req: AuthenticatedRequest, res: Response
 })
 
 /**
+ * The showcase — single photographs on the page.
+ *
+ * The picker is its own endpoint rather than a field on /page, because a user
+ * with ten thousand uploads should not pay for all of them on every page load.
+ */
+router.get('/photos/library', async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.user?.id
+    if (!userId) return res.status(401).json({ error: 'Unauthenticated' })
+    res.json(
+      await profileService.listPromotablePhotos(userId, {
+        limit: Number(req.query.limit ?? 60),
+        offset: Number(req.query.offset ?? 0),
+      })
+    )
+  } catch (error: any) {
+    sendError(res, error)
+  }
+})
+
+/**
  * Cards themselves live at /api/cards — see routes/cardRoutes.ts. The profile
  * page still carries them in its payload, because the page is where they are
  * shown, but creating and editing one is the card engine's business.
