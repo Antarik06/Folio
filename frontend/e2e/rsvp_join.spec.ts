@@ -18,8 +18,10 @@ test.describe('RSVP & Event Join Flow', () => {
   test('handles invalid event invite code gracefully', async ({ page }) => {
     await page.goto('/join/INVALIDCODE99')
 
-    // Should show invalid code screen
-    await expect(page.locator('h1')).toContainText(/invalid code/i)
-    await expect(page.getByRole('link', { name: /try again/i })).toBeVisible()
+    // The "no such insert" branch of app/join/[code]/page.tsx. Matched on a
+    // fragment and on the recovery link's destination so a copy tweak to the
+    // headline doesn't fail the run.
+    await expect(page.locator('h1')).toContainText(/open anything/i)
+    await expect(page.locator('a[href="/join"]')).toBeVisible()
   })
 })

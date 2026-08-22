@@ -10,7 +10,7 @@ test.describe('Authentication Flow', () => {
     // Check form inputs
     const emailInput = page.locator('input[type="email"]')
     const passwordInput = page.locator('input[type="password"]')
-    
+
     await expect(emailInput).toBeVisible()
     await expect(passwordInput).toBeVisible()
 
@@ -23,8 +23,13 @@ test.describe('Authentication Flow', () => {
 
   test('navigates to sign-up page from login', async ({ page }) => {
     await page.goto('/auth/login')
-    
-    const signUpLink = page.getByRole('link', { name: /create one/i })
+
+    // Matched on destination rather than label: the footer wording is design
+    // surface and has been reworded ("Create one" -> "Make one") before.
+    const signUpLink = page.locator('a[href^="/auth/sign-up"]')
     await expect(signUpLink).toBeVisible()
+
+    await signUpLink.click()
+    await expect(page).toHaveURL(/\/auth\/sign-up/)
   })
 })
