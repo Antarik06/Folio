@@ -33,3 +33,25 @@ ALTER TABLE public.photos
 CREATE INDEX IF NOT EXISTS idx_photos_on_profile
   ON public.photos(uploader_id, profile_promoted_at DESC)
   WHERE on_profile = TRUE;
+
+-- ─── 3. Reading a promoted photograph ───────────────────────────────────────
+-- The owner's own rows are already readable through the existing photo
+-- policies. This one exists so a visitor with no session can load the frames
+-- on a public page — and it withdraws them the moment the page goes private.
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM pg_tables
+     WHERE schemaname = 'public' AND tablename = 'photos' AND rowsecurity = TRUE
+  ) THEN
+    DROP POLICY IF EXISTS "photos_profile_public_read" ON public.photos;
+    CREATE POLICY "photos_profile_public_read" ON public.photos
+      FOR SELECT USING (
+        on_profile = TRUE
+        AND EXISTS (
+          SELECT 1 FROM public.profiles p
+           WHERE p.id = photos.uploader_id AND p.page_is_public = TRUE
+        )
+      );
+  END IF;
+END $$;
