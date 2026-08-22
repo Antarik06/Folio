@@ -20,27 +20,44 @@ export interface ProfilePageData {
   member_since: string
   events_joined: number
   events_hosted: number
+  onboarded_at: string | null
   albums: ProfileAlbum[]
   draft_albums: ProfileAlbum[]
+  photos: ProfilePhoto[]
   cards: Card[]
   card_templates: CardBundle['templates']
   card_styles: CardBundle['styles']
 }
 
 /**
- * Screen 07 — Profile & Cards, owner's view.
+ * Screen 07 — the Profile tab.
  *
- * A magazine masthead: name in serif, mono credit line beneath, and the
- * heaviest rule in the system under both. Below it, what's on the page, and a
- * plain list of what could be — because promotion is one explicit decision per
- * album, never a bulk switch.
+ * Read top to bottom it is one claim, made three times at decreasing volume:
+ * the masthead says who, the card says what that is like, and the showcase
+ * says what came of it. The card being the largest thing on the page is the
+ * whole point of the rearrangement — a profile made of album thumbnails
+ * describes a filing cabinet, not a person.
+ *
+ * The first visit interrupts all of that with a questionnaire, because the
+ * alternative is a centrepiece built from a name and nothing else. It is asked
+ * exactly once and can be walked out of at any point.
  */
-export function ProfilePageClient({ initial }: { initial: ProfilePageData }) {
+export function ProfilePageClient({
+  initial,
+  catalog,
+  onboardingPhotos,
+}: {
+  initial: ProfilePageData
+  catalog: Catalog
+  onboardingPhotos: OnboardingPhoto[]
+}) {
   const router = useRouter()
   const [data, setData] = useState(initial)
-  const [pending, startTransition] = useTransition()
+  const [, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
-  const [editing, setEditing] = useState(!initial.handle)
+  const [sharing, setSharing] = useState(false)
+  const [editing, setEditing] = useState(false)
+  const [onboarding, setOnboarding] = useState(!initial.onboarded_at)
 
   const memberSince = new Date(data.member_since).getFullYear()
   const creditLine = [
