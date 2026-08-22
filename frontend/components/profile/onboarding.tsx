@@ -422,3 +422,69 @@ export function ProfileOnboarding({
 }
 
 /* ── Inputs ───────────────────────────────────────────────────────────────── */
+
+function Field({
+  label,
+  value,
+  onChange,
+  placeholder,
+  hint,
+  prefix,
+  maxLength,
+  multiline,
+  mono,
+  autoFocus,
+}: {
+  label: string
+  value: string
+  onChange(value: string): void
+  placeholder?: string
+  hint?: string
+  prefix?: string
+  maxLength?: number
+  multiline?: boolean
+  mono?: boolean
+  autoFocus?: boolean
+}) {
+  const inputClass = cn(
+    'w-full bg-transparent text-foreground outline-none placeholder:text-ink-soft/60',
+    mono ? 'font-mono text-sm' : 'text-base'
+  )
+
+  return (
+    <label className="block">
+      <MonoLabel size="xs" className="mb-1.5">
+        {label}
+      </MonoLabel>
+      <div className="flex items-start rounded-[2px] border border-border bg-card focus-within:border-primary">
+        {prefix ? (
+          <span className="pl-3 pt-[13px] font-mono text-sm text-ink-soft">{prefix}</span>
+        ) : null}
+        {multiline ? (
+          <textarea
+            value={value}
+            onChange={(event) => onChange(event.target.value)}
+            placeholder={placeholder}
+            maxLength={maxLength}
+            rows={3}
+            autoFocus={autoFocus}
+            className={cn(inputClass, 'resize-none px-3 py-3 leading-relaxed')}
+          />
+        ) : (
+          <input
+            value={value}
+            onChange={(event) => onChange(event.target.value)}
+            placeholder={placeholder}
+            maxLength={maxLength}
+            autoFocus={autoFocus}
+            autoCapitalize={mono ? 'none' : undefined}
+            autoCorrect={mono ? 'off' : undefined}
+            spellCheck={mono ? false : undefined}
+            className={cn(inputClass, 'min-h-[46px] px-3')}
+          />
+        )}
+      </div>
+      {hint ? <p className="mt-1.5 text-xs text-muted-foreground">{hint}</p> : null}
+    </label>
+  )
+}
