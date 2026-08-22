@@ -106,6 +106,22 @@ router.patch('/photos/:photoId', async (req: AuthenticatedRequest, res: Response
   }
 })
 
+/* ── First visit ──────────────────────────────────────────────────────────── */
+
+/**
+ * Answers in, a finished card out. One request rather than five, so a dropped
+ * connection halfway through the questionnaire leaves nothing half-written.
+ */
+router.post('/onboarding', async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.user?.id
+    if (!userId) return res.status(401).json({ error: 'Unauthenticated' })
+    res.json(await profileService.completeOnboarding(userId, req.body ?? {}))
+  } catch (error: any) {
+    sendError(res, error)
+  }
+})
+
 /**
  * Cards themselves live at /api/cards — see routes/cardRoutes.ts. The profile
  * page still carries them in its payload, because the page is where they are
