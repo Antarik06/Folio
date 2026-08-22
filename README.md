@@ -28,6 +28,13 @@
 - **Interactive 3D Book Viewer**: Experience digital photo albums in interactive 3D spaces powered by `@react-three/fiber` and `@react-spring/three`.
 - **Realistic Page-Turn Physics**: Smooth, tactile flipbook preview using `page-flip` / `react-pageflip` for authentic album review before printing.
 
+### 🃏 Life Cards — a template-driven card engine
+- **One Renderer, Any Design**: Cards are drawn by a single SVG renderer fed by template configuration, base-style tokens, profile data and user customisation — there is no per-design component. See [`docs/CardSystem.md`](docs/CardSystem.md).
+- **Backend-Published Templates**: Templates and base styles are database rows. Publishing a new one from the admin panel puts it in every user's picker, correctly previewed, with no frontend deploy.
+- **Versioned & Snapshotted**: A card pins the template version and the profile snapshot it was built from, so a shared link never changes under its owner; refreshing and upgrading are explicit.
+- **Safe Declarative Schemas**: Template definitions are validated documents — allowlisted components, bounded dimensions, and a `{{profile.name}}` resolver that never evaluates code.
+- **High-Quality Image Export**: The exported PNG/JPEG is rasterised from the very SVG on screen, at 1×–3× the template's canvas, with photographs inlined.
+
 ### 💼 Photographer/Artist Portal & Monetization
 - **Artist Dashboard**: Dedicated portal for professional photographers to publish template designs, view analytics, and manage client orders.
 - **Razorpay E-Commerce Integration**: Complete checkout flow for ordering physical print albums, photo packages, and digital deliverables.
@@ -67,7 +74,7 @@ Folio/
 │   │   ├── (app)/             # Signed-in shell — the three tabs + role-gated areas
 │   │   │   ├── photos/        #   Photos — library, events, "photos of me"
 │   │   │   ├── create/        #   Create — styles, editor, ask an artist, orders
-│   │   │   ├── profile/       #   Profile — my page, share cards
+│   │   │   ├── profile/       #   Profile — my page, cards (template-driven)
 │   │   │   ├── artist-studio/ #   Role-gated: photographers
 │   │   │   └── admin/         #   Role-gated: staff
 │   │   ├── album/             # Album share-link viewer
@@ -78,9 +85,11 @@ Folio/
 │   ├── components/
 │   │   ├── folio/             # Editorial Darkroom primitives & press marks
 │   │   ├── viewer/            # The one 3D viewer (AlbumViewer + its scenes)
+│   │   ├── cards/             # The card engine's renderer, editor & panels
 │   │   ├── photos/  create/  profile/  join/   # One folder per tab
 │   │   └── album-editor/      # Canvas editor widgets
 │   ├── lib/                   # Utility modules (PSD parser, template engine, pricing, supabase)
+│   │   └── cards/             # Card engine: resolver, style, layout, registry, export
 │   └── styles/                # Global CSS & Tailwind styling setup
 │
 └── backend/                   # Express.js REST API Server
@@ -89,7 +98,7 @@ Folio/
     │   ├── db/                # pg Pool + the query() wrapper every service uses
     │   ├── middlewares/       # Auth verification & error handling
     │   ├── migrations/        # Database schema migrations
-    │   ├── routes/            # HTTP wiring only (artist, album, ai, event, library, order, premium, profile)
+    │   ├── routes/            # HTTP wiring only (artist, album, ai, cards, event, library, order, premium, profile)
     │   ├── schema/            # Zod request validation (not an ORM schema)
     │   ├── services/          # Core business logic (PDF export, PSD processing, AI layout)
     │   └── utils/             # Helper utilities

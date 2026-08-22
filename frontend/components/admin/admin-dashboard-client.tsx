@@ -644,6 +644,17 @@ export function AdminDashboardClient({ initialUsers, initialOrders }: AdminDashb
               </button>
             )
           })}
+
+          {/* Card templates get their own screen: editing one is a design task
+              with a live proof, not a table of rows. */}
+          <Link
+            href="/admin/cards"
+            className="flex items-center gap-2 pb-4 px-5 text-[10px] font-mono uppercase tracking-widest transition-all relative shrink-0 text-muted-foreground hover:text-[#F5F0E8]"
+          >
+            <Layers className="w-3.5 h-3.5" />
+            Card Templates
+            <ArrowUpRight className="w-3 h-3" />
+          </Link>
         </div>
 
         {/* ── TAB 1: OVERVIEW ANALYTICS ── */}

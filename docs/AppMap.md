@@ -26,7 +26,7 @@ Plus two role-gated areas that sit outside the three tabs, since they're a diffe
 
 ### Inside Profile
 - **My Page** — your public profile.
-- **Cards** — the shareable, occasion-based designed cards.
+- **Cards** — a shareable card of your life, built from a backend-published template and a base style. See docs/CardSystem.md.
 
 ---
 

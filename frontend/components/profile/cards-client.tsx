@@ -1,114 +1,95 @@
 'use client'
 
 import { useMemo, useState } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { clientFetch } from '@/lib/api-client'
 import {
-  Frame,
+  EmptyPlate,
   LabelledBlock,
   MonoLabel,
   PageMasthead,
   SpecPill,
   StampButton,
 } from '@/components/folio/primitives'
-import { ShareCard, type ShareCardData } from '@/components/profile/share-card'
-
-interface PickablePhoto {
-  id: string
-  url: string
-  event_title?: string
-}
+import { CardRenderer } from '@/components/cards/card-renderer'
+import { cardsApi } from '@/lib/cards/api'
+import {
+  normalizeProfile,
+  type Card,
+  type CardBundle,
+  type CardProfileData,
+  type Catalog,
+} from '@/lib/cards/types'
+import { cn } from '@/lib/utils'
 
 /**
- * Cards — the Share stage's output.
+ * Cards — the gallery.
  *
- * The whole screen is a live proof: you pick a photo, type the words, and the
- * card next to you *is* the card, at the same 4:5 crop it will export at.
- * There is no separate preview step, because the card is small enough to be
- * its own form.
+ * Every tile is the live renderer, not a stored thumbnail, so a card is always
+ * shown as it is now: restyle a template from the admin panel and this screen
+ * tells the truth the next time it loads, without a regeneration job anywhere.
  */
 export function CardsClient({
-  initialCards,
-  photos,
-  handle,
-  name,
+  initial,
+  catalog,
+  profile,
 }: {
-  initialCards: ShareCardData[]
-  photos: PickablePhoto[]
-  handle: string | null
-  name: string | null
+  initial: CardBundle
+  catalog: Catalog
+  profile: CardProfileData
 }) {
   const router = useRouter()
-  const [cards, setCards] = useState(initialCards)
+  const [bundle, setBundle] = useState(initial)
+  const [picking, setPicking] = useState(initial.cards.length === 0)
+  const [busy, setBusy] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [saving, setSaving] = useState(false)
 
-  const [kind, setKind] = useState<'occasion' | 'profile'>('occasion')
-  const [headline, setHeadline] = useState('2 Years')
-  const [subline, setSubline] = useState('')
-  const [occasionDate, setOccasionDate] = useState('')
-  const [photoId, setPhotoId] = useState<string | null>(photos[0]?.id ?? null)
-  const [isPublic, setIsPublic] = useState(false)
+  const data = useMemo(() => normalizeProfile(profile), [profile])
 
-  const selectedPhoto = useMemo(
-    () => photos.find((p) => p.id === photoId) ?? null,
-    [photos, photoId]
-  )
-
-  const draft: ShareCardData = {
-    id: 'draft',
-    kind,
-    headline: headline || 'Your headline',
-    subline: subline || null,
-    occasion_date: occasionDate || null,
-    photo_url: selectedPhoto?.url ?? null,
+  async function create(templateId: string) {
+    setBusy(templateId)
+    setError(null)
+    try {
+      const created = await cardsApi.create({ templateId })
+      router.push(`/profile/cards/${created.card.id}`)
+    } catch (createError) {
+      setError((createError as Error).message)
+      setBusy(null)
+    }
   }
 
-  async function create() {
+  async function act(cardId: string, action: 'publish' | 'primary' | 'refresh' | 'upgrade') {
+    setBusy(cardId + action)
     setError(null)
-    setSaving(true)
     try {
-      const created = await clientFetch('/api/profile/cards', {
-        method: 'POST',
-        body: JSON.stringify({
-          kind,
-          headline,
-          subline: subline || null,
-          occasion_date: occasionDate || null,
-          photo_id: photoId,
-          photo_url: selectedPhoto?.url ?? null,
-          is_public: isPublic,
-        }),
-      })
-      setCards((c) => [created, ...c])
+      const card = bundle.cards.find((entry) => entry.id === cardId)
+      if (!card) return
+
+      const result =
+        action === 'publish'
+          ? await cardsApi.update(cardId, { isPublic: !card.isPublic })
+          : action === 'primary'
+            ? await cardsApi.update(cardId, { isPrimary: true })
+            : action === 'refresh'
+              ? await cardsApi.regenerate(cardId)
+              : await cardsApi.upgrade(cardId)
+
+      setBundle((current) => ({
+        cards: current.cards.map((entry) =>
+          entry.id === cardId
+            ? result.card
+            : action === 'primary'
+              ? { ...entry, isPrimary: false }
+              : entry
+        ),
+        templates: { ...current.templates, ...result.templates },
+        styles: { ...current.styles, ...result.styles },
+      }))
       router.refresh()
-    } catch (err) {
-      setError((err as Error).message)
+    } catch (actionError) {
+      setError((actionError as Error).message)
     } finally {
-      setSaving(false)
-    }
-  }
-
-  async function togglePublic(card: ShareCardData) {
-    setError(null)
-    try {
-      const next = await clientFetch(`/api/profile/cards/${card.id}`, {
-        method: 'PATCH',
-        body: JSON.stringify({ is_public: !card.is_public }),
-      })
-      setCards((c) => c.map((x) => (x.id === card.id ? next : x)))
-    } catch (err) {
-      setError((err as Error).message)
-    }
-  }
-
-  async function remove(card: ShareCardData) {
-    setError(null)
-    try {
-      await clientFetch(`/api/profile/cards/${card.id}`, { method: 'DELETE' })
-      setCards((c) => c.filter((x) => x.id !== card.id))
-    } catch (err) {
-      setError((err as Error).message)
+      setBusy(null)
     }
   }
 
@@ -117,11 +98,22 @@ export function CardsClient({
       <PageMasthead
         eyebrow="Profile — Cards"
         title="Cards"
-        meta={`${cards.length} made · 1080×1350 · instagram & whatsapp`}
+        meta={`${bundle.cards.length} card${bundle.cards.length === 1 ? '' : 's'} · ${
+          catalog.templates.length
+        } templates · ${catalog.styles.length} styles`}
         actions={
-          <StampButton href="/profile" tone="ghost" size="sm">
-            ← Profile
-          </StampButton>
+          <>
+            <StampButton href="/profile" tone="ghost" size="sm">
+              ← Profile
+            </StampButton>
+            <StampButton
+              tone="primary"
+              size="sm"
+              onClick={() => setPicking((value) => !value)}
+            >
+              {picking ? 'Close' : 'New card'}
+            </StampButton>
+          </>
         }
       />
 
@@ -131,185 +123,232 @@ export function CardsClient({
         </p>
       ) : null}
 
-      {/* ── The proof, and the words on it ─────────────────────────────────── */}
-      <div className="mt-8 grid gap-6 lg:grid-cols-[260px_1fr] lg:gap-10">
-        <div className="flex justify-center lg:sticky lg:top-24 lg:block lg:self-start">
-          <ShareCard card={draft} handle={handle} name={name} width={230} />
-        </div>
-
-        <div className="min-w-0">
-          <LabelledBlock label="Card type">
-            <div className="grid gap-3 sm:grid-cols-2">
-              <TypeChoice
-                active={kind === 'occasion'}
-                onClick={() => setKind('occasion')}
-                title="Occasion"
-                note="Terracotta field, photo set like a locket. For anniversaries, birthdays, milestones."
-              />
-              <TypeChoice
-                active={kind === 'profile'}
-                onClick={() => setKind('profile')}
-                title="Profile"
-                note="Paper field, one photo bleeding to the edges, your handle beneath."
-              />
-            </div>
-          </LabelledBlock>
-
-          <LabelledBlock label="Words" className="mt-7">
-            <div className="grid gap-4 sm:grid-cols-2">
-              <label className="block">
-                <MonoLabel size="xs" className="mb-1.5">
-                  Headline
-                </MonoLabel>
-                <input
-                  value={headline}
-                  onChange={(e) => setHeadline(e.target.value)}
-                  maxLength={60}
-                  placeholder="2 Years"
-                  className="min-h-[44px] w-full rounded-[2px] border border-border bg-background px-3 font-serif text-lg text-foreground outline-none focus:border-primary"
-                />
-              </label>
-
-              <label className="block">
-                <MonoLabel size="xs" className="mb-1.5">
-                  {kind === 'occasion' ? 'Date' : 'Caption'}
-                </MonoLabel>
-                {kind === 'occasion' ? (
-                  <input
-                    type="date"
-                    value={occasionDate}
-                    onChange={(e) => setOccasionDate(e.target.value)}
-                    className="min-h-[44px] w-full rounded-[2px] border border-border bg-background px-3 font-mono text-sm text-foreground outline-none focus:border-primary"
-                  />
-                ) : (
-                  <input
-                    value={subline}
-                    onChange={(e) => setSubline(e.target.value)}
-                    maxLength={60}
-                    placeholder="Udaipur, November"
-                    className="min-h-[44px] w-full rounded-[2px] border border-border bg-background px-3 font-mono text-sm text-foreground outline-none focus:border-primary"
-                  />
-                )}
-              </label>
-            </div>
-          </LabelledBlock>
-
-          <LabelledBlock
-            label={`Photo — ${photos.length} to choose from`}
-            className="mt-7"
-          >
-            {photos.length === 0 ? (
-              <div className="rounded-[4px] border border-dashed border-border px-6 py-10 text-center">
-                <MonoLabel>No photos yet</MonoLabel>
-                <p className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-muted-foreground">
-                  A card centres one photo from your library. Join or host an
-                  event first.
-                </p>
-              </div>
-            ) : (
-              <div className="grid max-h-[280px] grid-cols-4 gap-[3px] overflow-y-auto rounded-[4px] border border-border bg-card p-[3px] sm:grid-cols-6 lg:grid-cols-8">
-                {photos.map((photo) => (
+      {picking ? (
+        <LabelledBlock
+          label="Start from a template"
+          className="mt-8 rounded-[4px] border border-border bg-card p-4 sm:p-5"
+        >
+          {catalog.templates.length === 0 ? (
+            <EmptyPlate label="No templates published">
+              An administrator publishes templates from the admin panel. Once one
+              is live it appears here on its own.
+            </EmptyPlate>
+          ) : (
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
+              {catalog.templates.map((template) => {
+                const style =
+                  catalog.styles.find((entry) => entry.id === template.defaultStyleId) ?? null
+                return (
                   <button
-                    key={photo.id}
+                    key={template.id}
                     type="button"
-                    onClick={() => setPhotoId(photo.id)}
-                    aria-pressed={photo.id === photoId}
-                    aria-label={photo.event_title ?? 'Photo'}
-                    className="block"
+                    onClick={() => void create(template.id)}
+                    disabled={busy !== null}
+                    className="group block text-left disabled:opacity-50"
                   >
-                    <Frame
-                      src={photo.url}
-                      alt=""
-                      ratio="1/1"
-                      selected={photo.id === photoId}
-                    />
+                    <div
+                      className="overflow-hidden bg-surface-2 outline outline-1 -outline-offset-1 outline-border transition-all group-hover:outline-foreground"
+                      style={{
+                        aspectRatio: `${template.definition.canvas.width} / ${template.definition.canvas.height}`,
+                      }}
+                    >
+                      <CardRenderer
+                        definition={template.definition}
+                        style={style}
+                        profile={data}
+                        title={template.name}
+                      />
+                    </div>
+                    <div className="mt-2 truncate font-serif text-base text-foreground">
+                      {busy === template.id ? 'Making…' : template.name}
+                    </div>
+                    <MonoLabel size="xs" className="truncate">
+                      {template.category}
+                    </MonoLabel>
                   </button>
-                ))}
-              </div>
-            )}
-          </LabelledBlock>
-
-          <div className="mt-7 flex flex-wrap items-center gap-4 border-t border-border pt-5">
-            <label className="flex items-center gap-2.5">
-              <input
-                type="checkbox"
-                checked={isPublic}
-                onChange={(e) => setIsPublic(e.target.checked)}
-                className="h-5 w-5 accent-[var(--primary)]"
-              />
-              <span className="text-sm text-foreground">Show on my public page</span>
-            </label>
-            <StampButton
-              tone="primary"
-              onClick={create}
-              disabled={saving || !headline.trim()}
-              className="ml-auto"
-            >
-              {saving ? 'Saving…' : 'Save card'}
-            </StampButton>
-          </div>
-        </div>
-      </div>
-
-      {/* ── Cards already made ─────────────────────────────────────────────── */}
-      {cards.length > 0 ? (
-        <LabelledBlock label={`Your cards — ${cards.length}`} className="mt-12">
-          <div className="flex flex-wrap gap-5">
-            {cards.map((card) => (
-              <div key={card.id} className="w-[230px]">
-                <ShareCard card={card} handle={handle} name={name} />
-                <div className="mt-2 flex items-center justify-between gap-2">
-                  <SpecPill tone={card.is_public ? 'secondary' : 'muted'}>
-                    {card.is_public ? 'Public' : 'Private'}
-                  </SpecPill>
-                  <div className="flex items-center gap-3">
-                    <button
-                      type="button"
-                      onClick={() => togglePublic(card)}
-                      className="font-mono text-[10px] uppercase tracking-[0.06em] text-ink-soft underline-offset-4 hover:text-foreground hover:underline"
-                    >
-                      {card.is_public ? 'Hide' : 'Publish'}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => remove(card)}
-                      className="font-mono text-[10px] uppercase tracking-[0.06em] text-ink-soft underline-offset-4 hover:text-primary hover:underline"
-                    >
-                      Delete
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
+                )
+              })}
+            </div>
+          )}
         </LabelledBlock>
       ) : null}
+
+      <LabelledBlock
+        label={`Your cards — ${bundle.cards.length}`}
+        className="mt-10"
+        action={
+          <MonoLabel size="xs">Tap a card to edit it</MonoLabel>
+        }
+      >
+        {bundle.cards.length === 0 ? (
+          <EmptyPlate label="No cards yet" action={
+            <StampButton tone="primary" size="sm" onClick={() => setPicking(true)}>
+              Make one
+            </StampButton>
+          }>
+            A card is your life at a glance — a photograph, your name and the few
+            things you would actually mention. Sized for Instagram and WhatsApp.
+          </EmptyPlate>
+        ) : (
+          <div className="grid grid-cols-2 gap-5 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+            {bundle.cards.map((card) => (
+              <CardTile
+                key={card.id}
+                card={card}
+                bundle={bundle}
+                catalog={catalog}
+                busy={busy}
+                onAct={act}
+              />
+            ))}
+          </div>
+        )}
+      </LabelledBlock>
     </div>
   )
 }
 
-function TypeChoice({
-  active,
-  onClick,
-  title,
-  note,
+function CardTile({
+  card,
+  bundle,
+  catalog,
+  busy,
+  onAct,
 }: {
-  active: boolean
-  onClick: () => void
-  title: string
-  note: string
+  card: Card
+  bundle: CardBundle
+  catalog: Catalog
+  busy: string | null
+  onAct(cardId: string, action: 'publish' | 'primary' | 'refresh' | 'upgrade'): void
+}) {
+  const pinned = bundle.templates[`${card.templateId}@${card.templateVersion}`]
+  const style = card.styleId ? bundle.styles[card.styleId] : null
+  const catalogTemplate = catalog.templates.find((entry) => entry.id === card.templateId)
+  const outdated = !!catalogTemplate && catalogTemplate.version > card.templateVersion
+
+  if (!pinned) {
+    return (
+      <div className="rounded-[4px] border border-dashed border-border p-4">
+        <MonoLabel size="xs" tone="primary">
+          Template missing
+        </MonoLabel>
+        <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+          {card.title} was built on a template that is no longer available.
+        </p>
+      </div>
+    )
+  }
+
+  return (
+    <figure className="min-w-0">
+      <Link href={`/profile/cards/${card.id}`} className="block">
+        <div
+          className="overflow-hidden bg-surface-2 outline outline-1 -outline-offset-1 outline-border transition-all hover:outline-foreground"
+          style={{
+            aspectRatio: `${pinned.definition.canvas.width} / ${pinned.definition.canvas.height}`,
+          }}
+        >
+          <CardRenderer
+            definition={pinned.definition}
+            style={style}
+            profile={card.profileSnapshot}
+            customization={card.customization}
+            title={card.title}
+          />
+        </div>
+      </Link>
+
+      <figcaption className="mt-2">
+        <div className="flex items-baseline justify-between gap-2">
+          <Link
+            href={`/profile/cards/${card.id}`}
+            className="min-w-0 truncate font-serif text-base text-foreground hover:underline"
+          >
+            {card.title}
+          </Link>
+          {card.isPrimary ? (
+            <MonoLabel size="xs" tone="primary">
+              Main
+            </MonoLabel>
+          ) : null}
+        </div>
+
+        <MonoLabel size="xs" className="mt-0.5 truncate">
+          {pinned.name} v{card.templateVersion}
+          {style ? ` · ${style.name}` : ''}
+        </MonoLabel>
+
+        <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1.5">
+          <SpecPill tone={card.isPublic ? 'secondary' : 'muted'} className="px-2 py-1">
+            {card.isPublic ? 'Public' : 'Private'}
+          </SpecPill>
+
+          <TileAction
+            label={card.isPublic ? 'Hide' : 'Publish'}
+            busy={busy === card.id + 'publish'}
+            onClick={() => onAct(card.id, 'publish')}
+          />
+          {!card.isPrimary ? (
+            <TileAction
+              label="Make main"
+              busy={busy === card.id + 'primary'}
+              onClick={() => onAct(card.id, 'primary')}
+            />
+          ) : null}
+          <TileAction
+            label="Refresh"
+            title="Rebuild this card from your details as they are now"
+            busy={busy === card.id + 'refresh'}
+            onClick={() => onAct(card.id, 'refresh')}
+          />
+        </div>
+
+        {outdated ? (
+          <div className="mt-2 border-l-2 border-primary pl-2.5">
+            <MonoLabel size="xs" tone="primary">
+              v{catalogTemplate!.version} available
+            </MonoLabel>
+            <p className="mt-0.5 text-[12px] leading-snug text-muted-foreground">
+              This card still renders as it always has.{' '}
+              <button
+                type="button"
+                onClick={() => onAct(card.id, 'upgrade')}
+                disabled={busy === card.id + 'upgrade'}
+                className="font-mono text-[11px] uppercase tracking-[0.06em] text-primary underline-offset-4 hover:underline"
+              >
+                {busy === card.id + 'upgrade' ? 'Updating…' : 'Update'}
+              </button>
+            </p>
+          </div>
+        ) : null}
+      </figcaption>
+    </figure>
+  )
+}
+
+function TileAction({
+  label,
+  onClick,
+  busy,
+  title,
+}: {
+  label: string
+  onClick(): void
+  busy?: boolean
+  title?: string
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      aria-pressed={active}
-      className={`flex min-h-[88px] flex-col justify-center rounded-[4px] border p-4 text-left transition-colors ${
-        active ? 'border-primary bg-primary/[0.06]' : 'border-border bg-card hover:border-foreground'
-      }`}
+      disabled={busy}
+      title={title}
+      className={cn(
+        'font-mono text-[10px] uppercase tracking-[0.06em] underline-offset-4 transition-colors',
+        busy ? 'text-ink-soft' : 'text-ink-soft hover:text-primary hover:underline'
+      )}
     >
-      <span className="font-serif text-lg text-foreground">{title}</span>
-      <span className="mt-1 text-[13px] leading-snug text-muted-foreground">{note}</span>
+      {busy ? '…' : label}
     </button>
   )
 }

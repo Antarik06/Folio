@@ -3,7 +3,7 @@ import Link from 'next/link'
 import type { Metadata } from 'next'
 import { serverFetch } from '@/lib/api-client'
 import { Frame, LabelledBlock, MonoLabel } from '@/components/folio/primitives'
-import { ShareCard } from '@/components/profile/share-card'
+import { CardRail } from '@/components/cards/card-rail'
 
 /**
  * Someone's public page.
@@ -89,14 +89,13 @@ export default async function PublicProfilePage({
         ) : null}
 
         {page.cards.length > 0 ? (
-          <LabelledBlock label="Cards" className="mt-10">
-            <div className="-mx-4 flex gap-4 overflow-x-auto px-4 pb-2 snap-rail sm:mx-0 sm:px-0">
-              {page.cards.map((card: any) => (
-                <div key={card.id} className="shrink-0">
-                  <ShareCard card={card} handle={page.handle} name={page.full_name} />
-                </div>
-              ))}
-            </div>
+          <LabelledBlock label={`Cards — ${page.cards.length}`} className="mt-10">
+            <CardRail
+              cards={page.cards}
+              templates={page.card_templates ?? {}}
+              styles={page.card_styles ?? {}}
+              hrefFor={(card) => (card.shareSlug ? `/card/${card.shareSlug}` : null)}
+            />
           </LabelledBlock>
         ) : null}
 

@@ -11,7 +11,8 @@ import {
   SpecPill,
   StampButton,
 } from '@/components/folio/primitives'
-import { ShareCard, type ShareCardData } from '@/components/profile/share-card'
+import { CardRail } from '@/components/cards/card-rail'
+import type { Card, CardBundle } from '@/lib/cards/types'
 
 interface ProfileAlbum {
   id: string
@@ -32,7 +33,9 @@ export interface ProfilePageData {
   events_hosted: number
   albums: ProfileAlbum[]
   draft_albums: ProfileAlbum[]
-  cards: ShareCardData[]
+  cards: Card[]
+  card_templates: CardBundle['templates']
+  card_styles: CardBundle['styles']
 }
 
 /**
@@ -236,7 +239,7 @@ export function ProfilePageClient({ initial }: { initial: ProfilePageData }) {
 
       {/* ── Cards ─────────────────────────────────────────────────────────── */}
       <LabelledBlock
-        label="Share cards — 1080×1350"
+        label={`Cards — ${data.cards.length}`}
         className="mt-10"
         action={
           <Link
@@ -251,8 +254,9 @@ export function ProfilePageClient({ initial }: { initial: ProfilePageData }) {
           <div className="rounded-[4px] border border-dashed border-border px-6 py-10 text-center">
             <MonoLabel>No cards yet</MonoLabel>
             <p className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-muted-foreground">
-              A card is one photo and a few words, sized for Instagram and
-              WhatsApp — an anniversary, a birthday, a trip you finished.
+              A card is your life at a glance — a photograph, your name and the
+              few things you would actually mention. Pick a template and it
+              builds itself from what Folio already knows about you.
             </p>
             <div className="mt-5">
               <StampButton href="/profile/cards" tone="primary" size="sm">
@@ -261,13 +265,12 @@ export function ProfilePageClient({ initial }: { initial: ProfilePageData }) {
             </div>
           </div>
         ) : (
-          <div className="-mx-4 flex gap-4 overflow-x-auto px-4 pb-2 snap-rail sm:mx-0 sm:px-0">
-            {data.cards.slice(0, 8).map((card) => (
-              <div key={card.id} className="shrink-0">
-                <ShareCard card={card} handle={data.handle} name={data.full_name} />
-              </div>
-            ))}
-          </div>
+          <CardRail
+            cards={data.cards.slice(0, 8)}
+            templates={data.card_templates}
+            styles={data.card_styles}
+            hrefFor={(card) => `/profile/cards/${card.id}`}
+          />
         )}
       </LabelledBlock>
     </div>

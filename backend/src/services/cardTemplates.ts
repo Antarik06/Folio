@@ -93,14 +93,14 @@ const creditRow = (id: string, tone = 'inkSoft'): Node =>
 const minimal: TemplateDefinition = {
   canvas: { width: 1080, height: 1350, background: 'background', padding: 86 },
   textStyles: {},
-  root: stack({ gap: 'lg', height: 'fill' }, [
+  root: stack({ gap: 'md', height: 'fill' }, [
     {
       id: 'hero',
       type: 'image',
       props: {
         src: '{{profile.photos[0].url}}',
         fit: 'cover',
-        ratio: 1.45,
+        ratio: 1.7,
         radius: 'image',
       },
       editable: { image: true, visibility: false },
@@ -191,7 +191,7 @@ const editorial: TemplateDefinition = {
         text('bio', { style: 'bodySmall', value: '{{profile.bio}}', maxLines: 6 }),
       ]),
       stack({ width: 300, gap: 'xs' }, [
-        label('interestsLabel', { value: 'In her own words', color: 'accent' }),
+        label('interestsLabel', { value: 'Into', color: 'accent' }),
         rule('ruleInterests'),
         {
           id: 'interests',
@@ -263,7 +263,16 @@ const cinematic: TemplateDefinition = {
           { id: 'topMark', type: 'mark', props: { kind: 'crosshair', size: 26, color: '#FFFFFF' } },
         ]
       ),
-      stack({ id: 'lower', frame: { x: 72, y: 730, width: 936 }, gap: 'sm' }, [
+      stack(
+        {
+          id: 'lower',
+          // A fixed box justified to its bottom edge: the block grows upward
+          // from the credit line however much the achievements list holds.
+          frame: { x: 72, y: 560, width: 936, height: 640 },
+          justify: 'end',
+          gap: 'sm',
+        },
+        [
         label('kicker', { value: 'The story so far', color: 'accent' }),
         text('name', { style: 'display', value: '{{profile.name | default:Your name}}', fit: true }),
         text('tagline', {
@@ -288,16 +297,19 @@ const cinematic: TemplateDefinition = {
           },
           when: 'profile.achievements',
         },
-        stack({ gap: 4, margin: { top: 12 } }, [
-          label('nowLabel', { value: 'Current chapter', color: 'accent' }),
-          text('now', { style: 'bodySmall', value: '{{profile.currentChapter}}', maxLines: 2 }),
-        ], ),
-        stack({ gap: 4, margin: { top: 6 } }, [
-          label('nextLabel', { value: 'Next', color: 'accent' }),
-          text('next', { style: 'bodySmall', value: '{{profile.nextChapter}}', maxLines: 2 }),
+        row({ gap: 'md', margin: { top: 14 }, items: 'start' }, [
+          stack({ flex: 1, gap: 4 }, [
+            label('nowLabel', { value: 'Current chapter', color: 'accent' }),
+            text('now', { style: 'bodySmall', value: '{{profile.currentChapter}}', maxLines: 3 }),
+          ]),
+          stack({ flex: 1, gap: 4 }, [
+            label('nextLabel', { value: 'Next', color: 'accent' }),
+            text('next', { style: 'bodySmall', value: '{{profile.nextChapter}}', maxLines: 3 }),
+          ]),
         ]),
-      ]),
-      row({ id: 'credit', frame: { x: 72, y: 1252, width: 936 }, justify: 'between', items: 'center' }, [
+        ]
+      ),
+      row({ id: 'credit', frame: { x: 72, y: 1248, width: 936 }, justify: 'between', items: 'center' }, [
         text('creditHandle', { style: 'handle', value: '{{profile.username | prefix:@}}' }),
         text('creditMark', { style: 'handle', value: 'Folio' }),
       ]),
@@ -790,6 +802,7 @@ const wrapped: TemplateDefinition = {
           marker: 'number',
           style: 'title',
           markerStyle: 'statLabel',
+          markerColor: 'accentInk',
           gap: 10,
         },
       },
@@ -850,14 +863,14 @@ const story: TemplateDefinition = {
         label('kicker', { value: 'Folio', color: '#FFFFFF' }),
         { id: 'topMark', type: 'mark', props: { kind: 'crosshair', size: 26, color: '#FFFFFF' } },
       ]),
-      stack({ id: 'lower', frame: { x: 80, y: 1250, width: 920 }, gap: 'sm' }, [
+      stack({ id: 'lower', frame: { x: 80, y: 1236, width: 920 }, gap: 'sm' }, [
         text('name', { style: 'heroName', value: '{{profile.name | default:Your name}}', fit: true }),
         text('role', {
           style: 'subtitle',
           parts: ['{{profile.occupation}}', '{{profile.location}}'],
         }),
         rule('rule1', { weight: 2, color: 'accent', width: 110 }, { margin: { top: 12, bottom: 12 } }),
-        text('bio', { style: 'body', value: '{{profile.bio}}', maxLines: 3 }, { when: 'profile.bio' }),
+        text('bio', { style: 'body', value: '{{profile.bio}}', maxLines: 2 }, { when: 'profile.bio' }),
         {
           id: 'stats',
           type: 'statGroup',
@@ -874,7 +887,7 @@ const story: TemplateDefinition = {
       ]),
       {
         ...creditRow('credit'),
-        frame: { x: 80, y: 1806, width: 920 },
+        frame: { x: 80, y: 1834, width: 920 },
       },
     ],
   },
