@@ -346,3 +346,130 @@ function Sheet({
     </div>
   )
 }
+
+function PhotoPickerSheet({
+  promoted,
+  onClose,
+  onChanged,
+}: {
+  promoted: ProfilePhoto[]
+  onClose(): void
+  onChanged(next: ProfilePhoto[]): void
+}) {
+  const [library, setLibrary] = useState<ProfilePhoto[]>([])
+  const [total, setTotal] = useState(0)
+  const [loading, setLoading] = useState(true)
+  const [busyId, setBusyId] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
+
+  const load = useCallback(async (offset: number) => {
+    setLoading(true)
+    try {
+      const result = await profileApi.library({ limit: 60, offset })
+      setTotal(result.total)
+      setLibrary((current) => (offset === 0 ? result.photos : [...current, ...result.photos]))
+    } catch (loadError) {
+      setError((loadError as Error).message)
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    void load(0)
+  }, [load])
+
+  async function toggle(photo: ProfilePhoto) {
+    const next = !photo.on_profile
+    setBusyId(photo.id)
+    setError(null)
+    try {
+      await profileApi.setPhoto(photo.id, next)
+      setLibrary((current) =>
+        current.map((entry) => (entry.id === photo.id ? { ...entry, on_profile: next } : entry))
+      )
+      onChanged(
+        next
+          ? [...promoted.filter((entry) => entry.id !== photo.id), { ...photo, on_profile: true }]
+          : promoted.filter((entry) => entry.id !== photo.id)
+      )
+    } catch (toggleError) {
+      setError((toggleError as Error).message)
+    } finally {
+      setBusyId(null)
+    }
+  }
+
+  return (
+    <Sheet
+      title="Add images to your profile"
+      note="Your own uploads. Tap to put one on the page, tap again to take it off — each change saves as you make it."
+      onClose={onClose}
+      footer={
+        library.length < total ? (
+          <StampButton
+            tone="ghost"
+            size="sm"
+            onClick={() => void load(library.length)}
+            disabled={loading}
+          >
+            {loading ? 'Loading…' : `Load more — ${total - library.length} left`}
+          </StampButton>
+        ) : (
+          <MonoLabel size="xs">
+            {promoted.length} on your page · {total} in your library
+          </MonoLabel>
+        )
+      }
+    >
+      {error ? (
+        <p className="mb-4 border border-primary px-3 py-2 font-mono text-[11px] uppercase tracking-[0.06em] text-primary">
+          {error}
+        </p>
+      ) : null}
+
+      {library.length === 0 && !loading ? (
+        <div className="rounded-[4px] border border-dashed border-border px-6 py-12 text-center">
+          <MonoLabel>You have not uploaded anything yet</MonoLabel>
+          <p className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-muted-foreground">
+            Only photographs you uploaded can go on your page. Frames from events
+            other people shared with you stay where they are.
+          </p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-3 gap-2 sm:grid-cols-5 lg:grid-cols-6">
+          {library.map((photo) => (
+            <button
+              key={photo.id}
+              type="button"
+              onClick={() => void toggle(photo)}
+              disabled={busyId === photo.id}
+              aria-pressed={photo.on_profile}
+              aria-label={photo.on_profile ? 'Take off the page' : 'Put on the page'}
+              className={cn(
+                'relative aspect-square overflow-hidden bg-surface-2 outline outline-1 -outline-offset-1 transition-all disabled:opacity-60',
+                photo.on_profile
+                  ? 'outline-2 outline-primary'
+                  : 'outline-border hover:outline-foreground'
+              )}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={photo.url} alt="" loading="lazy" className="h-full w-full object-cover" />
+              {photo.on_profile ? (
+                <span className="absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-[2px] bg-primary font-mono text-[12px] leading-none text-primary-foreground">
+                  ✓
+                </span>
+              ) : null}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {loading && library.length > 0 ? (
+        <MonoLabel size="xs" className="mt-4">
+          Loading…
+        </MonoLabel>
+      ) : null}
+    </Sheet>
+  )
+}
