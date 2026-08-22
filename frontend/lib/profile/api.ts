@@ -8,3 +8,11 @@ import type { Card } from '@/lib/cards/types'
  * covers the page around the card: who you are, what you promoted onto it, and
  * the questionnaire that builds the first one.
  */
+
+export interface ProfileAlbum {
+  id: string
+  title: string
+  cover_url: string | null
+  event_title: string | null
+  on_profile: boolean
+}
