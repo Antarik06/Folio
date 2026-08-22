@@ -607,3 +607,59 @@ function PhotoPicker({
     </div>
   )
 }
+
+function TemplatePicker({
+  catalog,
+  profile,
+  templateId,
+  onPick,
+}: {
+  catalog: Catalog
+  profile: CardProfileData
+  templateId?: string
+  onPick(templateId: string, styleId?: string): void
+}) {
+  return (
+    <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 lg:grid-cols-5">
+      {catalog.templates.map((template) => {
+        const style =
+          catalog.styles.find((entry) => entry.id === template.defaultStyleId) ?? null
+        return (
+          <button
+            key={template.id}
+            type="button"
+            onClick={() => onPick(template.id, template.defaultStyleId ?? undefined)}
+            className="group block text-left"
+            aria-pressed={template.id === templateId}
+          >
+            <div
+              className={cn(
+                'overflow-hidden bg-surface-2 outline outline-1 -outline-offset-1 transition-all',
+                template.id === templateId
+                  ? 'outline-2 outline-primary'
+                  : 'outline-border group-hover:outline-foreground'
+              )}
+              style={{
+                aspectRatio: `${template.definition.canvas.width} / ${template.definition.canvas.height}`,
+              }}
+            >
+              <CardRenderer
+                definition={template.definition}
+                style={style}
+                profile={profile}
+                title={template.name}
+              />
+            </div>
+            <MonoLabel
+              size="xs"
+              tone={template.id === templateId ? 'primary' : 'muted'}
+              className="mt-1.5 truncate"
+            >
+              {template.name}
+            </MonoLabel>
+          </button>
+        )
+      })}
+    </div>
+  )
+}
