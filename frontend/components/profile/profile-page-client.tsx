@@ -3,24 +3,13 @@
 import { useState, useTransition } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { clientFetch } from '@/lib/api-client'
-import {
-  Frame,
-  LabelledBlock,
-  MonoLabel,
-  SpecPill,
-  StampButton,
-} from '@/components/folio/primitives'
-import { CardRail } from '@/components/cards/card-rail'
-import type { Card, CardBundle } from '@/lib/cards/types'
-
-interface ProfileAlbum {
-  id: string
-  title: string
-  cover_url: string | null
-  event_title: string | null
-  on_profile: boolean
-}
+import { MonoLabel, SpecPill, StampButton } from '@/components/folio/primitives'
+import { ProfileCardStage } from '@/components/profile/card-stage'
+import { ProfileShowcase } from '@/components/profile/showcase'
+import { ShareProfileDialog } from '@/components/profile/share-profile'
+import { ProfileOnboarding, type OnboardingPhoto } from '@/components/profile/onboarding'
+import { profileApi, type ProfileAlbum, type ProfilePhoto } from '@/lib/profile/api'
+import type { Card, CardBundle, Catalog } from '@/lib/cards/types'
 
 export interface ProfilePageData {
   id: string
