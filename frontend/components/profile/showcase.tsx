@@ -473,3 +473,102 @@ function PhotoPickerSheet({
     </Sheet>
   )
 }
+
+function AlbumPickerSheet({
+  promoted,
+  drafts,
+  onClose,
+  onChanged,
+}: {
+  promoted: ProfileAlbum[]
+  drafts: ProfileAlbum[]
+  onClose(): void
+  onChanged(promoted: ProfileAlbum[], drafts: ProfileAlbum[]): void
+}) {
+  const [busyId, setBusyId] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
+
+  const all = [...promoted, ...drafts]
+
+  async function toggle(album: ProfileAlbum) {
+    const next = !album.on_profile
+    setBusyId(album.id)
+    setError(null)
+    try {
+      await profileApi.setAlbum(album.id, next)
+      const moved = { ...album, on_profile: next }
+      onChanged(
+        next
+          ? [...promoted.filter((entry) => entry.id !== album.id), moved]
+          : promoted.filter((entry) => entry.id !== album.id),
+        next
+          ? drafts.filter((entry) => entry.id !== album.id)
+          : [moved, ...drafts.filter((entry) => entry.id !== album.id)]
+      )
+    } catch (toggleError) {
+      setError((toggleError as Error).message)
+    } finally {
+      setBusyId(null)
+    }
+  }
+
+  return (
+    <Sheet
+      title="Add albums to your profile"
+      note="Albums stay private until you put one here. Each change saves as you make it."
+      onClose={onClose}
+      footer={<MonoLabel size="xs">{promoted.length} on your page · {all.length} in total</MonoLabel>}
+    >
+      {error ? (
+        <p className="mb-4 border border-primary px-3 py-2 font-mono text-[11px] uppercase tracking-[0.06em] text-primary">
+          {error}
+        </p>
+      ) : null}
+
+      {all.length === 0 ? (
+        <div className="rounded-[4px] border border-dashed border-border px-6 py-12 text-center">
+          <MonoLabel>No albums yet</MonoLabel>
+          <p className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-muted-foreground">
+            Make one from the Create tab and it will be offered here.
+          </p>
+        </div>
+      ) : (
+        <ul className="divide-y divide-border rounded-[4px] border border-border">
+          {all.map((album) => (
+            <li key={album.id} className="flex items-center gap-3 p-3 sm:gap-4">
+              <div className="h-14 w-14 shrink-0 overflow-hidden bg-surface-2">
+                {album.cover_url ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={album.cover_url}
+                    alt=""
+                    loading="lazy"
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <div className="h-full w-full border border-dashed border-border" />
+                )}
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="truncate font-serif text-base text-foreground">{album.title}</div>
+                {album.event_title ? (
+                  <MonoLabel size="xs" className="truncate">
+                    {album.event_title}
+                  </MonoLabel>
+                ) : null}
+              </div>
+              <StampButton
+                tone={album.on_profile ? 'ghost' : 'primary'}
+                size="sm"
+                onClick={() => void toggle(album)}
+                disabled={busyId === album.id}
+              >
+                {busyId === album.id ? '…' : album.on_profile ? 'Remove' : 'Add'}
+              </StampButton>
+            </li>
+          ))}
+        </ul>
+      )}
+    </Sheet>
+  )
+}
